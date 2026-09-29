@@ -72,7 +72,7 @@ private theorem exists_two_mem {α : Type*} [DecidableEq α] [LinearOrder α] {s
   exact ⟨a, b, ha, hbmem, hab'.symm⟩
 
 /-- Three pairwise distinct elements of a set of cardinality at least `3`. -/
-private theorem exists_three_mem {α : Type*} [DecidableEq α] [LinearOrder α] {s : Finset α}
+theorem exists_three_mem {α : Type*} [DecidableEq α] [LinearOrder α] {s : Finset α}
     (h : 3 ≤ s.card) :
     ∃ a b c : α, a ∈ s ∧ b ∈ s ∧ c ∈ s ∧ a ≠ b ∧ a ≠ c ∧ b ≠ c := by
   obtain ⟨a, b, ha, hb, hab⟩ := exists_two_mem (s := s) (h := by omega)
@@ -243,6 +243,182 @@ theorem classIn_avoid {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n) (i : Fin 
       ⟨fun hh => hab (sym2_inj_right hh),
         fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hvp h1) (fun ⟨h1, _⟩ => hvb_ne h1),
         fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hvp h1) (fun ⟨h1, _⟩ => hvb_ne h1)⟩
+  have hpS' : p ∈ S \ {a, b} := by
+    refine Finset.mem_sdiff.mpr ⟨hpS, ?_⟩
+    intro h
+    rcases Finset.mem_insert.mp h with h' | h'
+    · exact hpa h'
+    · exact hpb (Finset.mem_singleton.mp h')
+  have hqS' : q ∈ S \ {a, b} := by
+    refine Finset.mem_sdiff.mpr ⟨hqS, ?_⟩
+    intro h
+    rcases Finset.mem_insert.mp h with h' | h'
+    · exact hqa h'
+    · exact hqb (Finset.mem_singleton.mp h')
+  exact mem_classIn.mpr ⟨mem_edgeFinset_mk hpS' hqS' (fun hh => hoff p q rfl hh), hec⟩
+
+/-! ### Isolated two-edge paths: the centre may lie inside `S` -/
+
+/-- Two edges with the same endpoints: the two endpoints of one are each an endpoint of the
+other. -/
+theorem sym2_mem {α : Type*} {x y x' y' : α} (h : s(x, y) = s(x', y')) :
+    (x = x' ∨ x = y') ∧ (y = x' ∨ y = y') := by
+  rcases sym2_inj h with ⟨h1, h2⟩ | ⟨h1, h2⟩
+  · exact ⟨Or.inl h1, Or.inr h2⟩
+  · exact ⟨Or.inr h1, Or.inl h2⟩
+
+/-- The three edges of a triangle on three distinct vertices are pairwise distinct. -/
+theorem three_edges_ne {α : Type*} {a b d : α} (hab : a ≠ b) (had : a ≠ d) (hbd : b ≠ d) :
+    s(a, b) ≠ s(a, d) ∧ s(a, b) ≠ s(b, d) ∧ s(a, d) ≠ s(b, d) := by
+  refine ⟨fun hh => ?_, fun hh => ?_, fun hh => ?_⟩
+  · obtain ⟨h1, h2⟩ := sym2_mem hh
+    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
+  · obtain ⟨h1, h2⟩ := sym2_mem hh
+    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
+  · obtain ⟨h1, h2⟩ := sym2_mem hh
+    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
+
+/-- **No monochromatic triangle.**  In an admissible colouring of `K_n` (with `n ≥ 4`) no
+three vertices span three edges of the same colour: a fourth vertex would give a `K₄` with
+three equally coloured edges, contradicting `classIn_card_le_two`. -/
+theorem no_mono_triangle {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n) (i : Fin k)
+    {a b d : Verts n} (hab : a ≠ b) (had : a ≠ d) (hbd : b ≠ d)
+    (h : c s(a, b) = i ∧ c s(a, d) = i ∧ c s(b, d) = i) : False := by
+  obtain ⟨z, hz⟩ := exists_vertex_outside hn (threeSet a b d)
+    (by rw [card_threeSet hab had hbd]; omega)
+  have hza : a ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_self a _)
+  have hzb : b ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_of_mem (Finset.mem_insert_self b _))
+  have hzd : d ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_of_mem
+    (Finset.mem_insert_of_mem (Finset.mem_insert_self d _)))
+  have h4 : FourDistinct a b d z := ⟨hab, had, hza, hbd, hzb, hzd⟩
+  obtain ⟨he1, he2, he3⟩ := h
+  exact three_of_classIn_fourSet hc i h4 s(a, b) s(a, d) s(b, d)
+    (classIn_fourSet_mem hc i h4 a b he1 (mem_fourSet_a h4) (mem_fourSet_b h4) hab)
+    (classIn_fourSet_mem hc i h4 a d he2 (mem_fourSet_a h4) (mem_fourSet_d h4) had)
+    (classIn_fourSet_mem hc i h4 b d he3 (mem_fourSet_b h4) (mem_fourSet_d h4) hbd)
+    (three_edges_ne hab had hbd)
+
+/-- If `v` has two colour-`i` neighbours `a, b` in `S` with `a ≠ b`, then every other colour-`i`
+edge of `S` avoids both `a` and `b`: the path `a - v - b` is an isolated two-edge path of the
+colour class, whether or not `v` itself lies in `S`.
+
+This is the key structural lemma behind the counting bound `3 * |E_i| ≤ 2 * |V|`: a colour
+class of an admissible colouring is a disjoint union of single edges and two-edge paths. -/
+theorem classIn_avoid_in {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n) (i : Fin k) {v a b : Verts n}
+    {S : Finset (Verts n)} (ha : a ∈ S) (hb : b ∈ S) (hab : a ≠ b) (hva : v ≠ a) (hvb : v ≠ b)
+    (hcva : c s(v, a) = i) (hcvb : c s(v, b) = i) :
+    classIn c i S \ {s(v, a), s(v, b)} ⊆ classIn c i (S \ {a, b}) := by
+  intro e he
+  obtain ⟨h1, hec⟩ := mem_classIn.mp (Finset.mem_sdiff.mp he).1
+  have hne : e ∉ {s(v, a), s(v, b)} := (Finset.mem_sdiff.mp he).2
+  have hne1 : e ≠ s(v, a) := fun hh => hne (by simpa using Or.inl hh)
+  have hne2 : e ≠ s(v, b) := fun hh => hne (by simpa using Or.inr hh)
+  have hmem : ∀ z, z ∈ e → z ∈ S := Finset.mem_sym2_iff.mp (mem_edgeFinset.mp h1).1
+  obtain ⟨p, q, hpq⟩ : ∃ p q : Verts n, e = s(p, q) := Sym2.exists.mp ⟨e, rfl⟩
+  rw [hpq] at h1 hec hmem hne1 hne2 ⊢
+  have hoff : OffDiag s(p, q) := (mem_edgeFinset.mp h1).2
+  have hsw : s(p, q) = s(q, p) := by rw [Sym2.eq_swap]
+  have hpq : p ≠ q := hoff p q rfl
+  have hqp : q ≠ p := hoff q p hsw
+  have hpS : p ∈ S := hmem p (by rw [Sym2.mem_iff]; exact Or.inl rfl)
+  have hqS : q ∈ S := hmem q (by rw [Sym2.mem_iff]; exact Or.inr rfl)
+  by_cases hpv' : p = v
+  · -- then `q` is neither `a` nor `b`, and we are done
+    have hqa : q ≠ a := fun h2 => hne1 (by rw [hpv', h2])
+    have hqb : q ≠ b := fun h2 => hne2 (by rw [hpv', h2])
+    have hpS' : p ∈ S \ {a, b} := Finset.mem_sdiff.mpr ⟨hpS, by
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or, or_false]
+      exact ⟨fun hh => hva (hpv'.symm.trans hh), fun hh => hvb (hpv'.symm.trans hh)⟩⟩
+    have hqS' : q ∈ S \ {a, b} := Finset.mem_sdiff.mpr ⟨hqS, by
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or, or_false]
+      exact ⟨hqa, hqb⟩⟩
+    exact mem_classIn.mpr ⟨mem_edgeFinset_mk hpS' hqS' hpq, hec⟩
+  by_cases hqv' : q = v
+  · have hpa : p ≠ a := fun h2 => hne1 (by rw [h2, hqv']; exact Sym2.eq_swap)
+    have hpb : p ≠ b := fun h2 => hne2 (by rw [h2, hqv']; exact Sym2.eq_swap)
+    have hpS' : p ∈ S \ {a, b} := Finset.mem_sdiff.mpr ⟨hpS, by
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or, or_false]
+      exact ⟨hpa, hpb⟩⟩
+    have hqS' : q ∈ S \ {a, b} := Finset.mem_sdiff.mpr ⟨hqS, by
+      simp only [Finset.mem_insert, Finset.mem_singleton, not_or, or_false]
+      exact ⟨fun hh => hva (hqv'.symm.trans hh), fun hh => hvb (hqv'.symm.trans hh)⟩⟩
+    exact mem_classIn.mpr ⟨mem_edgeFinset_mk hpS' hqS' hpq, hec⟩
+  -- `p, q ∉ {v, a, b}`: the three colour-`i` edges `s(v,a)`, `s(v,b)`, `s(p,q)` would lie in a
+  -- `K₄`, which is impossible
+  have hno_tri : ¬ c s(a, b) = i := by
+    intro htri
+    obtain ⟨z, hz⟩ := exists_vertex_outside hn (threeSet v a b)
+      (by rw [card_threeSet hva hvb hab]; omega)
+    have hzv : z ≠ v := ne_of_notMem_of_mem hz (Finset.mem_insert_self _ _)
+    have hza : z ≠ a := ne_of_notMem_of_mem hz (Finset.mem_insert_of_mem (Finset.mem_insert_self _ _))
+    have hzb : z ≠ b := ne_of_notMem_of_mem hz
+      (Finset.mem_insert_of_mem (Finset.mem_insert_of_mem (Finset.mem_insert_self _ _)))
+    have h4z : FourDistinct v a b z :=
+      ⟨hva, hvb, fun hh => hzv hh.symm, hab, fun hh => hza hh.symm, fun hh => hzb hh.symm⟩
+    exact three_of_classIn_fourSet hc i h4z s(v, a) s(v, b) s(a, b)
+      (classIn_fourSet_mem hc i h4z v a hcva (mem_fourSet_a h4z) (mem_fourSet_b h4z) hva)
+      (classIn_fourSet_mem hc i h4z v b hcvb (mem_fourSet_a h4z) (mem_fourSet_d h4z) hvb)
+      (classIn_fourSet_mem hc i h4z a b htri (mem_fourSet_b h4z) (mem_fourSet_d h4z) hab)
+      ⟨fun hh => hab (sym2_inj_right hh),
+        fun hh => (sym2_inj hh).elim (fun ⟨_, h2⟩ => hab h2) (fun ⟨h1, _⟩ => hvb h1),
+        fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hva h1) (fun ⟨_, h2⟩ => hab h2.symm)⟩
+  have hpa : p ≠ a := by
+    intro hh
+    rw [hh] at hoff hec
+    have hqa : q ≠ a := fun h2 => hoff a a (by rw [h2]) rfl
+    by_cases hqb' : q = b
+    · rw [hqb'] at hec
+      exact hno_tri hec
+    · have h4q : FourDistinct v a b q :=
+        ⟨hva, hvb, fun hh => hqv' hh.symm, hab, fun hh => hqa hh.symm, fun hh => hqb' hh.symm⟩
+      exact three_of_classIn_fourSet hc i h4q s(v, a) s(v, b) s(a, q)
+        (classIn_fourSet_mem hc i h4q v a hcva (mem_fourSet_a h4q) (mem_fourSet_b h4q) hva)
+        (classIn_fourSet_mem hc i h4q v b hcvb (mem_fourSet_a h4q) (mem_fourSet_d h4q) hvb)
+        (classIn_fourSet_mem hc i h4q a q hec (mem_fourSet_b h4q) (mem_fourSet_e h4q)
+          (fun hh => hqa hh.symm))
+        ⟨fun hh => hab (sym2_inj_right hh),
+          fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hva h1) (fun ⟨h1, _⟩ => hqv' h1.symm),
+          fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hva h1) (fun ⟨h1, _⟩ => hqv' h1.symm)⟩
+  have hpb : p ≠ b := by
+    intro hh
+    rw [hh] at hoff hec
+    have hqb : q ≠ b := fun h2 => hoff b b (by rw [h2]) rfl
+    by_cases hqa' : q = a
+    · rw [hqa'] at hec
+      rw [Sym2.eq_swap] at hec
+      exact hno_tri hec
+    · have h4q : FourDistinct v a b q :=
+        ⟨hva, hvb, fun hh => hqv' hh.symm, hab, fun hh => hqa' hh.symm, fun hh => hqb hh.symm⟩
+      exact three_of_classIn_fourSet hc i h4q s(v, a) s(v, b) s(b, q)
+        (classIn_fourSet_mem hc i h4q v a hcva (mem_fourSet_a h4q) (mem_fourSet_b h4q) hva)
+        (classIn_fourSet_mem hc i h4q v b hcvb (mem_fourSet_a h4q) (mem_fourSet_d h4q) hvb)
+        (classIn_fourSet_mem hc i h4q b q hec (mem_fourSet_d h4q) (mem_fourSet_e h4q)
+          (fun hh => hqb hh.symm))
+        ⟨fun hh => hab (sym2_inj_right hh),
+          fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hvb h1) (fun ⟨h1, _⟩ => hqv' h1.symm),
+          fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hvb h1) (fun ⟨h1, _⟩ => hqv' h1.symm)⟩
+  have hqa : q ≠ a := by
+    intro h2
+    rw [h2] at hec
+    have h4 : FourDistinct v p a b := ⟨fun hh => hpv' hh.symm, hva, hvb, hpa, hpb, hab⟩
+    exact three_of_classIn_fourSet hc i h4 s(v, a) s(v, b) s(p, a)
+      (classIn_fourSet_mem hc i h4 v a hcva (mem_fourSet_a h4) (mem_fourSet_d h4) hva)
+      (classIn_fourSet_mem hc i h4 v b hcvb (mem_fourSet_a h4) (mem_fourSet_e h4) hvb)
+      (classIn_fourSet_mem hc i h4 p a hec (mem_fourSet_b h4) (mem_fourSet_d h4) hpa)
+      ⟨fun hh => hab (sym2_inj_right hh),
+        fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hpv' h1.symm) (fun ⟨h1, _⟩ => hva h1),
+        fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hpv' h1.symm) (fun ⟨h1, _⟩ => hva h1)⟩
+  have hqb : q ≠ b := by
+    intro h2
+    rw [h2] at hec
+    have h4 : FourDistinct v p a b := ⟨fun hh => hpv' hh.symm, hva, hvb, hpa, hpb, hab⟩
+    exact three_of_classIn_fourSet hc i h4 s(v, a) s(v, b) s(p, b)
+      (classIn_fourSet_mem hc i h4 v a hcva (mem_fourSet_a h4) (mem_fourSet_d h4) hva)
+      (classIn_fourSet_mem hc i h4 v b hcvb (mem_fourSet_a h4) (mem_fourSet_e h4) hvb)
+      (classIn_fourSet_mem hc i h4 p b hec (mem_fourSet_b h4) (mem_fourSet_e h4) hpb)
+      ⟨fun hh => hab (sym2_inj_right hh),
+        fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hpv' h1.symm) (fun ⟨h1, _⟩ => hvb h1),
+        fun hh => (sym2_inj hh).elim (fun ⟨h1, _⟩ => hpv' h1.symm) (fun ⟨h1, _⟩ => hvb h1)⟩
   have hpS' : p ∈ S \ {a, b} := by
     refine Finset.mem_sdiff.mpr ⟨hpS, ?_⟩
     intro h

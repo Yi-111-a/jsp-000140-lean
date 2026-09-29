@@ -2,10 +2,10 @@
   "jsp_id": "JSP-000140",
   "catalog_url": "https://github.com/TheJustinSunPrize/awards/blob/main/problems/catalog-0101-0200.md#JSP-000140",
   "original_question_en": "How many edge colors are necessary if every four-vertex clique must contain at least five colors?",
-  "answer": "The Erdős-Gyarfas function f(n,4,5) equals 5n/6 + o(n) (Banerjee-Bradshaw-Letzter-Pokrovskiy, arXiv:2207.02920).",
+  "answer": "The Erd\u0151s-Gyarfas function f(n,4,5) equals 5n/6 + o(n) (Banerjee-Bradshaw-Letzter-Pokrovskiy, arXiv:2207.02920).",
   "required_theorems": [
     "jsp_000140_main"
   ],
   "statement": "f(n,4,5) = 5n/6 + o(n), i.e. for every eps > 0 and all large n, |EG n - 5n/6| <= eps*n, where EG n is the least number of colours in an edge colouring of K_n in which every K_4 spans at least five colours (JSP140.FiveSixth JSP140.EG, JSP140.jsp_000140_target).",
-  "notes": "Catalog statement recovered 2026-09-30. Round 1: build OK, 0 sorry/admit, partial_ok=true; the structural theorems (no three equally coloured edges in a K_4, max degree 2 per colour class, no monochromatic triangle, isolated 2-edge paths) and the reduction of the headline to two colouring bounds are proved; the counting lemma 3*|E_i| <= 2*|V| and hence the classical lower bound f(n,4,5) >= 3(n-1)/4 are the next step."
+  "notes": "Catalog statement recovered 2026-09-30. Round 2: build OK, 0 sorry/admit, partial_ok=true. Round 2 proved the classical counting bound in full (Counting.lean): the structural theorem nb_eq_singleton (every colour class of an admissible colouring is a disjoint union of single edges and two-edge paths), the degree-sum identity, the disjointness of the two-edge paths (2|A| <= |B|), the counting lemma 3*|E_i| <= 2n, the partition of the edges by colour classes, and hence the classical Erd\u0151s-Gy\u00e1rf\u00e1s bound 3*(n-1) <= 4*k, i.e. f(n,4,5) >= 3(n-1)/4 (Counting.classical_lower_bound), plus the corollary fiveSixthLower_at_eighth: the lower half of the headline holds for every eps >= 1/8 and n >= 18. The key new structural lemma is classIn_avoid_in (ColorClass.lean), the round-1 blocker 1. Still missing for jsp_000140_main: the linear (round-robin) construction for the two-sided shape bound, and the BCDP22 sharpening 3/4 -> 5/6 (both eps-sides)."
 }

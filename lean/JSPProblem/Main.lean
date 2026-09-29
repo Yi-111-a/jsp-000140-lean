@@ -1,5 +1,6 @@
 import JSPProblem.Definitions
 import JSPProblem.ColorClass
+import JSPProblem.Counting
 
 /-!
 # JSP-000140 — the headline statement
@@ -26,7 +27,22 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
   statement to two purely combinatorial statements, one for each direction.  These are proved
   and identify exactly what still has to be proved for the prize.
 * Proved partial results: the **local structure theorem** (`Definitions.lean`,
-  `ColorClass.lean`) and the upper bound `f(n,4,5) ≤ n²`.
+  `ColorClass.lean`, `Counting.lean`), the **classical bound** `f(n,4,5) ≥ 3(n-1)/4`
+  (`Counting.classical_lower_bound`, `Counting.EG_ge_classical`) and the upper bound
+  `f(n,4,5) ≤ n²` (`Definitions.EG_le_sq`).
+
+## Status of the headline (round 2)
+
+* **Lower half, for `ε ≥ 1/8`**: proved (`fiveSixthLower_at_eighth`), on the strength of the
+  classical counting bound `f(n,4,5) ≥ 3(n-1)/4` of `Counting.classical_lower_bound`.
+* **Lower half, for `0 < ε < 1/8`**: open.  This is exactly the sharpening of the counting
+  constant `3/4` to `5/6` (BCDP22); in the framework of `Counting.lean` it says that at least
+  two thirds of the edges lie in single-edge components of their colour class, i.e.
+  `|{two-edge paths}| ≤ n²/6 + o(n²)`.
+* **Upper half**: open.  Even the two-sided `O(n)`-shape bound is missing, because no linear
+  construction is formalised yet (the best upper bound in this development is
+  `f(n,4,5) ≤ n²`, `EG_le_sq`).  The missing ingredient is a round-robin / 1-factorisation
+  colouring with `n` (odd) or `n-1` (even) colours.
 -/
 
 namespace JSP140
@@ -91,46 +107,40 @@ theorem jsp_000140_target_iff : jsp_000140_target ↔ AdmissibleLower 1 ∧ Admi
 
 /-! ### Proved partial results -/
 
-/-- Two edges with the same endpoints: the two endpoints of one are each an endpoint of the
-other. -/
-private lemma sym2_mem {α : Type*} {x y x' y' : α} (h : s(x, y) = s(x', y')) :
-    (x = x' ∨ x = y') ∧ (y = x' ∨ y = y') := by
-  rcases sym2_inj h with ⟨h1, h2⟩ | ⟨h1, h2⟩
-  · exact ⟨Or.inl h1, Or.inr h2⟩
-  · exact ⟨Or.inr h1, Or.inl h2⟩
-
-/-- The three edges of a triangle on three distinct vertices are pairwise distinct. -/
-theorem three_edges_ne {α : Type*} {a b d : α} (hab : a ≠ b) (had : a ≠ d) (hbd : b ≠ d) :
-    s(a, b) ≠ s(a, d) ∧ s(a, b) ≠ s(b, d) ∧ s(a, d) ≠ s(b, d) := by
-  refine ⟨fun hh => ?_, fun hh => ?_, fun hh => ?_⟩
-  · obtain ⟨h1, h2⟩ := sym2_mem hh
-    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
-  · obtain ⟨h1, h2⟩ := sym2_mem hh
-    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
-  · obtain ⟨h1, h2⟩ := sym2_mem hh
-    rcases h1 with h1 | h1 <;> rcases h2 with h2 | h2 <;> aesop
-
-/-- **No monochromatic triangle.**  In an admissible colouring of `K_n` (with `n ≥ 4`) no
-three vertices span three edges of the same colour: a fourth vertex would give a `K₄` with
-three equally coloured edges, contradicting `classIn_card_le_two`. -/
-theorem no_mono_triangle {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n) (i : Fin k)
-    {a b d : Verts n} (hab : a ≠ b) (had : a ≠ d) (hbd : b ≠ d)
-    (h : c s(a, b) = i ∧ c s(a, d) = i ∧ c s(b, d) = i) : False := by
-  obtain ⟨z, hz⟩ := exists_vertex_outside hn (threeSet a b d)
-    (by rw [card_threeSet hab had hbd]; omega)
-  have hza : a ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_self a _)
-  have hzb : b ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_of_mem (Finset.mem_insert_self b _))
-  have hzd : d ≠ z := fun hh => hz (hh ▸ Finset.mem_insert_of_mem
-    (Finset.mem_insert_of_mem (Finset.mem_insert_self d _)))
-  have h4 : FourDistinct a b d z := ⟨hab, had, hza, hbd, hzb, hzd⟩
-  obtain ⟨he1, he2, he3⟩ := h
-  exact three_of_classIn_fourSet hc i h4 s(a, b) s(a, d) s(b, d)
-    (classIn_fourSet_mem hc i h4 a b he1 (mem_fourSet_a h4) (mem_fourSet_b h4) hab)
-    (classIn_fourSet_mem hc i h4 a d he2 (mem_fourSet_a h4) (mem_fourSet_d h4) had)
-    (classIn_fourSet_mem hc i h4 b d he3 (mem_fourSet_b h4) (mem_fourSet_d h4) hbd)
-    (three_edges_ne hab had hbd)
-
 /-- The upper bound proved in this development: `f(n,4,5) ≤ n²` (the injective colouring). -/
 theorem upper_bound_sq (n : ℕ) : EG n ≤ n * n := EG_le_sq n
+
+/-- **The classical lower bound in real form** (Erdős–Gyárfás 1977): for `n ≥ 4`,
+`f(n,4,5) ≥ 3(n-1)/4`.  This is the bound which the paper of Banerjee–Bradshaw–Letzter–
+Pokrovskiy (arXiv:2207.02920) sharpens to `5n/6 - o(n)`. -/
+theorem EG_ge_classical_real (n : ℕ) (hn : 4 ≤ n) :
+    (3 : ℝ) * ((n - 1 : ℕ) : ℝ) / 4 ≤ (EG n : ℝ) := by
+  have h := EG_ge_classical n hn
+  have h' : (3 : ℝ) * ((n - 1 : ℕ) : ℝ) ≤ 4 * (EG n : ℝ) := by exact_mod_cast h
+  linarith
+
+/-- A numerical consequence of the classical bound: `f(n,4,5) ≥ n/3` for `n ≥ 4`. -/
+theorem EG_ge_third (n : ℕ) (hn : 4 ≤ n) : (EG n : ℝ) ≥ (n : ℝ) / 3 := by
+  have h := EG_ge_classical_real n hn
+  rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)] at h
+  norm_num at h
+  have h4 : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  nlinarith
+
+/-- **How far the classical bound gets towards the headline.**  The lower half of
+`jsp_000140_target` asks for `5n/6 - ε n ≤ f(n,4,5)` for every `ε > 0` and all large `n`.  The
+classical bound `3(n-1)/4 ≤ f(n,4,5)` proves exactly this for every `ε ≥ 1/8` and all `n ≥ 18`,
+because `5n/6 - n/8 = 17n/24 ≥ 3(n-1)/4` as soon as `n ≥ 18`.  So the missing content of the
+headline is sharply localised: the range `0 < ε < 1/8`, i.e. the passage from the constant
+`3/4` to the constant `5/6` that is the content of the paper of Banerjee–Bradshaw–Letzter–
+Pokrovskiy. -/
+theorem fiveSixthLower_at_eighth (ε : ℝ) (hε : 1 / 8 ≤ ε) :
+    ∃ N : ℕ, ∀ n : ℕ, N ≤ n → 5 * (n : ℝ) / 6 - ε * n ≤ (EG n : ℝ) := by
+  refine ⟨18, fun n hn => ?_⟩
+  have h1 := EG_ge_classical_real n (by omega)
+  rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)] at h1
+  norm_num at h1
+  have h4 : (18 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  nlinarith
 
 end JSP140
