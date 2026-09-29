@@ -1,0 +1,28 @@
+jsp_id: JSP-000140
+catalog_url: https://github.com/TheJustinSunPrize/awards
+status: wip  # round 1: build OK, 0 sorry/admit, partial_ok=true; missing jsp_000140_main (see ACCEPTANCE.md)
+prize_ready: false
+github_owner: Yi-111-a
+lean_repository: https://github.com/Yi-111-a/jsp-000140-lean
+branch: main
+commit_sha: ""
+headline_theorems:
+  - jsp_000140_main
+roles:
+  formalization_operators:
+    - Yi-111-a
+attribution_basis: |
+  Formalization WIP under Yi-111-a. No prize claim.
+build:
+  toolchain_file: lean/lean-toolchain
+  command: lake build
+  build_ok: true
+  sorry: 0
+  admit: 0
+  partial_ok: true
+  prize_ready: false
+  missing_theorems: [jsp_000140_main]
+modules:
+  - lean/JSPProblem/Definitions.lean
+  - lean/JSPProblem/ColorClass.lean
+  - lean/JSPProblem/Main.lean

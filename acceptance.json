@@ -1,0 +1,11 @@
+{
+  "jsp_id": "JSP-000140",
+  "catalog_url": "https://github.com/TheJustinSunPrize/awards/blob/main/problems/catalog-0101-0200.md#JSP-000140",
+  "original_question_en": "How many edge colors are necessary if every four-vertex clique must contain at least five colors?",
+  "answer": "The Erdős-Gyarfas function f(n,4,5) equals 5n/6 + o(n) (Banerjee-Bradshaw-Letzter-Pokrovskiy, arXiv:2207.02920).",
+  "required_theorems": [
+    "jsp_000140_main"
+  ],
+  "statement": "f(n,4,5) = 5n/6 + o(n), i.e. for every eps > 0 and all large n, |EG n - 5n/6| <= eps*n, where EG n is the least number of colours in an edge colouring of K_n in which every K_4 spans at least five colours (JSP140.FiveSixth JSP140.EG, JSP140.jsp_000140_target).",
+  "notes": "Catalog statement recovered 2026-09-30. Round 1: build OK, 0 sorry/admit, partial_ok=true; the structural theorems (no three equally coloured edges in a K_4, max degree 2 per colour class, no monochromatic triangle, isolated 2-edge paths) and the reduction of the headline to two colouring bounds are proved; the counting lemma 3*|E_i| <= 2*|V| and hence the classical lower bound f(n,4,5) >= 3(n-1)/4 are the next step."
+}
