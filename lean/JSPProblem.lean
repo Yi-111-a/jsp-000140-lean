@@ -6,3 +6,6 @@ import JSPProblem.Ghost
 import JSPProblem.Construction
 import JSPProblem.Main
 import JSPProblem.Restriction
+import JSPProblem.Extremal
+import JSPProblem.Slack
+import JSPProblem.Singles

@@ -41,6 +41,59 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 15)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 15 EXTRACTS THE PARITY OF THE EXTREMAL CASE, REPAIRS THE ROUND-14 REDUCTION, AND COMPLETES
+THE STRUCTURE OF THE EXTREMAL COLOURINGS.**  Three new files, 908 lines, 39 declarations, zero `sorry`.
+
+### 1. The arithmetic of extremality (`lean/JSPProblem/Extremal.lean`, 349 lines)
+
+* `oneB_even` — **THE HANDSHAKING LEMMA FOR A COLOUR CLASS.**  In a colour class every vertex has
+  colour-degree `0`, `1` or `2` and the degree sum is `2 * |E_i|`, hence the number of degree-`1`
+  vertices is **even**: they come in pairs.  This is the parity input which the counting lemmas of
+  `Cherry.lean` and `Paths.lean` discard (they compare cardinalities linearly).
+* `pathEdges`, `card_pathEdges`, `pathEdges_disjoint`, `two_mul_twoA_le_classIn` — the two edges of a
+  two-edge path, two per path, pairwise disjoint inside a colour class: `2 * |A_i| ≤ |E_i|`.
+* `tight_three_mul_twoA_le` — in the extremal case `3 * |A_i| ≤ n` for every colour `i`.
+* **`tight_twoA_odd` — in the extremal case every colour class contains an ODD number of two-edge
+  paths** (`|A_i| = n - |B_i|`, `n ≡ 1 (mod 6)` odd, `|B_i|` even), hence
+* `tight_twoA_le` — `|A_i| ≤ (n-4)/3`, and `tight_paths_le`;
+* **`tight_ge_thirteen` — AN EXTREMAL ADMISSIBLE COLOURING OF `K_n` REQUIRES `n ≥ 13`**
+  (`(6t+1)t ≤ 5t(2t-1) ⟹ t ≥ 2` for `n = 6t+1`);
+* `no_five_colouring_of_K7`, **`EG_seven_ge_six`: `f(7,4,5) ≥ 6 > 5 = 5(7-1)/6`** — the first
+  *strict* improvement of the sharp `5/6` lower bound at a concrete `n`.
+
+### 2. The faithful `o(n)` hypothesis (`lean/JSPProblem/Slack.lean`, 194 lines)
+
+The round-14 hypothesis (`6k = 5(m-1)` for every `m ≡ 1 (mod 6)`) is **strictly stronger than the
+published result** `f(n,4,5) = 5n/6 + o(n)`, which only gives `6k ≤ 5(m-1) + δm` for every `δ > 0`.
+This file states the hypothesis the paper actually supplies and proves the upper half from it:
+
+* `STSFamily` / `SlackFamily` — for every `δ > 0` and all large `m ≡ 1 (mod 6)`, an admissible
+  `k`-colouring of `K_m` with `6k ≤ 5(m-1) + δm` (and, for `STSFamily`, with a Steiner triple system
+  of two-edge paths);
+* `fiveSixthUpper_of_slack_family` — `f(n,4,5) ≤ 5n/6 + εn` for all
+  `n ≥ max (M(ε/2)+7, ⌈10/ε⌉+1)`;
+* **`jsp_000140_main_of_STS_slack_family` — THE REQUIRED STATEMENT REDUCED TO THE TRUE CONTENT OF
+  arXiv:2207.02920**; `STSFamily_of_extremal` shows nothing of round 14 is lost.
+
+### 3. The single-edge half of the extremal structure (`lean/JSPProblem/Singles.lean`, 365 lines)
+
+* `singleFinset`, `mem_singleFinset`; `twoA_oneB_or_zero`; `single_or_center`;
+* **`mem_classIn_single_or_path` — every edge of a colour class is a path edge or an isolated single
+  edge**; `card_single_in_classIn`;
+* **`card_singleFinset` — THE SINGLE-EDGE IDENTITY `|E(K_n)| = 2 * Paths c + (number of single
+  edges)`**; `paths_le_singles` (`Paths c ≤ #single edges`, the dual of
+  `Cherry.three_mul_paths_le_edges`); `leafEdge_subset_single`, `leafEdge_disjoint`;
+* **`tight_card_singles` and `tight_single_is_leaf` — IN THE EXTREMAL CASE THE SINGLE EDGES ARE EXACTLY
+  THE LEAF EDGES OF THE TWO-EDGE PATHS, one for each**, i.e. the `n(n-1)/6` single edges are in
+  canonical bijection with the blocks of the Steiner triple system of `Rigidity`;
+* `Main.extremal_structure_complete` collects the whole extremal case in one theorem.
+
 ## Status (round 14)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

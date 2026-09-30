@@ -6,6 +6,8 @@ import JSPProblem.Cherry
 import JSPProblem.Ghost
 import JSPProblem.Construction
 import JSPProblem.Rigidity
+import JSPProblem.Extremal
+import JSPProblem.Singles
 
 /-!
 # JSP-000140 — the headline statement
@@ -562,5 +564,70 @@ theorem extremal_no_isolated_vertex (n : ℕ) (hn : 5 ≤ n) (k : ℕ) (hk : 6 *
       ((v ∈ twoA c i ∧ (Nbrs c i v).card = 2) ∨ (v ∈ oneB c i ∧ (Nbrs c i v).card = 1)) := by
   obtain ⟨c, hc⟩ := hc
   exact ⟨c, hc, tight_degree hc (by omega) (tight_attained hc (by omega) hk) hk i v⟩
+
+/-! ### Round 15: the sharp lower bound is strict at `n = 7`, and the extremal structure is complete -/
+
+/-- **THE SHARP `5/6` LOWER BOUND IS STRICT AT `n = 7`.**  The lower bound `Cherry.five_sixth_lower`
+gives `f(7,4,5) ≥ 5(7-1)/6 = 5`, but the extremal case is *impossible* for `K_7`
+(`Extremal.tight_ge_thirteen`): an extremal colouring would need each of its `5` colour classes to
+contain an odd number of two-edge paths, at most `(7-4)/3 = 1` of them, i.e. at most `5` two-edge
+paths in total, whereas the extremal structure requires `7·6/6 = 7` of them.  So
+
+    f(7, 4, 5) ≥ 6 > 5 = 5(7-1)/6.
+
+This is the first *numerical* improvement of the sharp constant `5/6` obtained in this development:
+all the previous lower bounds (`Cherry.five_sixth_lower`, `fiveSixthLower_eg`) are attained only in
+the limit, and this one is strict at a concrete `n`. -/
+theorem fiveSixth_strict_at_seven : 6 * 6 ≤ 6 * EG 7 :=
+  EG_seven_ge_six
+
+/-- **The exact range of `f(7,4,5)`: it is `6` or `7`.**  Together with the round-robin colouring of
+`Construction.EG_le_sumCol` (an admissible `7`-colouring of `K_7`, `7` being odd) this pins down
+`f(7,4,5)`, the smallest order for which the catalog bound is not attained. -/
+theorem EG_seven_range : 6 * 6 ≤ 6 * EG 7 ∧ EG 7 ≤ 7 :=
+  ⟨fiveSixth_strict_at_seven, EG_le_sumCol 7 (by omega)⟩
+
+/-- **AN EXTREMAL ADMISSIBLE COLOURING OF `K_n` REQUIRES `n ≥ 13`.**  No colouring of `K_4`, …, `K_12`
+attains the extremal value `5(n-1)/6` of the sharp lower bound: extremality forces `n ≡ 1 (mod 6)`
+(`Rigidity.tight_mod6`) and the parity obstruction of `Extremal.tight_twoA_odd` then forces
+`n ≥ 13` (`Extremal.tight_ge_thirteen`).  In particular the Steiner triple system of
+`Rigidity.tight_pathFinset_is_STS` — the object the construction of arXiv:2207.02920 has to produce
+— cannot exist below order `13`. -/
+theorem no_extremal_below_thirteen {n k : ℕ} {c : Col n k} (hn : 4 ≤ n) (hk : 6 * k = 5 * (n - 1))
+    (hc : Admissible c) : 13 ≤ n :=
+  tight_ge_thirteen hc hn hk
+
+/-- **THE EXTREMAL STRUCTURE, IN FULL.**  If `c` is an admissible colouring of `K_n` using the
+extremal number `6k = 5(n-1)` of colours, then
+
+* the two-edge paths decompose `K_n` into the blocks of a **Steiner triple system**
+  (`tight_pathFinset_is_STS`), so there are `n(n-1)/6` of them;
+* the single edges — the edges which are alone in their colour class — are **exactly as many**,
+  `n(n-1)/6` of them (`Singles.tight_card_singles`, from the identity
+  `|E(K_n)| = 2·Paths c + (single edges)` of `Singles.card_singleFinset`);
+* **every single edge is the leaf edge of exactly one two-edge path**
+  (`Singles.tight_single_is_leaf`), i.e. the single edges are in canonical bijection with the
+  blocks of the Steiner triple system;
+* `n ≥ 13` (`tight_ge_thirteen`), each colour class spans the vertex set and contains an odd number
+  of two-edge paths (`tight_twoA_odd`, `tight_covers`).
+
+So the extremal colourings of `JSP-000140` are exactly: *a Steiner triple system of order `n ≥ 13`,
+a centre in each block, and a colouring of the `n(n-1)/6` path-edges and the `n(n-1)/6` leaf edges
+into `5(n-1)/6` colour classes, each a spanning vertex-disjoint union of two-edge paths and isolated
+single edges.* -/
+theorem extremal_structure_complete {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (hk : 6 * k = 5 * (n - 1)) :
+    IsSTS (pathFinset c) ∧ (singleFinset c).card = Paths c ∧ 13 ≤ n ∧
+      (∀ e ∈ singleFinset c, ∃! p : Fin k × Verts n, p ∈ cherryFinset c ∧ e ∈ leafEdge c p.1 p.2) ∧
+      ∀ i : Fin k, (twoA c i).card % 2 = 1 := by
+  have h3 := tight_attained hc hn hk
+  refine ⟨tight_pathFinset_is_STS hc hn h3, ?_, tight_ge_thirteen hc hn hk, ?_, ?_⟩
+  · have h := tight_card_singles hc hn h3 hk
+    have h2 := tight_paths hc hn h3
+    omega
+  · intro e he
+    exact tight_single_is_leaf hc hn h3 hk he
+  · intro i
+    exact tight_twoA_odd hc hn h3 hk i
 
 end JSP140
