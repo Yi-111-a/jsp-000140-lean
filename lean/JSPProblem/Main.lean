@@ -10,6 +10,7 @@ import JSPProblem.Extremal
 import JSPProblem.Singles
 import JSPProblem.Tables
 import JSPProblem.Search
+import JSPProblem.FastSearch
 
 /-!
 # JSP-000140 — the headline statement
@@ -700,5 +701,50 @@ theorem small_values : EG 4 = 5 ∧ EG 5 = 5 ∧ EG 6 = 5 :=
 which the (pruned) search terminates is *decided* in Lean. -/
 theorem search_certificates_are_bounds {n k : ℕ}
     (h : hasAdmissible n k = false) : k + 2 ≤ EG n := EG_ge_of_cert h
+
+/-! ### The same certificates, re-derived by the symmetry-reduced search
+
+`FastSearch.lean` replaces the search of `Search.lean` by a *complete* one which branches only
+over the colours in order of first occurrence (the colour-permutation symmetry reduction) and
+enumerates the four-cliques as a list of increasing quadruples.  Its completeness theorem
+`FastSearch.searchAuxS_iff` — proved in round 20, the single blocker of round 19 — says the
+search returns `true` on a partial colouring **iff some admissible colouring extends it**, and
+`FastSearch.searchAuxSg_iff` is the same for the second, faster version of the search, in which
+the `K₄`s completed by each slot are enumerated once (`fourGroupsS`) rather than at every node.
+
+Because the two searches are *different programs*, the values below are certified twice,
+independently. -/
+
+/-- **THE EXACT VALUES RE-DERIVED BY THE SYMMETRY-REDUCED SEARCH**: `f(4,4,5) = f(5,4,5) =
+f(6,4,5) = 5`.  The lower bounds are `native_decide` certificates for the new search
+(`FastSearch.certSym_*`, `FastSearch.certG_*`); the upper bounds use the explicit colourings of
+`Tables.lean` and `Construction.lean`, so no search is needed for them. -/
+theorem small_values_by_sym_search : EG 4 = 5 ∧ EG 5 = 5 ∧ EG 6 = 5 :=
+  ⟨Nat.le_antisymm EG_four_le EG_four_ge_sym,
+    Nat.le_antisymm (EG_le_sumCol 5 (by norm_num)) EG_five_ge_sym,
+    EG_six⟩
+
+/-- **THE SEARCH FINDS THE 1-FACTORISATION OF `K₆`**: `hasAdmissibleSym 6 4 = true` says an
+admissible 5-colouring of `K₆` exists, so `f(6,4,5) ≤ 5`; with `certSym_six_four` this pins
+`f(6,4,5) = 5` *using the search on both sides*. -/
+theorem EG_six_by_search : EG 6 = 5 :=
+  Nat.le_antisymm
+    (by obtain ⟨c, hc⟩ := (hasAdmissibleSym_iff 6 4).mp certSym_six_five; exact EG_le 6 5 c hc)
+    EG_six_ge_sym
+
+/-- The symmetry-reduced search is a source of lower bounds for `f`, exactly as `Search.lean`. -/
+theorem sym_search_certificates_are_bounds {n k : ℕ}
+    (h : hasAdmissibleSym n k = false) : k + 2 ≤ EG n := EG_ge_of_certSym h
+
+/-- ... and so is the fast search with the precomputed group table. -/
+theorem fast_search_certificates_are_bounds {n k : ℕ}
+    (h : hasAdmissibleSymG n k = false) : k + 2 ≤ EG n := EG_ge_of_certG h
+
+/-- **THE SEARCHES AGREE.**  `certs_agree` : whenever both the search of `Search.lean` and the
+symmetry-reduced search of `FastSearch.lean` return `false` for the same `(n,k)`, they certify
+the same bound on `f(n,4,5)`. -/
+theorem the_searches_agree (n k : ℕ)
+    (h1 : hasAdmissible n k = false) (h2 : hasAdmissibleSym n k = false) :
+    k + 2 ≤ EG n ∧ k + 2 ≤ EG n := certs_agree n k h1 h2
 
 end JSP140

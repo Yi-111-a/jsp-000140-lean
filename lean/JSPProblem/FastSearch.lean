@@ -32,7 +32,21 @@ This file removes **both** obstacles, keeping the "no axioms, no sorries" charac
   slot can be brought into the range the search explores;
 * **`hasAdmissibleSym_iff` / `EG_ge_of_certSym`** — the lower-bound engine again: a
   `native_decide` certificate `hasAdmissibleSym n k = false` is a Lean proof that no admissible
-  `k+1`-colouring of `K_n` exists, hence that `f(n,4,5) ≥ k+2`.
+  `k+1`-colouring of `K_n` exists, hence that `f(n,4,5) ≥ k+2`;
+* **`fourGroupsS` / `searchAuxSg` / `searchAuxSg_iff` — A SECOND, FASTER SEARCH, ALSO PROVED
+  COMPLETE.**  `searchAuxS` recomputes `groupsOf n d` — a filter over the `n⁴` quadruples — at
+  *every* search node; `searchAuxSg` receives the table of the `K₄`s of each slot
+  (`fourGroupsS`) as an argument, so the table is built **once**.  Its completeness theorem has
+  exactly the same shape, with `mem_fourGroupsS` in place of `mem_groupsOf`.
+
+## Status
+
+`searchAuxS_iff`, `searchAuxSg_iff`, `hasAdmissibleSym_iff`, `hasAdmissibleSymG_iff`,
+`EG_ge_of_certSym`, `EG_ge_of_certG` and the six certificates `certSym_*`, `certG_*` are all
+proved, with no placeholder anywhere in the development.  What is *not* proved is the certificate
+`hasAdmissibleSymG 7 5 = false` (no admissible 6-colouring of `K₇`), which would give the exact
+value `f(7,4,5) = 7`; the search is correct and its constant factor has been reduced, but the
+evaluation is 13 301 689 nodes and does not fit in the available CPU budget.
 -/
 
 set_option maxHeartbeats 1000000
@@ -607,5 +621,494 @@ def hasAdmissibleSym (n k : ℕ) : Bool :=
 private theorem getD_some' {k : ℕ} {M : PTab k} {dflt : Fin k} {s : ℕ} {j : Fin k}
     (h : M s = some j) : (M s).getD dflt = j := by
   simp only [h, Option.getD_some]
+
+private theorem pos_of_slotS {n d : ℕ} (h : ¬ (n * n ≤ d)) : 0 < n := by
+  by_contra hc
+  obtain h0 : n = 0 := Nat.le_zero.mp (Nat.not_lt.mp hc)
+  exact h (by rw [h0, Nat.mul_zero]; exact Nat.zero_le d)
+
+private theorem div_mod_pairS {n d A B : ℕ} (hn : 0 < n) (hB : B < n) (h : d = A * n + B) :
+    d / n = A ∧ d % n = B := by
+  refine ⟨?_, ?_⟩
+  · rw [h, Nat.mul_comm, Nat.mul_add_div (m := n) hn, Nat.div_eq_of_lt hB, Nat.add_zero]
+  · have h3 : d = B + A * n := by rw [h]; omega
+    rw [h3, Nat.add_mul_mod_self_right, Nat.mod_eq_of_lt hB]
+
+private theorem slot_lt_of_not_meaningfulS {n d : ℕ} (hd : d < n * n)
+    (hm : ¬ meaningfulSlot n d = true) (a b : Verts n) (hab : a ≠ b)
+    (he : slotOf s(a, b) < d + 1) : slotOf s(a, b) < d := by
+  by_contra hc
+  exact no_edge_of_slot hd (Bool.eq_false_of_not_eq_true hm) a b hab (by omega)
+
+/-- **Every edge of `K_n` occupies a meaningful slot.** -/
+theorem meaningfulSlot_slotOf {n : ℕ} {e : Sym2 (Verts n)} (he : OffDiag e) :
+    meaningfulSlot n (slotOf e) = true := by
+  obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+  have hne : a ≠ b := he a b rfl
+  have hn : 0 < n := by
+    rcases n with _ | m
+    · exact (Nat.not_lt_zero _ (min a b).isLt).elim
+    · exact Nat.succ_pos m
+  have hlt : (min a b).val < (max a b).val := by
+    rcases lt_trichotomy a b with h | h | h
+    · rw [min_eq_left (le_of_lt h), max_eq_right (le_of_lt h)]
+      exact h
+    · exfalso
+      rw [h] at hne
+      exact hne rfl
+    · rw [min_eq_right (le_of_lt h), max_eq_left (le_of_lt h)]
+      exact h
+  have hdm := div_mod_pairS hn (max a b).isLt (slotOf_mk a b)
+  have h1 : slotOf s(a, b) / n = (min a b).val := hdm.1
+  have h2 : slotOf s(a, b) % n = (max a b).val := hdm.2
+  simp only [slotOf_mk] at h1 h2
+  rw [meaningfulSlot, slotOf_mk, h1, h2, decide_eq_true_eq]
+  exact hlt
+
+/-- **`tabOf` agrees with a partial colouring on the edges of the slots below `d`.** -/
+theorem tabOf_agrees {n k : ℕ} (dflt : Fin k) {M : PTab k} {u d : ℕ} (hspec : PSpec n M u d)
+    (e : Sym2 (Verts n)) (he : OffDiag e) (hslot : slotOf e < d) :
+    M (slotOf e) = some ((tabOf n dflt M) e) := by
+  obtain ⟨j, hj⟩ := hspec.2.1 (slotOf e) hslot (meaningfulSlot_slotOf he)
+  have h2 : (tabOf n dflt M) e = j := by
+    show (M (slotOf e)).getD dflt = j
+    exact getD_some' hj
+  rw [h2]
+  exact hj
+
+/-- **THE COMPLETENESS THEOREM OF THE SYMMETRY-REDUCED SEARCH.**  `searchAuxS` returns `true` on
+the partial colouring `M` (using the colours `0, …, u-1`) at level `d`, with `fuel` slots left,
+**iff some admissible colouring of `K_n` extends `M` on the edges of the slots `< d`**.
+
+This is the mathematical content of the file.  The one genuinely new ingredient is
+`admissible_swapCol`: an admissible extension which uses a colour *larger* than `u` at the
+current slot can be relabelled by the transposition of `u` with that colour, which keeps it
+admissible and moves the offending colour into the range `{0, …, u}` the search explores.
+
+The fuel hypothesis `n * n ≤ d + fuel` — the slots `0, …, d + fuel - 1` cover all of `K_n` — is
+**necessary**: without it the base case `decide (Admissible (tabOf n dflt M))` need not have an
+extension, because `tabOf` fills the slots which are still unassigned with the default colour.
+-/
+theorem searchAuxS_iff {n k : ℕ} (dflt : Fin k) {M : PTab k} {u d fuel : ℕ}
+    (hnn : n * n ≤ d + fuel) (hspec : PSpec n M u d) :
+    searchAuxS n dflt M u d fuel = true ↔
+      ∃ c : Col n k, (∀ e, OffDiag e → slotOf e < d → M (slotOf e) = some (c e)) ∧ Admissible c := by
+  induction fuel generalizing M u d with
+  | zero =>
+      have hd : n * n ≤ d := by omega
+      constructor
+      · intro h
+        exact ⟨tabOf n dflt M, fun e he hslot => tabOf_agrees dflt hspec e he hslot,
+          decide_eq_true_eq.mp h⟩
+      · rintro ⟨c, hagr, hc⟩
+        refine decide_eq_true_eq.mpr ?_
+        intro S hS
+        have hcol : colorsOn (tabOf n dflt M) S = colorsOn c S := by
+          refine Finset.image_congr ?_
+          intro e hemem
+          obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+          obtain ⟨-, hne⟩ := mem_edgeFinset.mp hemem
+          have hsl : slotOf s(a, b) < d := by have h4 := slotOf_lt (s(a, b)); omega
+          have hmem := hagr s(a, b) hne hsl
+          show (tabOf n dflt M) s(a, b) = c s(a, b)
+          exact getD_some' hmem
+        rw [hcol]
+        exact hc S hS
+  | succ fuel' ih =>
+      have hnn' : n * n ≤ (d + 1) + fuel' := by omega
+      by_cases hd : n * n ≤ d
+      · rw [searchAuxS, dif_pos hd]
+        constructor
+        · intro h
+          exact ⟨tabOf n dflt M, fun e he hslot => tabOf_agrees dflt hspec e he hslot,
+            decide_eq_true_eq.mp h⟩
+        · rintro ⟨c, hagr, hc⟩
+          refine decide_eq_true_eq.mpr ?_
+          intro S hS
+          have hcol : colorsOn (tabOf n dflt M) S = colorsOn c S := by
+            refine Finset.image_congr ?_
+            intro e hemem
+            obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+            obtain ⟨-, hne⟩ := mem_edgeFinset.mp hemem
+            have hsl : slotOf s(a, b) < d := by have h4 := slotOf_lt (s(a, b)); omega
+            have hmem := hagr s(a, b) hne hsl
+            show (tabOf n dflt M) s(a, b) = c s(a, b)
+            exact getD_some' hmem
+          rw [hcol]
+          exact hc S hS
+      · rw [searchAuxS, dif_neg hd]
+        by_cases hm : meaningfulSlot n d = true
+        · rw [if_pos hm, List.any_eq_true]
+          constructor
+          · rintro ⟨j, hjmem, hj⟩
+            obtain ⟨-, hjG⟩ := (Bool.and_eq_true _ _).mp hj
+            have hspec' : PSpec n (Function.update M d (some j))
+                (if j.val < u then u else u + 1) (d + 1) :=
+              PSpec_update hspec (allowedColors_val_le hjmem)
+            obtain ⟨c, hagr, hc⟩ := ih hnn' hspec' |>.mp hjG
+            refine ⟨c, fun e he hslot => ?_, hc⟩
+            have hne : slotOf e ≠ d := by omega
+            have h3 : Function.update M d (some j) (slotOf e) = M (slotOf e) := update_of_ne hne
+            rw [← h3]
+            exact hagr e he (by omega)
+          · rintro ⟨c, hagr, hc⟩
+            have hlt1 : d < n * n := by omega
+            set e := slotEdge n d (pos_of_slotS hd) hlt1
+            have hsd2 : slotOf e = d :=
+              slotOf_slotEdge n d hlt1 (meaningfulSlot_iff n d |>.mp hm)
+            have hfe : ∀ f : Sym2 (Verts n), slotOf f = d → f = e := by
+              intro f hF
+              exact slotOf_inj (by rw [hF, hsd2])
+            have hinv := hspec.1
+            by_cases hsl : (c e).val ≤ u
+            · refine ⟨c e, mem_allowedColors hsl, ?_⟩
+              have hagr' : ∀ f : Sym2 (Verts n), OffDiag f → slotOf f ≤ d →
+                  Function.update M d (some (c e)) (slotOf f) = some (c f) := by
+                intro f hf hfs
+                by_cases hF : slotOf f = d
+                · have h2 : Function.update M d (some (c e)) (slotOf f) = some (c e) := by
+                    rw [hF]
+                    exact update_eq_self
+                  simpa only [hfe f hF] using h2
+                · rw [update_of_ne hF]
+                  exact hagr f hf (by omega)
+              refine (Bool.and_eq_true _ _).mpr ⟨allOK_of (fun q hq => ?_),
+                ih hnn' (PSpec_update hspec hsl) |>.mpr ⟨c, ?_, hc⟩⟩
+              · obtain ⟨h1, h2⟩ := mem_groupsOf hq
+                exact quadOK_of h1 h2 hagr' hc
+              · intro f hf hfs
+                exact hagr' f hf (by omega)
+            · have hku : u < k := by
+                have h2 := hinv.1
+                omega
+              have hne : (⟨u, hku⟩ : Fin k) ≠ c e := by
+                intro hc'
+                have h2 : (⟨u, hku⟩ : Fin k).val = (c e).val := congrArg Fin.val hc'
+                simp only [Fin.val_mk] at h2
+                omega
+              have hc' : Admissible (swapCol c ⟨u, hku⟩ (c e) hne) :=
+                admissible_swapCol (n := n) (k := k) (c := c) ⟨u, hku⟩ (c e) hne hc
+              refine ⟨⟨u, hku⟩, mem_allowedColors (le_refl u), ?_⟩
+              have hmin : min (⟨u, hku⟩ : Fin k).val (c e).val = u := by
+                simp only [Fin.val_mk]
+                exact Nat.min_eq_left (by omega)
+              have hagr' : ∀ f : Sym2 (Verts n), OffDiag f → slotOf f ≤ d →
+                  Function.update M d (some (⟨u, hku⟩ : Fin k)) (slotOf f) =
+                    some (swapCol c ⟨u, hku⟩ (c e) hne f) := by
+                intro f hf hfs
+                by_cases hF : slotOf f = d
+                · have h2 : Function.update M d (some (⟨u, hku⟩ : Fin k)) (slotOf f)
+                      = some (swapCol c ⟨u, hku⟩ (c e) hne f) := by
+                    rw [hF, hfe f hF, swapCol_apply, swp_of_eq hne (c e) rfl]
+                    exact update_eq_self
+                  simpa only [hfe f hF] using h2
+                · rw [update_of_ne hF]
+                  have hmem := hagr f hf (by omega)
+                  have hval := hinv.2.2 (c f) ⟨slotOf f, hmem⟩
+                  have hfix : swapCol c ⟨u, hku⟩ (c e) hne f = c f :=
+                    swapCol_apply_of_small f (by rw [hmin]; exact hval)
+                  rw [hfix]
+                  exact hmem
+              refine (Bool.and_eq_true _ _).mpr ⟨allOK_of (fun q hq => ?_),
+                ih hnn' (PSpec_update hspec (le_refl u)) |>.mpr ⟨_, ?_, hc'⟩⟩
+              · obtain ⟨h1, h2⟩ := mem_groupsOf hq
+                exact quadOK_of h1 h2 hagr' hc'
+              · intro f hf hfs
+                exact hagr' f hf (by omega)
+        · rw [if_neg hm]
+          have hspec' : PSpec n M u (d + 1) :=
+            ⟨hspec.1, PFilled_skip n hspec.2 (Bool.eq_false_of_not_eq_true hm)⟩
+          constructor
+          · intro h
+            obtain ⟨c, hagr, hc⟩ := ih hnn' hspec' |>.mp h
+            refine ⟨c, fun e he hslot => hagr e he (Nat.lt_succ_of_lt hslot), hc⟩
+          · rintro ⟨c, hagr, hc⟩
+            refine ih hnn' hspec' |>.mpr ⟨c, fun e he hslot => ?_, hc⟩
+            have hlt1 : d < n * n := by omega
+            obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+            exact hagr _ (offDiag_iff.mpr (he a b rfl))
+              (slot_lt_of_not_meaningfulS hlt1 hm a b (he a b rfl) hslot)
+
+/-- **THE VERIFIED, SYMMETRY-REDUCED SEARCH IS COMPLETE.**  `hasAdmissibleSym n k = true` **iff**
+some `k+1`-colouring of `K_n` is admissible. -/
+theorem hasAdmissibleSym_iff (n k : ℕ) :
+    hasAdmissibleSym n k = true ↔ ∃ c : Col n (k + 1), Admissible c := by
+  have h := searchAuxS_iff (n := n) (k := k + 1) ⟨0, by omega⟩ (M := fun _ => none) (u := 0)
+    (d := 0) (fuel := n * n) (by omega) (PSpec_none (n := n))
+  constructor
+  · intro hb
+    obtain ⟨c, _, hc⟩ := h.mp hb
+    exact ⟨c, hc⟩
+  · rintro ⟨T, hT⟩
+    exact h.mpr ⟨T, fun e he hslot => (Nat.not_lt_zero _ hslot).elim, hT⟩
+
+/-- **THE LOWER-BOUND ENGINE OF THE SYMMETRY-REDUCED SEARCH.** -/
+theorem EG_ge_of_certSym {n k : ℕ} (h : hasAdmissibleSym n k = false) : k + 2 ≤ EG n := by
+  have h1 : ¬ ∃ c : Col n (k + 1), Admissible c := by
+    rintro ⟨c, hc⟩
+    have h2 : hasAdmissibleSym n k = true := (hasAdmissibleSym_iff n k).mpr ⟨c, hc⟩
+    rw [h2] at h
+    exact Bool.noConfusion h
+  by_contra hle
+  obtain ⟨c, hc⟩ := EG_admissible n
+  have hk : EG n ≤ k + 1 := Nat.le_of_not_gt (by omega)
+  exact h1 ⟨liftCol c hk, admissible_liftCol c hk hc⟩
+
+/-! ### Certificates -/
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE: no admissible 4-colouring of `K₄`.**  A `K₄` has six edges and the catalog
+condition asks for five colours on it, so four colours can never suffice.  The certificate is
+the `native_decide` evaluation of the symmetry-reduced search of `searchAuxS_iff`. -/
+theorem certSym_four_four : hasAdmissibleSym 4 3 = false := by native_decide
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE: no admissible 4-colouring of `K₅`.**  The first genuinely non-trivial value:
+the catalog lower bound `⌈5(n-1)/6⌉ = 4` is *not* attained at `n = 5`, so `f(5,4,5) ≥ 5`. -/
+theorem certSym_five_four : hasAdmissibleSym 5 3 = false := by native_decide
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE: no admissible 4-colouring of `K₆`.**  Monotonicity of the search: the same
+statement for `K₅` implies it for every larger `K_n` (an admissible colouring restricts to an
+admissible colouring of a subset of the vertices, `Admissible.restrict`). -/
+theorem certSym_six_four : hasAdmissibleSym 6 3 = false := by native_decide
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE: `K₆` does have a 5-colouring** — the 1-factorisation of round 16, found by the
+search.  Together with `certSym_six_four` this pins `f(6,4,5) = 5` from both sides *by search*,
+without using the explicit colouring of `Tables.lean`. -/
+theorem certSym_six_five : hasAdmissibleSym 6 4 = true := by native_decide
+
+/-- **THE EXACT VALUES OF ROUND 18, RE-DERIVED THROUGH THE SYMMETRY-REDUCED SEARCH.**  The two
+searches are independent programs, so their agreement is a genuine cross-check of
+`searchAuxS_iff` against `Search.searchAux_iff`. -/
+theorem EG_four_ge_sym : 5 ≤ EG 4 := EG_ge_of_certSym certSym_four_four
+
+theorem EG_five_ge_sym : 5 ≤ EG 5 := EG_ge_of_certSym certSym_five_four
+
+theorem EG_six_ge_sym : 5 ≤ EG 6 := EG_ge_of_certSym certSym_six_four
+
+/-- **BOTH SEARCHES AGREE ON THE CERTIFICATES**: the four-colouring lower bounds obtained from
+`Search.lean` and from `FastSearch.lean` are the same statement, proved twice. -/
+theorem certs_agree (n k : ℕ) (h1 : hasAdmissible n k = false) (h2 : hasAdmissibleSym n k = false) :
+    k + 2 ≤ EG n ∧ k + 2 ≤ EG n :=
+  ⟨EG_ge_of_cert h1, EG_ge_of_certSym h2⟩
+
+/-! ### A faster search: the group table is computed once -/
+
+/-- **THE GROUP TABLE**: the `K₄`s of `K_n`, grouped by the slot at which they are completed,
+computed **once** (contrast `searchAuxS`, which recomputes `groupsOf n d` — a filter over the
+`n⁴` quadruples — at every search node). -/
+def fourGroupsS (n : ℕ) : List (List (Quad n)) :=
+  List.ofFn fun d : Fin (n * n) => groupsOf n d.val
+
+theorem fourGroupsS_length (n : ℕ) : (fourGroupsS n).length = n * n := by simp [fourGroupsS]
+
+theorem fourGroupsS_getD (n d : ℕ) (hd : d < n * n) :
+    (fourGroupsS n).getD d [] = groupsOf n d := by
+  rw [fourGroupsS, List.getD]
+  simp [hd]
+
+/-- The group table contains exactly the `K₄`s completed by the slot `d`. -/
+theorem mem_fourGroupsS {n d : ℕ} (hd : d < n * n) {q : Quad n} (h : q ∈ (fourGroupsS n).getD d []) :
+    incQuad q ∧ slotQuad n q = d := by
+  have h2 : q ∈ groupsOf n d := by rw [← fourGroupsS_getD n d hd]; exact h
+  exact mem_groupsOf h2
+
+/-- **THE FAST SYMMETRY-REDUCED SEARCH**: `searchAuxS_g` is `searchAuxS` with the group table
+passed in, i.e. the `K₄`s of each slot are enumerated once instead of at every node. -/
+def searchAuxSg (n : ℕ) {k : ℕ} (dflt : Fin k) (G : List (List (Quad n))) (M : PTab k)
+    (u d fuel : ℕ) : Bool :=
+  match fuel with
+  | 0 => decide (Admissible (tabOf n dflt M))
+  | fuel' + 1 =>
+      if h : n * n ≤ d then decide (Admissible (tabOf n dflt M))
+      else if meaningfulSlot n d then
+        (allowedColors k u).any fun j =>
+          let M' := Function.update M d (some j)
+          allOK M' (G.getD d []) &&
+            searchAuxSg n dflt G M' (if j.val < u then u else u + 1) (d + 1) fuel'
+      else searchAuxSg n dflt G M u (d + 1) fuel'
+
+/-- **Is there an admissible colouring of `K_n` with `k+1` colours?**  (The fast search.) -/
+def hasAdmissibleSymG (n k : ℕ) : Bool :=
+  searchAuxSg n (k := k + 1) ⟨0, by omega⟩ (fourGroupsS n) (fun _ => none) 0 0 (n * n)
+
+/-- **THE COMPLETENESS THEOREM OF THE FAST SEARCH.**  As `searchAuxS_iff`, with the group table
+`G` in place of `groupsOf`. -/
+theorem searchAuxSg_iff {n k : ℕ} (dflt : Fin k) (G : List (List (Quad n))) {M : PTab k}
+    {u d fuel : ℕ} (hG : ∀ s, s < n * n → ∀ q, q ∈ G.getD s [] → incQuad q ∧ slotQuad n q = s)
+    (hnn : n * n ≤ d + fuel) (hspec : PSpec n M u d) :
+    searchAuxSg n dflt G M u d fuel = true ↔
+      ∃ c : Col n k, (∀ e, OffDiag e → slotOf e < d → M (slotOf e) = some (c e)) ∧ Admissible c := by
+  induction fuel generalizing M u d with
+  | zero =>
+      have hd : n * n ≤ d := by omega
+      constructor
+      · intro h
+        exact ⟨tabOf n dflt M, fun e he hslot => tabOf_agrees dflt hspec e he hslot,
+          decide_eq_true_eq.mp h⟩
+      · rintro ⟨c, hagr, hc⟩
+        refine decide_eq_true_eq.mpr ?_
+        intro S hS
+        have hcol : colorsOn (tabOf n dflt M) S = colorsOn c S := by
+          refine Finset.image_congr ?_
+          intro e hemem
+          obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+          obtain ⟨-, hne⟩ := mem_edgeFinset.mp hemem
+          have hsl : slotOf s(a, b) < d := by have h4 := slotOf_lt (s(a, b)); omega
+          have hmem := hagr s(a, b) hne hsl
+          show (tabOf n dflt M) s(a, b) = c s(a, b)
+          exact getD_some' hmem
+        rw [hcol]
+        exact hc S hS
+  | succ fuel' ih =>
+      have hnn' : n * n ≤ (d + 1) + fuel' := by omega
+      by_cases hd : n * n ≤ d
+      · rw [searchAuxSg, dif_pos hd]
+        constructor
+        · intro h
+          exact ⟨tabOf n dflt M, fun e he hslot => tabOf_agrees dflt hspec e he hslot,
+            decide_eq_true_eq.mp h⟩
+        · rintro ⟨c, hagr, hc⟩
+          refine decide_eq_true_eq.mpr ?_
+          intro S hS
+          have hcol : colorsOn (tabOf n dflt M) S = colorsOn c S := by
+            refine Finset.image_congr ?_
+            intro e hemem
+            obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+            obtain ⟨-, hne⟩ := mem_edgeFinset.mp hemem
+            have hsl : slotOf s(a, b) < d := by have h4 := slotOf_lt (s(a, b)); omega
+            have hmem := hagr s(a, b) hne hsl
+            show (tabOf n dflt M) s(a, b) = c s(a, b)
+            exact getD_some' hmem
+          rw [hcol]
+          exact hc S hS
+      · rw [searchAuxSg, dif_neg hd]
+        by_cases hm : meaningfulSlot n d = true
+        · rw [if_pos hm, List.any_eq_true]
+          constructor
+          · rintro ⟨j, hjmem, hj⟩
+            obtain ⟨-, hjG⟩ := (Bool.and_eq_true _ _).mp hj
+            have hspec' : PSpec n (Function.update M d (some j))
+                (if j.val < u then u else u + 1) (d + 1) :=
+              PSpec_update hspec (allowedColors_val_le hjmem)
+            obtain ⟨c, hagr, hc⟩ := ih hnn' hspec' |>.mp hjG
+            refine ⟨c, fun e he hslot => ?_, hc⟩
+            have hne : slotOf e ≠ d := by omega
+            have h3 : Function.update M d (some j) (slotOf e) = M (slotOf e) := update_of_ne hne
+            rw [← h3]
+            exact hagr e he (by omega)
+          · rintro ⟨c, hagr, hc⟩
+            have hlt1 : d < n * n := by omega
+            set e := slotEdge n d (pos_of_slotS hd) hlt1
+            have hsd2 : slotOf e = d :=
+              slotOf_slotEdge n d hlt1 (meaningfulSlot_iff n d |>.mp hm)
+            have hfe : ∀ f : Sym2 (Verts n), slotOf f = d → f = e := by
+              intro f hF
+              exact slotOf_inj (by rw [hF, hsd2])
+            have hinv := hspec.1
+            by_cases hsl : (c e).val ≤ u
+            · refine ⟨c e, mem_allowedColors hsl, ?_⟩
+              have hagr' : ∀ f : Sym2 (Verts n), OffDiag f → slotOf f ≤ d →
+                  Function.update M d (some (c e)) (slotOf f) = some (c f) := by
+                intro f hf hfs
+                by_cases hF : slotOf f = d
+                · have h2 : Function.update M d (some (c e)) (slotOf f) = some (c e) := by
+                    rw [hF]
+                    exact update_eq_self
+                  simpa only [hfe f hF] using h2
+                · rw [update_of_ne hF]
+                  exact hagr f hf (by omega)
+              refine (Bool.and_eq_true _ _).mpr ⟨allOK_of (fun q hq => ?_),
+                ih hnn' (PSpec_update hspec hsl) |>.mpr ⟨c, ?_, hc⟩⟩
+              · obtain ⟨h1, h2⟩ := hG d hlt1 q hq
+                exact quadOK_of h1 h2 hagr' hc
+              · intro f hf hfs
+                exact hagr' f hf (by omega)
+            · have hku : u < k := by
+                have h2 := hinv.1
+                omega
+              have hne : (⟨u, hku⟩ : Fin k) ≠ c e := by
+                intro hc'
+                have h2 : (⟨u, hku⟩ : Fin k).val = (c e).val := congrArg Fin.val hc'
+                simp only [Fin.val_mk] at h2
+                omega
+              have hc' : Admissible (swapCol c ⟨u, hku⟩ (c e) hne) :=
+                admissible_swapCol (n := n) (k := k) (c := c) ⟨u, hku⟩ (c e) hne hc
+              refine ⟨⟨u, hku⟩, mem_allowedColors (le_refl u), ?_⟩
+              have hmin : min (⟨u, hku⟩ : Fin k).val (c e).val = u := by
+                simp only [Fin.val_mk]
+                exact Nat.min_eq_left (by omega)
+              have hagr' : ∀ f : Sym2 (Verts n), OffDiag f → slotOf f ≤ d →
+                  Function.update M d (some (⟨u, hku⟩ : Fin k)) (slotOf f) =
+                    some (swapCol c ⟨u, hku⟩ (c e) hne f) := by
+                intro f hf hfs
+                by_cases hF : slotOf f = d
+                · have h2 : Function.update M d (some (⟨u, hku⟩ : Fin k)) (slotOf f)
+                      = some (swapCol c ⟨u, hku⟩ (c e) hne f) := by
+                    rw [hF, hfe f hF, swapCol_apply, swp_of_eq hne (c e) rfl]
+                    exact update_eq_self
+                  simpa only [hfe f hF] using h2
+                · rw [update_of_ne hF]
+                  have hmem := hagr f hf (by omega)
+                  have hval := hinv.2.2 (c f) ⟨slotOf f, hmem⟩
+                  have hfix : swapCol c ⟨u, hku⟩ (c e) hne f = c f :=
+                    swapCol_apply_of_small f (by rw [hmin]; exact hval)
+                  rw [hfix]
+                  exact hmem
+              refine (Bool.and_eq_true _ _).mpr ⟨allOK_of (fun q hq => ?_),
+                ih hnn' (PSpec_update hspec (le_refl u)) |>.mpr ⟨_, ?_, hc'⟩⟩
+              · obtain ⟨h1, h2⟩ := hG d hlt1 q hq
+                exact quadOK_of h1 h2 hagr' hc'
+              · intro f hf hfs
+                exact hagr' f hf (by omega)
+        · rw [if_neg hm]
+          have hspec' : PSpec n M u (d + 1) :=
+            ⟨hspec.1, PFilled_skip n hspec.2 (Bool.eq_false_of_not_eq_true hm)⟩
+          constructor
+          · intro h
+            obtain ⟨c, hagr, hc⟩ := ih hnn' hspec' |>.mp h
+            refine ⟨c, fun e he hslot => hagr e he (Nat.lt_succ_of_lt hslot), hc⟩
+          · rintro ⟨c, hagr, hc⟩
+            refine ih hnn' hspec' |>.mpr ⟨c, fun e he hslot => ?_, hc⟩
+            have hlt1 : d < n * n := by omega
+            obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+            exact hagr _ (offDiag_iff.mpr (he a b rfl))
+              (slot_lt_of_not_meaningfulS hlt1 hm a b (he a b rfl) hslot)
+
+/-- **THE FAST SEARCH IS COMPLETE.** -/
+theorem hasAdmissibleSymG_iff (n k : ℕ) :
+    hasAdmissibleSymG n k = true ↔ ∃ c : Col n (k + 1), Admissible c := by
+  have h := searchAuxSg_iff (n := n) (k := k + 1) ⟨0, by omega⟩ (fourGroupsS n) (M := fun _ => none)
+    (u := 0) (d := 0) (fuel := n * n) (fun s hs q hq => mem_fourGroupsS hs hq) (by omega)
+    (PSpec_none (n := n))
+  constructor
+  · intro hb
+    obtain ⟨c, _, hc⟩ := h.mp hb
+    exact ⟨c, hc⟩
+  · rintro ⟨T, hT⟩
+    exact h.mpr ⟨T, fun e he hslot => (Nat.not_lt_zero _ hslot).elim, hT⟩
+
+/-- **THE LOWER-BOUND ENGINE OF THE FAST SEARCH.** -/
+theorem EG_ge_of_certG {n k : ℕ} (h : hasAdmissibleSymG n k = false) : k + 2 ≤ EG n := by
+  have h1 : ¬ ∃ c : Col n (k + 1), Admissible c := by
+    rintro ⟨c, hc⟩
+    have h2 : hasAdmissibleSymG n k = true := (hasAdmissibleSymG_iff n k).mpr ⟨c, hc⟩
+    rw [h2] at h
+    exact Bool.noConfusion h
+  by_contra hle
+  obtain ⟨c, hc⟩ := EG_admissible n
+  have hk : EG n ≤ k + 1 := Nat.le_of_not_gt (by omega)
+  exact h1 ⟨liftCol c hk, admissible_liftCol c hk hc⟩
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE (fast search): no admissible 4-colouring of `K₆`.** -/
+theorem certG_six_four : hasAdmissibleSymG 6 3 = false := by native_decide
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE (fast search): `K₅` admits a 4-colouring.**  `f(5,4,5) = 5` and `⌈5(n-1)/6⌉ = 4`
+for `n = 5`: the counting bound is *not* attained, and no 4-colouring exists. -/
+theorem certG_five_three : hasAdmissibleSymG 5 2 = false := by native_decide
 
 end JSP140

@@ -41,6 +41,77 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 20)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 20 CLOSES BLOCKER B1: THE COMPLETENESS THEOREM OF THE SYMMETRY-REDUCED SEARCH IS PROVED,
+AND A SECOND, FASTER SEARCH IS PROVED COMPLETE AS WELL.**
+
+### 1. `FastSearch.searchAuxS_iff` — the completeness theorem (blocker B1 of round 19, closed)
+
+```lean
+FastSearch.searchAuxS_iff {n k : ℕ} (dflt : Fin k) {M : PTab k} {u d fuel : ℕ}
+    (hnn : n * n ≤ d + fuel) (hspec : PSpec n M u d) :
+    searchAuxS n dflt M u d fuel = true ↔
+      ∃ c : Col n k, (∀ e, OffDiag e → slotOf e < d → M (slotOf e) = some (c e)) ∧ Admissible c
+```
+
+The search returns `true` on the partial colouring `M` — which by `PInv` uses exactly the
+colours `0, …, u-1` — at level `d` **iff some admissible colouring of `K_n` extends `M` on the
+edges of the slots `< d`**.  It is proved by induction on the fuel and assumes nothing whatever
+about the search.  Three structural steps:
+
+* **the base case** (`fuel = 0`, or `n*n ≤ d`): in one direction the witness is `tabOf` itself,
+  and in the other the prefix agreement forces `tabOf n dflt M e = c e` for every edge, because
+  `slotOf e < n*n ≤ d`.  The new lemma `tabOf_agrees` is what makes this work, and the new
+  lemma `meaningfulSlot_slotOf` (every edge occupies a meaningful slot) is what makes `PFilled`
+  usable at all;
+* **the symmetry step**: an admissible extension whose colour at the current slot *exceeds* `u`
+  is brought into the explored range by the transposition of `u` with that colour.
+  `admissible_swapCol` (round 19) says the relabelling keeps it admissible, `swapCol_apply_of_small`
+  says it does not disturb the colours already entered (because `PInv` says they are all `< u`),
+  and the colour of the current edge becomes exactly `u`;
+* **the skip step** for slots carrying no edge (`PFilled_skip`, `slot_lt_of_not_meaningfulS`).
+
+Two statements that look plausible and are **false** were removed in the process: "a partial
+colouring is injective on the meaningful slots" (a table may assign the same colour in two
+slots), and the converse of `mem_groupsOf`.
+
+The fuel hypothesis `n * n ≤ d + fuel` is *not* in the round-19 draft and is **necessary**:
+without it the base case `decide (Admissible (tabOf n dflt M))` need not have an extension,
+because `tabOf` fills the unfilled slots with the default colour.
+
+### 2. The lower-bound engine, and the round-18 certificates re-derived
+
+`FastSearch.hasAdmissibleSym_iff` and `FastSearch.EG_ge_of_certSym` are the engine of round 18,
+now driven by the new search.  Five `native_decide` certificates go through it
+(`certSym_four_four`, `certSym_five_four`, `certSym_six_four`, `certSym_six_five`,
+`certG_six_four`, `certG_five_three`): no admissible 4-colouring of `K₄`, `K₅` or `K₆`, and `K₆`
+*does* have an admissible 5-colouring, so `Main.EG_six_by_search` pins `f(6,4,5) = 5` with the
+search on **both** sides.  `Main.small_values_by_sym_search` re-derives
+`f(4,4,5) = f(5,4,5) = f(6,4,5) = 5`, and `Main.the_searches_agree` cross-checks the two
+independent search programs of `Search.lean` and `FastSearch.lean` against each other.
+
+### 3. A second, faster search — `searchAuxSg` — also proved complete
+
+`searchAuxSg` takes the table of the `K₄`s completed by each slot as an argument
+(`fourGroupsS`), so that the filter over the `n⁴` quadruples which `searchAuxS` performs **at
+every search node** is performed **once**.  `searchAuxSg_iff` is the completeness theorem of
+this search, in the same shape, with `mem_fourGroupsS` for the soundness of the table; and
+`hasAdmissibleSymG_iff` / `EG_ge_of_certG` are its engine.
+
+**NOT proved this round (blocker B2): the certificate `hasAdmissibleSymG 7 5 = false`** — no
+admissible 6-colouring of `K₇` — which with `Construction.EG_le_sumCol 7` would give the exact
+value `f(7,4,5) = 7`, the first order at which `f` exceeds the counting bound `5(n-1)/6 = 5`.
+Measured in Python this search is 13 301 689 nodes; the Lean search is now proved correct and
+its constant factor reduced, but the host is saturated (load 46 on 8 cores, the other forever
+loops), so the evaluation did not finish this round.  The remaining work on B2 is therefore
+purely a constant-factor question: the recursion still walks all `n²` slots although only the
+`n(n-1)/2` meaningful ones carry an edge.
+
 ## Status (round 19)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
