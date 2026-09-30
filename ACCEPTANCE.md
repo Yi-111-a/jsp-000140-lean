@@ -41,11 +41,55 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
-## Status (round 3)
+## Status (round 4)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
 (invoked on `problems/JSP-000140/lean`):
 `partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 4 added the second, independent half of the development.**
+
+1. `lean/JSPProblem/Paths.lean` (new, zero sorry) — **the quantitative form of the counting
+   argument, i.e. the `5/6` criterion for the lower half**:
+
+   * `Paths c` — the total number of two-edge paths `a - v - b` over all colour classes of `c`
+     (a vertex with two colour-`i` neighbours is the centre of exactly one such path);
+   * `two_mul_classIn_le_add` — the *refined* per-colour counting lemma `2 * |E_i| ≤ n + p`, where
+     `p` is the number of two-edge paths of that colour class (the classical lemma `3 * |E_i| ≤ 2n`
+     throws `p` away);
+   * `mul_n_sub_one_le` — **the quantitative identity** `n * (n-1) ≤ n * k + Paths c`, i.e.
+     `k ≥ (n-1) - Paths c / n`;
+   * `five_sixth_of_paths` — **the `5/6` criterion**: if `Paths c ≤ n(n-1)/6` (equivalently: at
+     least two thirds of all edges lie in *single-edge* components of their colour class) then
+     `5 * (n-1) ≤ 6 * k`, i.e. `k ≥ 5(n-1)/6 = 5n/6 - 5/6`;
+   * `three_mul_paths_le` + `classical_lower_bound'` — the classical bound `3(n-1) ≤ 4k` re-derived
+     from the new identity, so the new framework subsumes the old one.
+
+   The lower half of the catalog answer is therefore reduced to the *single concrete hypothesis*
+   `Paths c ≤ n(n-1)/6` — the BCDP22 lower bound, in the form of one inequality on the number of
+   two-edge paths.
+
+2. `lean/JSPProblem/Ghost.lean` (new, zero sorry) — **a second construction**, the ghost-vertex
+   colouring
+
+       c({a, b}) = a + b   (a, b < m),        c({∞, a}) = 2a
+
+   of `K_{m+1}` with `m` colours, for `m` odd and `3 ∤ m`.  A `K₄` containing `∞` spans the six
+   colours `2x, 2y, 2z, x+y, x+z, y+z`; the only possible coincidences are the three "cross"
+   equalities, and two of them give `3x = 3y`, i.e. `x = y` because `3` is a unit in `ZMod m`
+   (`three_mul_inj`, the analogue of `two_mul_inj` for the sum colouring).  Hence
+
+   * `admissible_ghost` — **the ghost colouring of `K_{m+1}` with `m` colours is admissible**;
+   * `EG_le_ghost` — `f(m+1, 4, 5) ≤ m`, i.e. **`f(n,4,5) ≤ n - 1` for `n ≡ 0, 2 (mod 6)`**, which
+     improves round 3's `f ≤ n + 1` for two thirds of the even `n`.
+
+   Consequently (`Main.lean`): `EG_le_sixth_residue` (`f(n,4,5) ≤ n` for every `n ≢ 4 (mod 6)`),
+   `fiveSixthUpper_sixth_residue` / `fiveSixthUpper_sixth_ge` (**the upper half of the headline at
+   the sharp value `ε = 1/6` for all `n ≢ 4 (mod 6)`, not only for odd `n`**),
+   `fiveSixthShape_sixth_residue` (`5n/6 - (n/12+3/4) ≤ f(n,4,5) ≤ 5n/6 + n/6` — the upper side
+   loses the additive constant), `fiveSixth_quarter` (`|f - 5n/6| ≤ n/4` for `n ≥ 5`, `n ≢ 4 (mod 6)`)
+   and `admissibleLower_five_sixth_of_paths` (the `5/6` criterion in the `Admissible`-colouring
+   language of the reduction theorem).
 
 **Round 3 added the linear construction side of the problem** (new file
 `lean/JSPProblem/Construction.lean`, zero sorry): the classical **sum (round-robin) colouring**
@@ -133,8 +177,28 @@ the two BCDP22 steps (see *Not yet proved*).
 * `admissible_sumColMod`, `admissible_sumCol` — **the construction is admissible for odd `m`**.
 * `EG_le_sumCol` (`f ≤ n` for odd `n`), `EG_le_succ` (`f ≤ n+1`), `EG_le_linear` (`f = Θ(n)`).
 
+`Paths.lean` (**new in round 4** — the quantitative counting argument and the `5/6` criterion)
+* `Paths` (the number of two-edge paths), `twoA_oneB_card_le`, `sum_nb_card_eq`,
+  `two_mul_classIn_le_add`, `mul_n_sub_one_le` (the quantitative identity),
+  `three_mul_paths_le`, `classical_lower_bound'`, `five_sixth_of_paths` (the `5/6` criterion),
+  `EG_ge_five_sixth_of_paths`, `EG_ge_five_sixth_of_paths_real`, `five_sixth_of_no_paths`.
+
+`Ghost.lean` (**new in round 4** — the ghost-vertex construction)
+* `val_eq_last`, `ghostEdge`, `ghostEdge_comm`, `ghostEdge_base`, `ghostEdge_last`, `modFin`,
+  `ghostCol`, `ghostCol_val_mk`, `ghostCol_swap`;
+* `ghostCol_eq_iff`, `ghostCol_eq_of_zmod`, `ghostZ_base`, `ghostZ_last`, `fin_zmod_base_inj`;
+* `ghostCol_ne_last`, `ghostCol_ne_first`, `ghostCol_last_ne` (properness in all three forms);
+* `three_mul_inj` (**`3` is a unit in `ZMod m` when `3 ∤ m`**), `collision_12`, `collision_13`,
+  `collision_23`, `cross_12`, `cross_13`, `cross_23` (**at most one collision** in a `K₄`);
+* `mem_B_base_ab`, `mem_B_base_ac`, `mem_B_base_ad`, `mem_B_last`, `ghost_four_base`,
+  `ghost_four_last`, `admissible_ghost`, `EG_le_ghost`.
+
 `Main.lean`
-* `jsp_000140_target` — the statement of the required theorem, as a `def`.
+* `jsp_000140_target` — the statement of the required theorem, as a `def`;
+* `EG_le_ghost_sub`, `EG_le_sixth_residue`, `EG_le_sixth_residue_real`,
+  `fiveSixthUpper_sixth_residue`, `fiveSixthUpper_sixth_ge`, `fiveSixthShape_sixth_residue`,
+  `fiveSixth_quarter`, `fiveSixth_ge_quarter_ge`, `admissibleLower_five_sixth_of_paths`
+  (**new in round 4**).
 * `fiveSixthLower_iff`, `fiveSixthUpper_iff`, `jsp_000140_target_iff` — a **proved reduction**
   of the headline statement to the two purely combinatorial bounds
   `AdmissibleLower 1 ∧ AdmissibleUpper 1`.
@@ -147,19 +211,30 @@ the two BCDP22 steps (see *Not yet proved*).
 
 ### Not yet proved (blockers, see `discovery/JSP-000140/policy.json`)
 
-1. **The upper half for `0 < ε < 1/3`** (the BCDP22 construction).  The round-robin colouring
-   uses `n = 5n/6 + n/6` colours, so it reaches the headline constant only up to the `O(n)`
-   error.  It cannot be improved by *merging* colour classes: each colour class of the sum
-   colouring is a perfect matching, so the union of two of them is a disjoint union of even
-   cycles, and a `K₄` on a 4-cycle spans at most three colours.  One needs the BCDP22 /
-   JoMu22 style construction (1-factorisations of hypergraph matchings, then a weighted blow-up),
-   which is a genuinely new colouring mechanism rather than a post-processing of `sumCol`.
-2. **The upper half for even `n` at `ε = 1/6`**: currently even `n` only gets `f(n,4,5) ≤ n+1`
-   (sum colouring mod `n+1`).  A `K₄` on a duplicate vertex pair shows that the "duplicate a
-   vertex" trick cannot work, and the classical 1-factorisation `c(s(∞,a)) = 2a` is *not*
-   admissible (a `K₄` on `{∞, a, b, c}` with `a+b = 2c` spans only four colours).
-3. **The lower half for `0 < ε < 1/8`** (the BCDP22 structural sharpening `3/4 → 5/6`): in the
-   framework of `Counting.lean` this is the statement that at least two thirds of the edges lie
-   in single-edge components of their colour class, i.e. `|{two-edge paths}| ≤ n²/6 + o(n²)`;
-   the present proof gives only `2|A| ≤ |B|` (two-edge paths are vertex-disjoint), which yields
-   `3/4`.
+1. **The upper half for `0 < ε < 1/6`** (the BCDP22 construction).  Round 4 improved the available
+   constructions: the round-robin colouring uses `n` colours and the ghost colouring `n - 1`
+   colours on `K_n` for `n ≡ 0, 2 (mod 6)`, i.e. `5n/6 + O(n)`.  Neither can be improved by
+   post-processing: each colour class of the sum colouring is a perfect matching, so the union of
+   two of them is a disjoint union of even cycles and a `K₄` on a 4-cycle spans at most three
+   colours; and the six colours of a `K₄` in the ghost colouring already have the maximal possible
+   number of coincidences (one).  With `k = 5n/6` colours, every colour class would have to have
+   `3n/5` edges, i.e. be a spanning disjoint union of `n/5` single edges and `n/5` two-edge paths —
+   a new mechanism.  One needs the BCDP22 / JoMu22 style construction (1-factorisations of
+   hypergraph matchings, then a weighted blow-up).
+2. **The upper half at `ε = 1/6` for the residue class `n ≡ 4 (mod 6)`**: for these `n` only
+   `f(n,4,5) ≤ n+1` is available, because the ghost colouring needs `3 ∤ (n-1)` and the
+   round-robin colouring needs odd `n`.  The ghost construction is *provably* not admissible when
+   `3 ∣ m`: the `K₄` `{∞, 0, m/3, 2m/3}` then carries only three colours.  A `K₄` on a duplicate
+   vertex pair shows that the "duplicate a vertex" trick cannot work, and the classical
+   1-factorisation `c(s(∞,a)) = 2a` is *not* admissible (a `K₄` on `{∞, a, b, c}` with
+   `a+b = 2c` spans only four colours).
+3. **The lower half for `0 < ε < 1/8`** (the BCDP22 structural sharpening `3/4 → 5/6`): round 4
+   reduced this to the single hypothesis `Paths c ≤ n(n-1)/6` of the proved theorem
+   `Paths.five_sixth_of_paths` (equivalently: at least two thirds of the edges lie in single-edge
+   components, i.e. `|{two-edge paths}| ≤ n²/6 + o(n²)`).  The quantitative identity
+   `Paths.mul_n_sub_one_le` shows that nothing else enters, and the present proof only uses
+   `2|A| ≤ |B|` (two-edge paths of one colour class are vertex-disjoint), which yields `3/4`.
+   Round 4 also checked that the single-colour count is exhausted: the map "vertex with two
+   colour-`i` neighbours" ↦ "two-edge path" is a bijection and every double count over leaves,
+   opposite edges or agreeing colour rows is an identity, so the improvement must use a global
+   argument across *different* colour classes.

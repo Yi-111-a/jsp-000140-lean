@@ -1,6 +1,8 @@
 import JSPProblem.Definitions
 import JSPProblem.ColorClass
 import JSPProblem.Counting
+import JSPProblem.Paths
+import JSPProblem.Ghost
 import JSPProblem.Construction
 
 /-!
@@ -32,10 +34,13 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
   `ColorClass.lean`, `Counting.lean`), the **classical bound** `f(n,4,5) ≥ 3(n-1)/4`
   (`Counting.classical_lower_bound`, `Counting.EG_ge_classical`), the **round-robin
   construction** `f(n,4,5) ≤ n` for odd `n` and `f(n,4,5) ≤ n+1` in general
-  (`Construction.lean`), and the resulting **two-sided shape bound**
-  `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for `n ≥ 4` (`fiveSixthShape`).
+  (`Construction.lean`), the **quantitative `5/6` criterion** for the lower half
+  (`Paths.lean`), the **ghost-vertex construction** `f(n,4,5) ≤ n-1` for `n ≡ 0, 2 (mod 6)`
+  (`Ghost.lean`), and the resulting **two-sided shape bounds**
+  `|f(n,4,5) - 5n/6| ≤ n/6 + 1` (`fiveSixthShape`) and, for `n ≢ 4 (mod 6)`,
+  `5n/6 - (n/12 + 3/4) ≤ f(n,4,5) ≤ 5n/6 + n/6` (`fiveSixthShape_sixth_residue`).
 
-## Status of the headline (round 3)
+## Status of the headline (round 4)
 
 * **Two-sided**: `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for all `n ≥ 4` (`fiveSixthShape`), i.e.
   `f(n,4,5) = 5n/6 + O(n)`; in particular the headline estimate holds for every `ε ≥ 1`
@@ -47,15 +52,23 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
   `admissibleUpper_at_third`), from the round-robin colouring `c({a,b}) = a+b` of
   `Construction.lean`; on odd `n` the upper half holds already for `ε ≥ 1/6`
   (`fiveSixthUpper_odd_at_sixth`, `fiveSixthUpper_odd_ge`).
-* **Lower half, for `0 < ε < 1/8`**: open.  This is exactly the sharpening of the counting
-  constant `3/4` to `5/6` (BCDP22); in the framework of `Counting.lean` it says that at least
-  two thirds of the edges lie in single-edge components of their colour class, i.e.
-  `|{two-edge paths}| ≤ n²/6 + o(n²)`.
 * **Upper half, for `0 < ε < 1/3`**: open.  This needs a colouring with `5n/6 + o(n)` colours,
   i.e. saving a further `n/6` colours w.r.t. the round-robin colouring; the round-robin
   colouring cannot be improved by merging colour classes (its colour classes are perfect
   matchings, so merging two of them creates even cycles, and a `K₄` on a 4-cycle spans three
   colours only).  The BCDP22 construction uses hypergraph-Ramsey (1-factorisation) ideas.
+  *Round 4*: the ghost colouring (`Ghost.lean`) is a second mechanism and reaches `n - 1`
+  colours on `K_n` for `n ≡ 0, 2 (mod 6)`, so the upper half now holds at `ε = 1/6` for all
+  `n ≢ 4 (mod 6)` (`fiveSixthUpper_sixth_residue`, `fiveSixthUpper_sixth_ge`).
+* **Lower half, for `0 < ε < 1/8`**: open.  This is exactly the sharpening of the counting
+  constant `3/4` to `5/6` (BCDP22); in the framework of `Counting.lean` it says that at least
+  two thirds of the edges lie in single-edge components of their colour class, i.e.
+  `|{two-edge paths}| ≤ n²/6 + o(n²)`.
+  *Round 4*: `Paths.lean` isolates exactly this hypothesis.  `Paths.mul_n_sub_one_le` is the
+  quantitative identity `n(n-1) ≤ n·k + Paths c` (i.e. `k ≥ (n-1) - Paths c/n`), and
+  `Paths.five_sixth_of_paths` concludes `5(n-1) ≤ 6k` from the single hypothesis
+  `Paths c ≤ n(n-1)/6` — the BCDP22 lower bound in the form of one concrete inequality on the
+  number of two-edge paths.  It also re-derives the classical bound (`classical_lower_bound'`).
 -/
 
 namespace JSP140
@@ -269,5 +282,102 @@ theorem admissibleLower_at_third {ε : ℝ} (hε : 1 / 3 ≤ ε) (n : ℕ) (hn :
   have h4 : (10 : ℝ) * (n : ℝ) - 12 * (ε * (n : ℝ)) ≤ 9 * ((n : ℕ) : ℝ) - 9 := by nlinarith
   have h5 : 5 * (n : ℝ) / 6 - ε * (n : ℝ) ≤ 3 * ((n - 1 : ℕ) : ℝ) / 4 := by linarith
   linarith
+
+/-! ### The second construction: `f(n,4,5) ≤ n - 1` for `n ≡ 0, 2 (mod 6)` -/
+
+/-- **The upper bound `f(n,4,5) ≤ n - 1` for even `n` with `3 ∤ (n-1)`**, i.e. for
+`n ≡ 0, 2 (mod 6)`, from the ghost colouring of `Ghost.lean`.  This improves the `n + 1` of
+`Construction.lean` (which used the sum colouring modulo `n + 1`) to `n - 1`. -/
+theorem EG_le_ghost_sub (n : ℕ) (hn0 : 0 < n) (heven : n % 2 = 0) (h3 : ¬ 3 ∣ (n - 1)) :
+    EG n ≤ n - 1 := by
+  have hm0 : 0 < n - 1 := by omega
+  have hm : (n - 1) % 2 = 1 := by omega
+  have h := EG_le_ghost (n - 1) hm0 hm h3
+  calc EG n = EG ((n - 1) + 1) := by rw [show n - 1 + 1 = n by omega]
+    _ ≤ n - 1 := h
+
+/-- **`f(n,4,5) ≤ n` for every `n ≢ 4 (mod 6)`**: the round-robin colouring handles odd `n`
+(`EG_le_sumCol`), the ghost colouring handles even `n` with `3 ∤ (n-1)`, which for even `n` is
+equivalent to `n ≢ 4 (mod 6)`. -/
+theorem EG_le_sixth_residue (n : ℕ) (hn0 : 0 < n) (hres : n % 6 ≠ 4) : EG n ≤ n := by
+  by_cases hodd : n % 2 = 1
+  · exact EG_le_sumCol n hodd
+  · by_cases h3 : 3 ∣ (n - 1)
+    · obtain ⟨t, ht⟩ := h3
+      have : n % 6 = 4 := by omega
+      exact absurd this hres
+    · have heven : n % 2 = 0 := by omega
+      have h := EG_le_ghost_sub n hn0 heven h3
+      omega
+
+/-- The same bound in real form. -/
+theorem EG_le_sixth_residue_real (n : ℕ) (hn0 : 0 < n) (hres : n % 6 ≠ 4) :
+    (EG n : ℝ) ≤ (n : ℝ) := by
+  exact_mod_cast (EG_le_sixth_residue n hn0 hres)
+
+/-- **The upper half of the headline at the sharp value `ε = 1/6`, for all `n ≢ 4 (mod 6)`**:
+for all `n ≥ 7` with `n ≢ 4 (mod 6)`,
+
+    f(n,4,5) ≤ 5n/6 + n/6 = n.
+
+So the upper half of `jsp_000140_target` now holds for all `n` except the single residue class
+`4 (mod 6)` (round 3 had it only for odd `n`). -/
+theorem fiveSixthUpper_sixth_residue : ∃ N : ℕ, ∀ n : ℕ, N ≤ n → n % 6 ≠ 4 →
+    (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + (n : ℝ) / 6 := by
+  refine ⟨7, fun n hn hres => ?_⟩
+  have h1 := EG_le_sixth_residue_real n (by omega) hres
+  have h2 : 5 * (n : ℝ) / 6 + (n : ℝ) / 6 = (n : ℝ) := by ring
+  rw [h2]
+  exact h1
+
+/-- **The upper half of the headline in `ε`-form for `ε ≥ 1/6` and `n ≢ 4 (mod 6)`.** -/
+theorem fiveSixthUpper_sixth_ge {ε : ℝ} (hε : 1 / 6 ≤ ε) : ∃ N : ℕ, ∀ n : ℕ, N ≤ n → n % 6 ≠ 4 →
+    (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + ε * n := by
+  obtain ⟨N, hN⟩ := fiveSixthUpper_sixth_residue
+  refine ⟨N, fun n hn hres => ?_⟩
+  have h1 := hN n hn hres
+  have h2 : (1 : ℝ) / 6 ≤ ε := hε
+  have h3 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+  nlinarith
+
+/-- **The two-sided shape bound without the additive constant**, for `n ≢ 4 (mod 6)`: for all
+`n ≥ 4` with `n ≢ 4 (mod 6)`,
+
+    |f(n,4,5) - 5n/6| ≤ n/6,
+
+i.e. `f(n,4,5) = 5n/6 + O(n)` with error at most the leading-order term, and the catalogue
+estimate `|f(n,4,5) - 5n/6| ≤ ε n` holds for every `ε ≥ 1/6` (and all `n ≢ 4 (mod 6)`, not just
+for large `n` as in `fiveSixth_ge_one`). -/
+theorem fiveSixthShape_sixth_residue (n : ℕ) (hn : 4 ≤ n) (hres : n % 6 ≠ 4) :
+    5 * (n : ℝ) / 6 - ((n : ℝ) / 12 + 3 / 4) ≤ (EG n : ℝ) ∧
+      (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + (n : ℝ) / 6 := by
+  have h1 := EG_ge_classical_real n hn
+  have h2 := EG_le_sixth_residue_real n (by omega) hres
+  rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)] at h1
+  norm_num at h1
+  constructor <;> nlinarith
+
+/-- The catalogue estimate `|f(n,4,5) - 5n/6| ≤ ε n` for **every `ε ≥ 1/6`** and every
+`n ≥ 4` with `n ≢ 4 (mod 6)`: the sharp `O(n)` shape bound of `fiveSixthShape_sixth_residue`
+reaches the headline constant. -/
+theorem fiveSixth_quarter (n : ℕ) (hn : 5 ≤ n) (hres : n % 6 ≠ 4) :
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ (1 / 4) * (n : ℝ) := by
+  obtain ⟨h1, h2⟩ := fiveSixthShape_sixth_residue n (by omega) hres
+  have h3 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+  have h4 : (5 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  rw [abs_le]
+  constructor
+  · linarith
+  · nlinarith
+
+/-- **The `5/6` criterion for the lower half, in the `Admissible`-colouring language of the
+reduction theorem `jsp_000140_target_iff`.**  If every admissible colouring of `K_n` with
+`EG n` colours has at most `n(n-1)/6` two-edge paths, then `f(n,4,5) ≥ 5n/6 - 5/6`: this is the
+lower half of the catalogue answer, with the single remaining hypothesis
+`Paths c ≤ n(n-1)/6` isolated by `Paths.lean`. -/
+theorem admissibleLower_five_sixth_of_paths (n : ℕ) (hn : 4 ≤ n)
+    (hc : ∀ c : Col n (EG n), Admissible c → Paths c ≤ n * (n - 1) / 6) :
+    5 * ((n - 1 : ℕ) : ℝ) / 6 ≤ (EG n : ℝ) :=
+  EG_ge_five_sixth_of_paths_real n hn hc
 
 end JSP140
