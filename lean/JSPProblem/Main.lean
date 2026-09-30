@@ -8,6 +8,7 @@ import JSPProblem.Construction
 import JSPProblem.Rigidity
 import JSPProblem.Extremal
 import JSPProblem.Singles
+import JSPProblem.Tables
 
 /-!
 # JSP-000140 — the headline statement
@@ -629,5 +630,34 @@ theorem extremal_structure_complete {c : Col n k} (hc : Admissible c) (hn : 4 �
     exact tight_single_is_leaf hc hn h3 hk he
   · intro i
     exact tight_twoA_odd hc hn h3 hk i
+
+/-! ### Round 16: the first exact value of `f(n,4,5)`, from a *verified* construction -/
+
+/-- **`f(6,4,5) = 5`** — the first exact value of the Erdős–Gyárfás function established in
+this development, obtained from the 1-factorisation of `K₆` (`Tables.sixCol`), whose
+admissibility is a Lean certificate (`Tables.admissible_sixCol`, by `native_decide`) and not
+a search result.  Equivalently: the sharp constant `5/6` of the catalog answer
+`f(n,4,5) = 5n/6 + o(n)` is *attained* (up to the integrality of `5(n-1)/6`) already at
+`n = 6`. -/
+theorem EG_six_exact : EG 6 = 5 := EG_six
+
+/-- The catalog estimate at `n = 6`: `|f(6,4,5) - 5·6/6| = 5/6 ≤ ε·n` for `ε = 1/6`, i.e.
+the two-sided form of `FiveSixth EG` is *exactly tight* at `n = 6` in the upper half. -/
+theorem six_catalogue_estimate : |(EG 6 : ℝ) - 5 * (6 : ℝ) / 6| ≤ (1 / 6 : ℝ) * 6 := by
+  rw [EG_six_real]
+  norm_num
+
+/-- The general *integral* form of the catalog lower bound, `⌈5(n-1)/6⌉ ≤ f(n,4,5)`, and the
+consequence that a verified construction with `⌈5(n-1)/6⌉` colours is the exact value
+(`Tables.EG_eq_of_listCol` is the engine; `EG_six` is its first instance). -/
+theorem EG_ge_ceil (n : ℕ) (hn : 4 ≤ n) : (5 * (n - 1) + 5) / 6 ≤ EG n := EG_ge_ceil_five_sixth n hn
+
+/-- The sharpness of the catalog lower bound is witnessed: at `n = 6` the lower bound of
+`Cherry.five_sixth_lower` is met exactly after integrality (`5(n-1)/6 = 25/6`, `f = 5`), and
+the colouring witnessing it is admissible with a four-clique that spans precisely five
+colours (`Tables.sixCol_tight`) — the catalog condition `q = 5` cannot be lowered. -/
+theorem catalogue_condition_is_tight :
+    EG 6 = 5 ∧ (colorsOn sixCol ({0, 1, 2, 3} : Finset (Fin 6))).card = 5 :=
+  ⟨EG_six, sixCol_tight⟩
 
 end JSP140

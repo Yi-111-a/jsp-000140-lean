@@ -9,3 +9,4 @@ import JSPProblem.Restriction
 import JSPProblem.Extremal
 import JSPProblem.Slack
 import JSPProblem.Singles
+import JSPProblem.Tables

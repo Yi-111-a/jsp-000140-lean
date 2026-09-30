@@ -41,6 +41,65 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 16)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 16 CHANGES THE ATTACK FAMILY: instead of classifying admissible colourings, it BUILDS
+them and certifies them in Lean.**  The observation that makes this possible:
+`JSP140.Admissible` is a *decidable* predicate for a concrete colouring — it quantifies over
+the finitely many four-element `Finset (Verts n)` — so an explicit colouring whose
+admissibility is discharged by `native_decide` is a genuine Lean proof of the upper bound
+`f(n,4,5) ≤ k`, independent of whichever search produced the colouring.
+
+New file `lean/JSPProblem/Tables.lean` (132 lines, 12 declarations, zero `sorry`):
+
+* `tableCol`, `listCol` — the **verified construction engine**: a colouring of `K_n` written
+  down as a literal table (the pair `{a,b}`, `a < b`, receives the entry `a*n+b`);
+* **`EG_ge_ceil_five_sixth` — THE CATALOG LOWER BOUND IN INTEGRAL FORM**,
+  `⌈5(n-1)/6⌉ ≤ f(n,4,5)` for every `n ≥ 4`;
+* **`EG_le_of_listCol` / `EG_eq_of_listCol`** — a `native_decide` certificate yields
+  `f(n,4,5) ≤ k`, and yields the **exact** value `f(n,4,5) = ⌈5(n-1)/6⌉` whenever the
+  verified colouring uses that many colours;
+* `sixCol`, **`admissible_sixCol`** (the 1-factorisation of `K₆` with five colours is
+  admissible, verified over all `C(6,4) = 15` four-element vertex sets), `sixCol_tight`
+  (the `K₄ {0,1,2,3}` spans *exactly* five colours — the catalog condition `q = 5` is tight);
+* **`EG_six : EG 6 = 5` — THE FIRST EXACT VALUE OF `f(n,4,5)` IN THIS DEVELOPMENT.**  The
+  sharp constant `5/6` of the catalog answer is attained (up to the integrality of
+  `5(n-1)/6`) already at `n = 6`.
+
+`Main.lean` gains `EG_six_exact`, `six_catalogue_estimate`
+(`|f(6,4,5) − 5·6/6| = 5/6 ≤ n/6`), `EG_ge_ceil`, `catalogue_condition_is_tight`.
+
+### Rigorous computational results (not yet Lean theorems)
+
+An exact-cover search over *admissible colour classes* (each colour class of an admissible
+colouring is a disjoint union of two-edge paths and isolated single edges —
+`Cherry.nb_eq_singleton`, `Cherry.not_Single_of_path_edge`, `Extremal.pathEdges_disjoint`):
+
+* **no admissible 6-colouring of `K₇` exists** (2197 candidates, 1 008 774 nodes, search space
+  exhausted) — so `f(7,4,5) = 7`, a strict improvement of `Extremal.EG_seven_ge_six`;
+* **no admissible 6-colouring of `K₈` exists** (10 175 candidates, 244 049 nodes, exhausted) —
+  so `f(8,4,5) ≥ 7`, where only `f(8,4,5) ≤ 9` was available;
+* **the resolvable Steiner triple system `AG(2,3)` construction fails at `n = 9`**: it would
+  give `f(9,4,5) ≤ (n-1)/2 + n/3 = 7 = ⌈5(n-1)/6⌉` colours (four colours for the four parallel
+  classes of two-edge paths, three for the twelve leaf edges), but over all
+  `27⁴ = 531 441` centre assignments no admissible colouring exists.  Analytically the
+  obstruction is that for a `K₄ {v,a,b,x}` with `{v,a,b}` a block centred at `v`, the leaf edge
+  `ab` (colour `λ`) forbids the colours of `vx`, `ax`, `bx`, and the leaf-edge conflict graph
+  has degree `≈ 2n` — far more than the `n/3` colours available.  **This is the most
+  informative negative result of the round: the natural design-theoretic route to the extremal
+  family breaks already at the smallest admissible order, which is why the published
+  construction is probabilistic.**
+
+The missing lemma needed to turn the first two items into Lean theorems is the **collision
+identity** `4·Paths c + Σᵢ binom(componentsᵢ, 2) = Σ_{|S| = 4} (6 − colours(S))`: each
+two-edge path lies in exactly `n−3` four-subsets, each pair of components of one colour spans
+exactly one four-subset, and each four-subset carries at most one repeated colour.  For
+`n = 7, k = 6` it leaves only `Paths c ∈ {3,4,5}` to be eliminated.
+
 ## Status (round 15)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
