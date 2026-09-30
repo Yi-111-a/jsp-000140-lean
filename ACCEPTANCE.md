@@ -41,6 +41,63 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 19)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 19 REPLACES THE VERIFIED SEARCH OF ROUND 18 BY A FAST, SYMMETRY-REDUCED ONE AND PROVES
+EVERYTHING ABOUT IT EXCEPT ITS COMPLETENESS THEOREM.**
+
+New file `lean/JSPProblem/FastSearch.lean` (611 lines, 60 declarations, zero `sorry`).  Three
+changes make the search of `Search.lean` fast enough to reach `n = 7`, and all of the
+corresponding mathematics is formalised:
+
+* the four-cliques of `K_n` are enumerated as an **explicit list of increasing quadruples**
+  (`Quad`, `incQuad`, `quadsOf`, `groupsOf`, `mem_groupsOf`) instead of by filtering the universe
+  of four-element finsets — `Search.fourSets` enumerates `2^(n²)` candidates, i.e. `2^49` for
+  `n = 7`, which is exactly why the round-18 search could not certify anything beyond `n = 5`;
+* the pruning test works on a **list of six colours** (`collect6`, `quadOK`, `allOK`), and a `K₄`
+  which is not complete yet is not tested at all;
+* the search branches only over **the colours already used and the next new one**
+  (`allowedColors k u = {0, …, u}`), the *first-occurrence* rule, i.e. the colour-permutation
+  symmetry reduction, with the invariant `PInv` ("the colours used are exactly `0, …, u-1`") and
+  `PFilled` ("the meaningful slots filled are exactly those below `d`").
+
+The correspondence between the combinatorial and the `Finset` world — the part that any use of the
+search has to pay for — is proved:
+
+* **`quadEdges_eq`**: the six edges of an increasing quadruple are **exactly** the edges of the
+  complete graph on its four vertices, `edgeFinset (quadSet q) = quadEdges q`;
+* **`quadColors_toFinset`**: the six colours of a `K₄` (as a *list*) are exactly
+  `colorsOn c (quadSet q)`; hence **`quad_ok_of_admissible`**: a `K₄` of an admissible colouring
+  spans five colours in the form the search tests;
+* **`quadOK_of`**: the pruning test is **sound** — a partial colouring agreeing with a total
+  colouring on all slots `≤ d` passes the test for every `K₄` completed at `d`;
+* **`admissible_swapCol`** (with `swp`, `swp_involutive`, `card_colorsOn_swapCol`): relabelling the
+  palette by a transposition of two colours **preserves admissibility** — the ingredient the
+  completeness proof needs for the symmetry step;
+* the invariants and their preservation: `PInv_update`, `PFilled_update`, `PFilled_skip`,
+  `PSpec_update`.
+
+The search itself (`tabOf`, **`searchAuxS`**, `hasAdmissibleSym`) is computable, and
+`native_decide` settles `hasAdmissibleSym 4 3 = false` and `hasAdmissibleSym 5 3 = false`: the new
+engine reproduces the two certificates of round 18.  Measured in Python
+(`discovery/JSP-000140/eg3_symmetry_nodes2.py`): *no admissible 6-colouring of `K₇` exists* (13 301 689
+nodes), so with `Construction.EG_le_sumCol 7` one gets `f(7,4,5) = 7` — **the first order at which
+`f` exceeds the counting bound `5(n-1)/6 = 5`**; `n = 8` with six colours needs `> 7.5·10⁷` nodes in
+900 s.
+
+**NOT proved this round: the completeness theorem `searchAuxS_iff`** (blocker B1 in
+`discovery/JSP-000140/policy.json`) — that the symmetry-reduced search returns `true` iff some
+admissible colouring extends the partial one.  The induction on the fuel is drafted and every
+ingredient it needs is in the file; what remains is ~8 tactic-level errors in the `succ` case, all
+of one mechanical kind (turning `decide (Admissible c) = true` into `Admissible c`; rewriting inside
+an equation rather than in a goal).  Without it no `native_decide` certificate may be used, so the
+lower-bound engine `hasAdmissibleSym_iff` / `EG_ge_of_certSym` cannot be stated yet, and
+`f(7,4,5) = 7` cannot be concluded.
+
 ## Status (round 18)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
