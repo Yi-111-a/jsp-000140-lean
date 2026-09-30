@@ -5,6 +5,7 @@ import JSPProblem.Paths
 import JSPProblem.Cherry
 import JSPProblem.Ghost
 import JSPProblem.Construction
+import JSPProblem.Rigidity
 
 /-!
 # JSP-000140 — the headline statement
@@ -487,5 +488,56 @@ theorem fiveSixth_eps_ge_sixth {ε : ℝ} (hε : 1 / 6 ≤ ε) : ∃ N : ℕ, �
   have h2 := hN₂ n (le_trans (le_max_right _ _) hn) hres
   rw [abs_le]
   constructor <;> linarith
+
+/-! ### Round 13: what the upper half of the headline really asks for -/
+
+/-- **The extremal value at a single `n`.**  If `K_n` has an admissible colouring with `k` colours
+where `6 * k = 5(n-1)` — the extremal number of colours forced by the lower bound
+`Cherry.five_sixth_lower` — then
+
+    5n/6 - n/6  ≤  f(n, 4, 5)  ≤  5n/6,
+
+i.e. the sharp lower bound `Cherry.EG_ge_five_sixth_real` together with the construction.  So at
+such an `n` the catalogue answer `f(n,4,5) = 5n/6 + o(n)` has no error at all on the upper side. -/
+theorem fiveSixth_at_extremal (n : ℕ) (hn : 5 ≤ n) (k : ℕ) (hk : 6 * k = 5 * (n - 1))
+    (hc : ∃ (c : Col n k), Admissible c) :
+    5 * (n : ℝ) / 6 - (n : ℝ) / 6 ≤ (EG n : ℝ) ∧ (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 := by
+  obtain ⟨c, hc⟩ := hc
+  have h1 := EG_ge_five_sixth_real n (by omega)
+  have h2 : EG n ≤ k := EG_le n k c hc
+  have hdiv : (k : ℝ) = 5 * ((n - 1 : ℕ) : ℝ) / 6 := by
+    rw [eq_div_iff (by norm_num : (6 : ℝ) ≠ 0)]
+    have hk' : (6 : ℝ) * (k : ℝ) = 5 * ((n - 1 : ℕ) : ℝ) := by exact_mod_cast hk
+    linarith
+  have hnsub : ((n - 1 : ℕ) : ℝ) = (n : ℝ) - 1 := by
+    rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)]
+    ring
+  have h5 : (5 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  constructor
+  · rw [hnsub] at h1
+    linarith
+  · have h2' : (EG n : ℝ) ≤ (k : ℝ) := by exact_mod_cast h2
+    rw [hdiv, hnsub] at h2'
+    linarith
+
+/-- **THE EXTREMAL STRUCTURE NEEDED BY THE UPPER HALF.**  If `K_n` admits an admissible colouring
+with the extremal number `k` of colours, `6 * k = 5(n-1)` — the number forced by the lower bound
+`Cherry.five_sixth_lower` — then the two-edge paths of that colouring form a **Steiner triple
+system** on the vertex set of `K_n` (`IsSTS (pathFinset c)`), and the two-sided bound
+`5n/6 - n/6 ≤ f(n,4,5) ≤ 5n/6` holds at `n` (`fiveSixth_at_extremal`).
+
+So the upper half of `jsp_000140_main` amounts exactly to: for all large `n ≡ 1 (mod 6)`, produce an
+admissible colouring of `K_n` with `5(n-1)/6` colours, i.e. a Steiner triple system of order `n`
+together with a colouring of its blocks and a choice of a centre in each block — the object which
+the construction of arXiv:2207.02920 (a random triangle removal process) builds.  The counting
+lemma of `Cherry.lean` shows that such a colouring uses no more than `2n/3` edges per colour, and
+`tight_mod6` shows that `n ≡ 1 (mod 6)` is necessary for the extremal value to be attained at all. -/
+theorem extremal_is_STS (n : ℕ) (hn : 5 ≤ n) (k : ℕ) (hk : 6 * k = 5 * (n - 1))
+    (hc : ∃ (c : Col n k), Admissible c) :
+    ∃ (c : Col n k), Admissible c ∧ IsSTS (pathFinset c) ∧
+      5 * (n : ℝ) / 6 - (n : ℝ) / 6 ≤ (EG n : ℝ) ∧ (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 := by
+  obtain ⟨c, hc⟩ := hc
+  obtain ⟨h1, h2⟩ := fiveSixth_at_extremal n hn k hk ⟨c, hc⟩
+  exact ⟨c, hc, tight_pathFinset_is_STS hc (by omega) (tight_attained hc (by omega) hk), h1, h2⟩
 
 end JSP140

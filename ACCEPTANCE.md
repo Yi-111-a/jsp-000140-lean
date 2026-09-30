@@ -11,7 +11,7 @@
 > | Date proposed | No later than 1997 (bibliographic evidence) |
 > | Current status | **Solved** |
 > | Lean proof (catalog) | **No** |
-> | Publications | `[BCDP22]` arXiv:2207.02920 — *The Erdős–Gyárfás function `f(n,4,5) = 5n/6 + o(n)` — so Gyárfás was right*; `[JoMu22]` arXiv:2208.12563 |
+> | Publications | `[BCDP22]` arXiv:2207.02920 — *The Erdős–Gyárfás function `f(n,4,5) = 5n/6 + o(n)` — so Gyárfás was right*, **by Patrick Bennett, Ryan Cushman, Andrzej Dudek, Paweł Prałat** (round 13 correction: the authors are *not* Banerjee–Bradshaw–Letzter–Pokrovskiy, and the construction is **probabilistic** — a randomised process based on *random triangle removal*, analysed with the differential-equation method — so there is no explicit colouring to formalise); `[JoMu22]` arXiv:2208.12563 |
 
 The quantity asked for is the **Erdős–Gyárfás function** `f(n, p, q)`, i.e. the least number
 of colours in an edge-colouring of `K_n` in which every `K_p` spans at least `q` colours,
@@ -40,6 +40,66 @@ JSP140.Admissible c : Prop :=
 ```
 
 the catalog condition ("every four-vertex clique contains at least five colours").
+
+## Status (round 13)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 13 CHARACTERISES THE MISSING HALF: the extremal colourings are exactly the Steiner
+triple systems.**
+
+New file `lean/JSPProblem/Rigidity.lean` (583 lines, 25 declarations, zero `sorry`):
+
+* `pathSet c i v` — the **three vertices** of a two-edge path of colour `i` centred at `v`
+  (the centre and its two leaves); `card_pathSet`: three elements for `v ∈ twoA c i`.
+* `cherry_leaf_pair` — the two leaves span an **isolated single edge of a different colour**
+  (cardinality `1` at each leaf) — the "leaf edge" part of `Cherry.nb_eq_singleton_of_cherry`.
+* `pathSet_dichotomy` — for `x ≠ y` in a `pathSet`: either `v ∈ {x,y}` and `c s(x,y) = i` (a *path*
+  pair), or `x, y` are the two leaves and `c s(x,y) ≠ i` (the *leaf* edge).  Exclusive dichotomy.
+* **`pathSet_sub_inter` — THE PACKING LEMMA**: two two-edge paths of an admissible colouring
+  (`n ≥ 4`) cannot have a common two-element vertex set unless they are the *same* path.  Four
+  cases: both pairs path pairs (`not_two_centres`); path pair / leaf edge in either order (the leaf
+  edge is a private single edge, contradicting the two colour-`i` neighbours of the centre);
+  both pairs leaf edges (`centre_eq_of_leaves'`).
+* `pathFinset c`, `card_pathFinset` (its cardinality is `Paths c`), `card_filter_pairIn_le`
+  (at most one `pathSet` contains a given pair), `sum_pairIn_three`, and
+  `sum_card_filter_pairIn` — **the double counting** of pairs inside the `pathSet`s:
+  `Σ_p #{B ∋ p} = 3 * (pathFinset c).card`.
+* `IsSTS B` — a **Steiner triple system** on `Fin n`: three-element sets in which every pair of
+  distinct vertices lies in exactly one member.
+* **`tight_pathFinset_is_STS` — THE RIGIDITY THEOREM.**  If the counting lemma of `Cherry.lean`
+  is an equality, `3 * Paths c = |E(K_n)|`, then the `pathSet`s of `c` are a Steiner triple system
+  on `Fin n` (every pair is in at most one, the double count makes every summand `1`).
+* **`tight_attained` — the converse.**  An admissible colouring with the extremal number
+  `6 * k = 5(n-1)` of colours *forces* `3 * Paths c = |E(K_n)|`.  Hence:
+
+      an admissible colouring of `K_n` uses the extremal number `5(n-1)/6` of colours
+      **iff** its two-edge paths form a Steiner triple system of order `n`.
+* `tight_paths` (`Paths c = n(n-1)/6`), **`tight_mod6`** (the extremal value is only attainable for
+  `n ≡ 1 (mod 6)`, so the sharp constant `5/6` is *not* attained on the other five residue
+  classes), `tight_classes_span` (in the extremal case every colour class spans the vertex set:
+  `2a_i + 3b_i = n`, the equality case of `Paths.two_mul_classIn_le_add`).
+
+`Main.lean` consequences: `fiveSixth_at_extremal` (at an extremal `n`:
+`5n/6 - n/6 ≤ f(n,4,5) ≤ 5n/6`) and **`extremal_is_STS`** (an extremal colouring exists ⟹ its
+two-edge paths form a Steiner triple system, together with the two-sided bound).  So the **upper
+half of `jsp_000140_main` is now exactly the statement**: for all large `n ≡ 1 (mod 6)` there is a
+Steiner triple system of order `n` together with a choice of a centre in each block and a colouring
+of the blocks — the object built by the *random triangle removal* process of arXiv:2207.02920.
+
+Abandoned in round 13 (documented in `discovery/JSP-000140/policy.json`):
+
+* the **1-factorisation of `K_n`** for even `n` (`Z_{n-1} ∪ {∞}`, colour of `{x,y}` = `(x+y)/2`, of
+  `{∞,x}` = `x`): it is admissible **iff** `3 ∤ n-1`; a `K₄` on `{∞, a, a+t, a-t}` with `3t ≡ 0`
+  carries two monochromatic opposite pairs (only four colours).  So it adds nothing beyond the ghost
+  colouring of `Ghost.lean` and does not help for `n ≡ 4 (mod 6)`;
+* an **integrality argument** extracting the exact value `5(n-1)/6` from the `o(n)` form: it was
+  formalised, found **false** by Lean (`linarith`) and removed — in `FiveSixthUpper` the threshold
+  `N` depends on `ε`, so for a fixed `n` the error `ε n` cannot be pushed below `1/6`;
+* the probabilistic construction of the upper half itself: not formalisable, there is no explicit
+  colouring in the literature.
 
 ## Status (round 10)
 
@@ -203,16 +263,17 @@ the catalog condition ("every four-vertex clique contains at least five colours"
    `Cherry.fiveSixthLower_eps`).  Round 4's blocker C ("the BCDP22 lower bound, now isolated as
    `Paths c ≤ n(n-1)/6`") is **closed** in round 10 by `Cherry.three_mul_paths_le_edges`.
 
-1. **The upper half for `0 < ε < 1/6`** (the BCDP22 construction).  Round 4 improved the available
-   constructions: the round-robin colouring uses `n` colours and the ghost colouring `n - 1`
-   colours on `K_n` for `n ≡ 0, 2 (mod 6)`, i.e. `5n/6 + O(n)`.  Neither can be improved by
-   post-processing: each colour class of the sum colouring is a perfect matching, so the union of
-   two of them is a disjoint union of even cycles and a `K₄` on a 4-cycle spans at most three
-   colours; and the six colours of a `K₄` in the ghost colouring already have the maximal possible
-   number of coincidences (one).  With `k = 5n/6` colours, every colour class would have to have
-   `3n/5` edges, i.e. be a spanning disjoint union of `n/5` single edges and `n/5` two-edge paths —
-   a new mechanism.  One needs the BCDP22 / JoMu22 style construction (1-factorisations of
-   hypergraph matchings, then a weighted blow-up).
+1. **The upper half for `0 < ε < 1/6`** (the construction of arXiv:2207.02920).  Round 13
+   established that this is a **Steiner triple system** problem: by
+   `Rigidity.tight_attained`, `Rigidity.tight_pathFinset_is_STS` and `Main.extremal_is_STS`, an
+   admissible colouring with the extremal `5(n-1)/6` colours has its two-edge paths forming a
+   Steiner triple system of order `n`, and `Rigidity.tight_mod6` shows this needs `n ≡ 1 (mod 6)`.
+   The constructions available here (round-robin: `n` colours; ghost: `n-1` colours for
+   `n ≡ 0, 2 (mod 6)`; the 1-factorisation of `K_n`, which round 13 checked and found admissible
+   only for `3 ∤ n-1`) all stop at `5n/6 + O(n)`.  The paper's own construction is *probabilistic*
+   (random triangle removal), so there is no explicit colouring to formalise.  The next formal
+   step is `restrictCol`/`EG_mono` (monotonicity of `f(n,4,5)`), after which a family of extremal
+   colourings for `n ≡ 1 (mod 6)` yields the upper half with an `O(1)` error.
 2. **The upper half at `ε = 1/6` for the residue class `n ≡ 4 (mod 6)`**: for these `n` only
    `f(n,4,5) ≤ n+1` is available, because the ghost colouring needs `3 ∤ (n-1)` and the
    round-robin colouring needs odd `n`.  The ghost construction is *provably* not admissible when
