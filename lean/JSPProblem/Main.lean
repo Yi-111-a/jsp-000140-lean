@@ -2,6 +2,7 @@ import JSPProblem.Definitions
 import JSPProblem.ColorClass
 import JSPProblem.Counting
 import JSPProblem.Paths
+import JSPProblem.Cherry
 import JSPProblem.Ghost
 import JSPProblem.Construction
 
@@ -40,7 +41,29 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
   `|f(n,4,5) - 5n/6| ≤ n/6 + 1` (`fiveSixthShape`) and, for `n ≢ 4 (mod 6)`,
   `5n/6 - (n/12 + 3/4) ≤ f(n,4,5) ≤ 5n/6 + n/6` (`fiveSixthShape_sixth_residue`).
 
-## Status of the headline (round 4)
+## Status of the headline (round 10)
+
+* **Lower half: COMPLETE.**  `FiveSixthLower EG` — for every `ε > 0` and all large `n`,
+  `5n/6 - ε n ≤ f(n,4,5)` — is proved (`fiveSixthLower_eg`, `admissibleLower_eps`,
+  `Cherry.fiveSixthLower_eps`), with the *sharp* constant `5/6` of BCDP22 and no `o(n)` loss:
+  `Cherry.five_sixth_lower` gives `f(n,4,5) ≥ 5(n-1)/6` for every `n ≥ 4`, from the counting
+  lemma `Cherry.three_mul_paths_le_edges` (`3 * Paths c ≤ |E(K_n)|`), i.e. from the fact that
+  **at least two thirds of the edges of `K_n` lie in single-edge components of their colour
+  class** (`Cherry.cherryEdges_disjoint`: every two-edge path brings three edges with it — its own
+  two edges and the isolated single edge between its leaves — and the triples of different
+  two-edge paths are disjoint).  This replaces the classical constant `3/4` of Erdős–Gyárfás
+  (1977), which was the state of the art here in round 9 (`fiveSixthLower_at_eighth`).
+* **Upper half**: as in round 4, proved for `ε ≥ 1/6` on all `n ≢ 4 (mod 6)`
+  (`fiveSixthUpper_sixth_ge`) and for `ε ≥ 1/3` on all `n` (`fiveSixthUpper_at_third`).  The
+  range `0 < ε < 1/6` is open; it needs the BCDP22 construction (1-factorisations of hypergraph
+  matchings).
+* **Two-sided, sharp constant**: `5n/6 - 5/6 ≤ f(n,4,5) ≤ 5n/6 + n/6 + 1` for all `n ≥ 4`
+  (`fiveSixthShape_five_sixth`), and `|f(n,4,5) - 5n/6| ≤ n/6` for all `n ≥ 5` with
+  `n ≢ 4 (mod 6)` (`fiveSixthShape_sixth_residue'`), so the catalogue estimate
+  `|f(n,4,5) - 5n/6| ≤ ε n` holds for **every `ε ≥ 1/6`** on those `n`
+  (`fiveSixth_ge_sixth`, `fiveSixth_eps_ge_sixth`).
+
+## Status before round 10 (round 4)
 
 * **Two-sided**: `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for all `n ≥ 4` (`fiveSixthShape`), i.e.
   `f(n,4,5) = 5n/6 + O(n)`; in particular the headline estimate holds for every `ε ≥ 1`
@@ -60,7 +83,7 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
   *Round 4*: the ghost colouring (`Ghost.lean`) is a second mechanism and reaches `n - 1`
   colours on `K_n` for `n ≡ 0, 2 (mod 6)`, so the upper half now holds at `ε = 1/6` for all
   `n ≢ 4 (mod 6)` (`fiveSixthUpper_sixth_residue`, `fiveSixthUpper_sixth_ge`).
-* **Lower half, for `0 < ε < 1/8`**: open.  This is exactly the sharpening of the counting
+* **Lower half, for `0 < ε < 1/8` (round 4 status, CLOSED in round 10)**: open.  This is exactly the sharpening of the counting
   constant `3/4` to `5/6` (BCDP22); in the framework of `Counting.lean` it says that at least
   two thirds of the edges lie in single-edge components of their colour class, i.e.
   `|{two-edge paths}| ≤ n²/6 + o(n²)`.
@@ -379,5 +402,90 @@ theorem admissibleLower_five_sixth_of_paths (n : ℕ) (hn : 4 ≤ n)
     (hc : ∀ c : Col n (EG n), Admissible c → Paths c ≤ n * (n - 1) / 6) :
     5 * ((n - 1 : ℕ) : ℝ) / 6 ≤ (EG n : ℝ) :=
   EG_ge_five_sixth_of_paths_real n hn hc
+
+
+/-! ### Round 10: the lower half of the headline statement, with the sharp constant `5/6` -/
+
+/-- **The lower bound with the sharp constant.**  For every `n ≥ 4`, `f(n,4,5) ≥ 5(n-1)/6 =
+5n/6 - 5/6`: the classical constant `3/4` of Erdős–Gyárfás (1977) is improved to the BCDP22 constant
+`5/6`, with no `o(n)` loss. -/
+theorem EG_ge_five_sixth' (n : ℕ) (hn : 4 ≤ n) : 5 * (n - 1) ≤ 6 * EG n := EG_ge_five_sixth n hn
+
+/-- **THE LOWER HALF OF THE HEADLINE.**  `FiveSixthLower EG`: for every `ε > 0` and all `n` with
+`n ≥ max (⌈5/(6ε)⌉, 4)`,
+
+    5n/6 - ε n ≤ f(n, 4, 5).
+
+This is one of the two halves of the solved catalog answer `f(n,4,5) = 5n/6 + o(n)`
+(BCDP22, arXiv:2207.02920); it is proved in `Cherry.lean` from the counting lemma
+`Cherry.three_mul_paths_le_edges` (`3 * Paths c ≤ |E(K_n)|`), i.e. from the fact that at least two
+thirds of the edges of `K_n` lie in single-edge components of their colour class. -/
+theorem fiveSixthLower_eg : FiveSixthLower EG := by
+  intro ε hε
+  obtain ⟨N, hN⟩ := fiveSixthLower_eps ε hε
+  refine ⟨N, fun n hn => ?_⟩
+  simpa using hN n hn
+
+/-- **The lower half of the headline in `Admissible`-colouring form**: `AdmissibleLower 1`, i.e.
+for every `ε > 0` and all large `n`, *every* admissible `j`-colouring of `K_n` uses at least
+`5n/6 - ε n` colours.  Together with `jsp_000140_target_iff` this is one of the two remaining
+halves of the required theorem `jsp_000140_main`. -/
+theorem admissibleLower_eps : AdmissibleLower 1 :=
+  (fiveSixthLower_iff (ε := 1)).mp fiveSixthLower_eg
+
+/-- **The two-sided bound with the sharp constant on both sides.**  For every `n ≥ 4`,
+
+    5n/6 - 5/6 ≤ f(n,4,5) ≤ 5n/6 + n/6 + 1,
+
+i.e. `f(n,4,5) = 5n/6 + O(n)`: the error is at most `5/6` below and `n/6 + 1` above.  (Round 9 had
+`n/12 + 3/4` on the lower side, from the classical constant `3/4`.) -/
+theorem fiveSixthShape_five_sixth (n : ℕ) (hn : 4 ≤ n) :
+    5 * (n : ℝ) / 6 - 5 / 6 ≤ (EG n : ℝ) ∧ (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + (n : ℝ) / 6 + 1 := by
+  have h1 := EG_ge_five_sixth_real n hn
+  have h2 := EG_le_succ_real n
+  rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)] at h1
+  norm_num at h1
+  constructor <;> linarith
+
+/-- **The symmetric `O(n)` shape bound at the sharp constant**: for all `n ≥ 5` with
+`n ≢ 4 (mod 6)`,
+
+    |f(n,4,5) - 5n/6| ≤ n/6,
+
+so the catalogue estimate `|f(n,4,5) - 5n/6| ≤ ε n` holds for **every `ε ≥ 1/6`** (on these `n`) —
+the same range as the upper half `fiveSixthUpper_sixth_ge`. -/
+theorem fiveSixthShape_sixth_residue' (n : ℕ) (hn : 5 ≤ n) (hres : n % 6 ≠ 4) :
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ (n : ℝ) / 6 := by
+  obtain ⟨h1, h2⟩ := fiveSixthShape_five_sixth n (by omega)
+  have h2' := EG_le_sixth_residue_real n (by omega) hres
+  have h3 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+  have h4 : (5 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  rw [abs_le]
+  constructor <;> linarith
+
+/-- **The catalogue estimate `|f(n,4,5) - 5n/6| ≤ ε n` for every `ε ≥ 1/6`** (all `n ≥ 5` with
+`n ≢ 4 (mod 6)`).  Round 9 reached `ε ≥ 1/4`; the improvement is the sharp `5/6` constant of the
+lower bound. -/
+theorem fiveSixth_ge_sixth {ε : ℝ} (hε : 1 / 6 ≤ ε) (n : ℕ) (hn : 5 ≤ n) (hres : n % 6 ≠ 4) :
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ ε * n := by
+  have h1 := fiveSixthShape_sixth_residue' n hn hres
+  have h2 : (1 : ℝ) / 6 ≤ ε := hε
+  have h3 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+  nlinarith
+
+/-- **The lower half of the required statement, in the strongest form proved so far**: for every
+`ε > 0` there is `N` with `5n/6 - εn ≤ f(n,4,5)` for all `n ≥ N`; together with the upper half for
+`ε ≥ 1/6` (`fiveSixthUpper_sixth_ge`, `fiveSixth_ge_sixth`) this proves `jsp_000140_main` for
+every `ε ≥ 1/6`. -/
+theorem fiveSixth_eps_ge_sixth {ε : ℝ} (hε : 1 / 6 ≤ ε) : ∃ N : ℕ, ∀ n : ℕ, N ≤ n → n % 6 ≠ 4 →
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ ε * n := by
+  have hpos : 0 < ε := by linarith
+  obtain ⟨N₁, hN₁⟩ := fiveSixthLower_eps ε hpos
+  obtain ⟨N₂, hN₂⟩ := fiveSixthUpper_sixth_ge hε
+  refine ⟨max N₁ N₂, fun n hn hres => ?_⟩
+  have h1 := hN₁ n (le_trans (le_max_left _ _) hn)
+  have h2 := hN₂ n (le_trans (le_max_right _ _) hn) hres
+  rw [abs_le]
+  constructor <;> linarith
 
 end JSP140

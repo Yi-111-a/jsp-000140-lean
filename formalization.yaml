@@ -1,6 +1,6 @@
 jsp_id: JSP-000140
 catalog_url: https://github.com/TheJustinSunPrize/awards
-status: wip  # round 4: build OK, 0 sorry/admit, partial_ok=true; classical bound f(n,4,5) >= 3(n-1)/4, the round-robin construction f <= n (odd n) / <= n+1, the new ghost-vertex construction f <= n-1 for n = 0, 2 mod 6 (so the upper half of the headline holds at eps = 1/6 for all n != 4 mod 6), and the new quantitative counting identity n(n-1) <= n*k + Paths c with the 5/6 criterion (Paths c <= n(n-1)/6 => 5(n-1) <= 6k); missing jsp_000140_main (see ACCEPTANCE.md)
+status: wip  # round 10: build OK, 0 sorry/admit, partial_ok=true. THE COMPLETE LOWER HALF of the catalog answer is proved: f(n,4,5) >= 5(n-1)/6 for all n >= 4 (sharp constant 5/6 of BCDP22, no o(n) loss) via Cherry.three_mul_paths_le_edges (3 * Paths c <= |E(K_n)|), and hence FiveSixthLower EG for every eps > 0 (Main.fiveSixthLower_eg, Main.admissibleLower_eps) together with the symmetric bound |f - 5n/6| <= n/6 for n >= 5, n != 4 mod 6. Upper half: f <= n (odd n), f <= n-1 for n = 0,2 mod 6, so eps >= 1/6 there. Still missing jsp_000140_main: the upper half for 0 < eps < 1/6 (the BCDP22/JoMu22 construction) (see ACCEPTANCE.md)
 prize_ready: false
 github_owner: Yi-111-a
 lean_repository: https://github.com/Yi-111-a/jsp-000140-lean
@@ -27,6 +27,7 @@ modules:
   - lean/JSPProblem/ColorClass.lean
   - lean/JSPProblem/Counting.lean
   - lean/JSPProblem/Paths.lean
+  - lean/JSPProblem/Cherry.lean
   - lean/JSPProblem/Ghost.lean
   - lean/JSPProblem/Construction.lean
   - lean/JSPProblem/Main.lean
