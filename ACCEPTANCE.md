@@ -41,21 +41,50 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
-## Status (round 2)
+## Status (round 3)
 
-`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`:
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
 `partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
 
-**Round 2 proved the classical counting bound in full** (this is the main new result):
+**Round 3 added the linear construction side of the problem** (new file
+`lean/JSPProblem/Construction.lean`, zero sorry): the classical **sum (round-robin) colouring**
 
-* `Counting.classical_lower_bound` — every admissible `k`-colouring of `K_n`, `n ≥ 4`, satisfies
-  `3 * (n-1) ≤ 4 * k`, i.e. **`f(n,4,5) ≥ 3(n-1)/4`** — the classical Erdős–Gyárfás bound
-  (1977) for `p = 4, q = 5`, which is exactly the `3/4` that the BCDP22 paper sharpens to `5/6`.
-* `Counting.EG_ge_classical`, `Main.EG_ge_classical_real`, `Main.EG_ge_third` — the bound for
-  the Erdős–Gyárfás function itself, in `ℕ` and in `ℝ` (`f(n,4,5) ≥ n/3` for `n ≥ 4`).
-* `Main.fiveSixthLower_at_eighth` — the lower half of the headline for every `ε ≥ 1/8` and
-  `n ≥ 18`; hence the part of the headline still missing is precisely the range
-  `0 < ε < 1/8` of the lower bound, i.e. the passage `3/4 → 5/6`.
+    c({a, b}) = a + b  (mod m)
+
+of `K_n` with `m` colours (`n ≤ m`), proved admissible whenever `m` is **odd**.  The two
+structural ingredients are the ones the round-robin colouring is built on:
+
+* `sumColMod_adj_ne` — **properness**: two edges with a common endpoint get different colours, so
+  a `K₄` carries two edges of one colour only if they are *disjoint*;
+* `sumColMod_one_collision` — **at most one monochromatic pair of opposite edges**: if
+  `a+b = c+d` and `a+c = b+d` then `2a = 2d` in `ZMod m`, and `2` is invertible for odd `m`
+  (`two_mul_inj`), so `a = d`, contradicting distinctness.
+
+Hence (`admissible_sumColMod`)
+
+* `EG_le_sumCol` — `f(n,4,5) ≤ n` for every **odd** `n` (take `m = n`);
+* `EG_le_succ` — `f(n,4,5) ≤ n + 1` for every `n` (take `m = n+1`, odd when `n` is even);
+* so `f(n,4,5) = Θ(n)`.
+
+Combined with the classical counting bound `f(n,4,5) ≥ 3(n-1)/4` of round 2 this gives the
+**first genuine two-sided statement about the headline constant**:
+
+* `Main.fiveSixthShape` — `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for all `n ≥ 4`, i.e.
+  `f(n,4,5) = 5n/6 + O(n)`;
+* `Main.fiveSixth_ge_one` — the headline estimate `|f(n,4,5) - 5n/6| ≤ ε n` for every `ε ≥ 1`
+  and all `n ≥ 4`;
+* `Main.fiveSixthUpper_at_third`, `Main.admissibleUpper_at_third` — the **upper half** for
+  `ε ≥ 1/3` (all `n ≥ 6`), also in the `Admissible`-colouring language of the reduction theorem;
+* `Main.fiveSixthUpper_odd_at_sixth`, `Main.fiveSixthUpper_odd_ge` — the upper half for **odd**
+  `n` already at `ε = 1/6` (the round-robin colouring meets `5n/6 + n/6 = n` exactly);
+* `Main.admissibleLower_at_third` — the **lower half** in `Admissible`-colouring form for
+  `ε ≥ 1/3`.
+
+Together with round 2's `fiveSixthLower_at_eighth` (lower half for `ε ≥ 1/8`), the state of the
+headline is now: **lower half proved for `ε ≥ 1/8`, upper half proved for `ε ≥ 1/3` (and for
+`ε ≥ 1/6` on odd `n`), and the two-sided `O(n)` shape bound proved.**  The remaining content is
+the two BCDP22 steps (see *Not yet proved*).
 
 ### Proved (all zero-sorry, `lean/JSPProblem/`)
 
@@ -94,27 +123,43 @@ the catalog condition ("every four-vertex clique contains at least five colours"
 * `card_edgeFinset_univ_two` — `2·|E(K_n)| = n(n-1)`.
 * `classical_lower_bound`, `EG_ge_classical`.
 
+`Construction.lean` (**new in round 3** — the round-robin construction)
+* `sumColMod m n h` / `sumCol` — the sum (round-robin) colouring `c({a,b}) = (a+b) mod m`.
+* `natCast_zmod_inj`, `natCast_zmod_eq_iff`, `fin_zmod_inj` — arithmetic in `ZMod m`.
+* `two_mul_inj` — **odd modulus**: multiplication by `2` in `ZMod m` is injective for odd `m`.
+* `sumColMod_eq_iff` — two edges have the same colour iff the vertex sums agree mod `m`.
+* `sumColMod_adj_ne`, `sumColMod_adj_ne_last`, `sumColMod_adj_ne_mid` — properness.
+* `sumColMod_one_collision` — at most one monochromatic pair of opposite edges in a `K₄`.
+* `admissible_sumColMod`, `admissible_sumCol` — **the construction is admissible for odd `m`**.
+* `EG_le_sumCol` (`f ≤ n` for odd `n`), `EG_le_succ` (`f ≤ n+1`), `EG_le_linear` (`f = Θ(n)`).
+
 `Main.lean`
 * `jsp_000140_target` — the statement of the required theorem, as a `def`.
 * `fiveSixthLower_iff`, `fiveSixthUpper_iff`, `jsp_000140_target_iff` — a **proved reduction**
   of the headline statement to the two purely combinatorial bounds
   `AdmissibleLower 1 ∧ AdmissibleUpper 1`.
-* `three_edges_ne`, `no_mono_triangle`, `upper_bound_sq`; and the new corollaries
-  `EG_ge_classical_real`, `EG_ge_third`, `fiveSixthLower_at_eighth`.
+* `three_edges_ne`, `no_mono_triangle`, `upper_bound_sq`; the corollaries
+  `EG_ge_classical_real`, `EG_ge_third`, `fiveSixthLower_at_eighth`; and, **new in round 3**,
+  `EG_le_succ_real`, `EG_le_of_odd_real`, **`fiveSixthShape`** (the two-sided
+  `|f(n,4,5) - 5n/6| ≤ n/6 + 1`), `fiveSixth_ge_one`, `fiveSixthUpper_at_third`,
+  `admissibleUpper_at_third`, `fiveSixthUpper_odd_at_sixth`, `fiveSixthUpper_odd_ge`,
+  `admissibleLower_at_third`.
 
 ### Not yet proved (blockers, see `discovery/JSP-000140/policy.json`)
 
-1. **A linear construction** (round-robin / 1-factorisation): an admissible colouring of `K_n`
-   with `n` (odd) or `n-1` (even) colours.  The natural candidate is
-   `c(s(a,b)) = a + b mod n`, which is a *proper* edge colouring for every `n` (each colour
-   class is a matching), and for **odd** `n` it gives `≥ 5` colours in every `K₄`; for even `n`
-   one needs the extra step `c(s(∞,a)) = 2a`, i.e. the classical 1-factorisation, which uses
-   that `2` is invertible mod `n-1`.  With this, `3(n-1)/4 ≤ f(n,4,5) ≤ n` would give
-   `f(n,4,5) = Θ(n)` and a two-sided `|f(n,4,5) - 5n/6| ≤ O(n)` bound.
-2. **The upper half of the headline** (BCDP22 construction): for every `ε > 0` and all large
-   `n` an admissible colouring with at most `5n/6 + εn` colours.  This is the construction
-   side of the paper.
-3. **The lower half for `ε < 1/8`** (BCDP22 structural analysis): the sharpening of the
-   counting constant `3/4` to `5/6`.  In the counting framework used here this is the
-   statement `|{two-edge paths}| ≤ n²/6 + o(n²)`, i.e. that at least two thirds of all edges
-   lie in single-edge (matching) components of their colour class.
+1. **The upper half for `0 < ε < 1/3`** (the BCDP22 construction).  The round-robin colouring
+   uses `n = 5n/6 + n/6` colours, so it reaches the headline constant only up to the `O(n)`
+   error.  It cannot be improved by *merging* colour classes: each colour class of the sum
+   colouring is a perfect matching, so the union of two of them is a disjoint union of even
+   cycles, and a `K₄` on a 4-cycle spans at most three colours.  One needs the BCDP22 /
+   JoMu22 style construction (1-factorisations of hypergraph matchings, then a weighted blow-up),
+   which is a genuinely new colouring mechanism rather than a post-processing of `sumCol`.
+2. **The upper half for even `n` at `ε = 1/6`**: currently even `n` only gets `f(n,4,5) ≤ n+1`
+   (sum colouring mod `n+1`).  A `K₄` on a duplicate vertex pair shows that the "duplicate a
+   vertex" trick cannot work, and the classical 1-factorisation `c(s(∞,a)) = 2a` is *not*
+   admissible (a `K₄` on `{∞, a, b, c}` with `a+b = 2c` spans only four colours).
+3. **The lower half for `0 < ε < 1/8`** (the BCDP22 structural sharpening `3/4 → 5/6`): in the
+   framework of `Counting.lean` this is the statement that at least two thirds of the edges lie
+   in single-edge components of their colour class, i.e. `|{two-edge paths}| ≤ n²/6 + o(n²)`;
+   the present proof gives only `2|A| ≤ |B|` (two-edge paths are vertex-disjoint), which yields
+   `3/4`.

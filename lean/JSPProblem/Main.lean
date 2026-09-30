@@ -1,6 +1,7 @@
 import JSPProblem.Definitions
 import JSPProblem.ColorClass
 import JSPProblem.Counting
+import JSPProblem.Construction
 
 /-!
 # JSP-000140 — the headline statement
@@ -23,26 +24,38 @@ specialised to `f(n, 4, 5)`, i.e. `JSP140.EG n` of `Definitions.lean`.
 * `jsp_000140_target` — the *exact* statement of the required theorem `jsp_000140_main`, as a
   `def` (not yet a proved theorem; see `blockers` in `discovery/JSP-000140/policy.json`):
   `FiveSixth EG`, i.e. `f(n,4,5) = 5n/6 + o(n)` in ε-form.
-* `fiveSixth_colouring_iff` / `fiveSixth_number_iff` — a *reduction* of the headline
-  statement to two purely combinatorial statements, one for each direction.  These are proved
-  and identify exactly what still has to be proved for the prize.
+* `fiveSixthLower_iff` / `fiveSixthUpper_iff` / `jsp_000140_target_iff` — a *proved reduction*
+  of the headline statement to two purely combinatorial statements, one for each direction
+  (`AdmissibleLower 1` and `AdmissibleUpper 1`).  These identify exactly what still has to be
+  proved for the prize.
 * Proved partial results: the **local structure theorem** (`Definitions.lean`,
   `ColorClass.lean`, `Counting.lean`), the **classical bound** `f(n,4,5) ≥ 3(n-1)/4`
-  (`Counting.classical_lower_bound`, `Counting.EG_ge_classical`) and the upper bound
-  `f(n,4,5) ≤ n²` (`Definitions.EG_le_sq`).
+  (`Counting.classical_lower_bound`, `Counting.EG_ge_classical`), the **round-robin
+  construction** `f(n,4,5) ≤ n` for odd `n` and `f(n,4,5) ≤ n+1` in general
+  (`Construction.lean`), and the resulting **two-sided shape bound**
+  `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for `n ≥ 4` (`fiveSixthShape`).
 
-## Status of the headline (round 2)
+## Status of the headline (round 3)
 
+* **Two-sided**: `|f(n,4,5) - 5n/6| ≤ n/6 + 1` for all `n ≥ 4` (`fiveSixthShape`), i.e.
+  `f(n,4,5) = 5n/6 + O(n)`; in particular the headline estimate holds for every `ε ≥ 1`
+  (`fiveSixth_ge_one`).
 * **Lower half, for `ε ≥ 1/8`**: proved (`fiveSixthLower_at_eighth`), on the strength of the
   classical counting bound `f(n,4,5) ≥ 3(n-1)/4` of `Counting.classical_lower_bound`.
+  In the colouring language of the reduction theorem: `admissibleLower_at_third` for `ε ≥ 1/3`.
+* **Upper half, for `ε ≥ 1/3`**: proved (`fiveSixthUpper_at_third`,
+  `admissibleUpper_at_third`), from the round-robin colouring `c({a,b}) = a+b` of
+  `Construction.lean`; on odd `n` the upper half holds already for `ε ≥ 1/6`
+  (`fiveSixthUpper_odd_at_sixth`, `fiveSixthUpper_odd_ge`).
 * **Lower half, for `0 < ε < 1/8`**: open.  This is exactly the sharpening of the counting
   constant `3/4` to `5/6` (BCDP22); in the framework of `Counting.lean` it says that at least
   two thirds of the edges lie in single-edge components of their colour class, i.e.
   `|{two-edge paths}| ≤ n²/6 + o(n²)`.
-* **Upper half**: open.  Even the two-sided `O(n)`-shape bound is missing, because no linear
-  construction is formalised yet (the best upper bound in this development is
-  `f(n,4,5) ≤ n²`, `EG_le_sq`).  The missing ingredient is a round-robin / 1-factorisation
-  colouring with `n` (odd) or `n-1` (even) colours.
+* **Upper half, for `0 < ε < 1/3`**: open.  This needs a colouring with `5n/6 + o(n)` colours,
+  i.e. saving a further `n/6` colours w.r.t. the round-robin colouring; the round-robin
+  colouring cannot be improved by merging colour classes (its colour classes are perfect
+  matchings, so merging two of them creates even cycles, and a `K₄` on a 4-cycle spans three
+  colours only).  The BCDP22 construction uses hypergraph-Ramsey (1-factorisation) ideas.
 -/
 
 namespace JSP140
@@ -142,5 +155,119 @@ theorem fiveSixthLower_at_eighth (ε : ℝ) (hε : 1 / 8 ≤ ε) :
   norm_num at h1
   have h4 : (18 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
   nlinarith
+
+/-! ### The linear upper bounds and the two-sided shape bound -/
+
+/-- **The linear upper bound, in real form** (round-robin colouring, `Construction.lean`):
+`f(n,4,5) ≤ n + 1` for every `n`, and `f(n,4,5) ≤ n` for every odd `n`.  Together with the
+classical lower bound this is the statement `f(n,4,5) = Θ(n)`. -/
+theorem EG_le_succ_real (n : ℕ) : (EG n : ℝ) ≤ (n : ℝ) + 1 := by
+  have h := EG_le_succ n
+  exact_mod_cast h
+
+theorem EG_le_of_odd_real (n : ℕ) (hn : n % 2 = 1) : (EG n : ℝ) ≤ (n : ℝ) := by
+  have h := EG_le_sumCol n hn
+  exact_mod_cast h
+
+/-- **The two-sided shape bound.**  For `n ≥ 4`,
+
+    |f(n,4,5) - 5n/6| ≤ n/6 + 1,
+
+i.e. `f(n,4,5) = 5n/6 + O(n)`: the catalog answer `f(n,4,5) = 5n/6 + o(n)` holds up to a linear
+error.  *Lower side*: `3(n-1)/4 ≤ f(n,4,5)` (the classical Erdős–Gyárfás bound) gives
+`5n/6 - f(n,4,5) ≤ n/12 + 3/4`.  *Upper side*: `f(n,4,5) ≤ n + 1` (the sum colouring) gives
+`f(n,4,5) - 5n/6 ≤ n/6 + 1`.  This is the first genuine two-sided statement about the headline
+constant `5/6` in this development. -/
+theorem fiveSixthShape (n : ℕ) (hn : 4 ≤ n) :
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ (n : ℝ) / 6 + 1 := by
+  have h1 := EG_ge_classical_real n (by omega)
+  have h2 := EG_le_succ_real n
+  have h4 : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)] at h1
+  norm_num at h1
+  rw [abs_le]
+  constructor <;> nlinarith
+
+/-- **The headline estimate holds for every `ε ≥ 1`**: for all `n ≥ 4`,
+`|f(n,4,5) - 5n/6| ≤ ε n`.  This is a proved range of the required statement `jsp_000140_main`
+(`FiveSixth EG`); what is still missing are the ranges `0 < ε < 1/3`. -/
+theorem fiveSixth_ge_one {ε : ℝ} (hε : 1 ≤ ε) : ∀ n : ℕ, 4 ≤ n →
+    |(EG n : ℝ) - 5 * (n : ℝ) / 6| ≤ ε * n := by
+  intro n hn
+  have h1 := fiveSixthShape n hn
+  have h2 : (n : ℝ) / 6 + 1 ≤ 1 * (n : ℝ) := by
+    have h3 : (4 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+    nlinarith
+  have h4 : (1 : ℝ) * (n : ℝ) ≤ ε * n := by
+    have h5 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+    nlinarith
+  exact h1.trans (h2.trans h4)
+
+/-- **The upper half of the headline for every `ε ≥ 1/3`** (all `n`): for all `n ≥ 6`,
+`f(n,4,5) ≤ 5n/6 + ε n`, because `f(n,4,5) ≤ n + 1` (the sum colouring) and
+`n + 1 ≤ 7n/6 = 5n/6 + n/3`. -/
+theorem fiveSixthUpper_at_third {ε : ℝ} (hε : 1 / 3 ≤ ε) : ∃ N : ℕ, ∀ n : ℕ, N ≤ n →
+    (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + ε * n := by
+  refine ⟨6, fun n hn => ?_⟩
+  have h1 := EG_le_succ_real n
+  have h2 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have h3 : 5 * (n : ℝ) / 6 + (n : ℝ) / 3 = 7 * (n : ℝ) / 6 := by ring
+  have h4 : 7 * (n : ℝ) / 6 ≤ 5 * (n : ℝ) / 6 + ε * n := by
+    have h5 : (1 : ℝ) / 3 ≤ ε := hε
+    nlinarith
+  have h6 : (n : ℝ) + 1 ≤ 5 * (n : ℝ) / 6 + (n : ℝ) / 3 := by nlinarith
+  linarith
+
+/-- **The upper half of the headline in colouring form, for `ε ≥ 1/3`**: for every `ε ≥ 1/3`, every
+even `n ≥ 6` admits an admissible `j`-colouring of `K_n` with `j ≤ 5n/6 + ε n`, namely the sum
+colouring modulo `n + 1`.  This is the restricted form of `AdmissibleUpper 1`. -/
+theorem admissibleUpper_at_third {ε : ℝ} (hε : 1 / 3 ≤ ε) (n : ℕ) (hn : 6 ≤ n) (heven : n % 2 = 0) :
+    ∃ (j : ℕ) (c : Col n j), Admissible c ∧ (j : ℝ) ≤ 5 * (n : ℝ) / 6 + ε * n := by
+  refine ⟨n + 1, sumColMod (n + 1) n (Nat.le_succ n), admissible_sumColMod (by omega) (Nat.le_succ n), ?_⟩
+  have h1 : ((n + 1 : ℕ) : ℝ) = (n : ℝ) + 1 := by push_cast; ring
+  have h2 : (6 : ℝ) ≤ (n : ℝ) := by exact_mod_cast hn
+  have h3 : (1 : ℝ) / 3 ≤ ε := hε
+  rw [h1]
+  nlinarith
+
+/-- **The upper half of the headline, for odd `n`, at the sharp value `ε = 1/6`**: for all odd
+`n ≥ 7`, `f(n,4,5) ≤ 5n/6 + n/6 = n`. -/
+theorem fiveSixthUpper_odd_at_sixth : ∃ N : ℕ, ∀ n : ℕ, N ≤ n → n % 2 = 1 →
+    (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + (n : ℝ) / 6 := by
+  refine ⟨7, fun n hn hodd => ?_⟩
+  have h1 := EG_le_of_odd_real n hodd
+  have h2 : (5 : ℝ) * (n : ℝ) / 6 + (n : ℝ) / 6 = (n : ℝ) := by ring
+  rw [h2]
+  exact h1
+
+/-- **The upper half of the headline for odd `n`, in `ε`-form, for every `ε ≥ 1/6`.**  The
+round-robin colouring uses exactly `n` colours, and `n = 5n/6 + n/6`, so on odd `n` the
+construction meets the BCDP22 constant `5/6` up to the unavoidable `O(n)` error of this
+colouring. -/
+theorem fiveSixthUpper_odd_ge {ε : ℝ} (hε : 1 / 6 ≤ ε) : ∃ N : ℕ, ∀ n : ℕ, N ≤ n → n % 2 = 1 →
+    (EG n : ℝ) ≤ 5 * (n : ℝ) / 6 + ε * n := by
+  obtain ⟨N, hN⟩ := fiveSixthUpper_odd_at_sixth
+  refine ⟨N, fun n hn hodd => ?_⟩
+  have h1 := hN n hn hodd
+  have h2 : (1 : ℝ) / 6 ≤ ε := hε
+  have h3 : (0 : ℝ) ≤ (n : ℝ) := by positivity
+  nlinarith
+
+/-- **The lower half of the headline in colouring form, for `ε ≥ 1/3`**: for every `ε ≥ 1/3`, every
+`n ≥ 4` and *every* admissible `j`-colouring of `K_n`, `j ≥ 5n/6 - ε n`.  This is the restricted
+form of `AdmissibleLower 1`, proved from the classical counting bound
+`3(n-1)/4 ≤ f(n,4,5)`. -/
+theorem admissibleLower_at_third {ε : ℝ} (hε : 1 / 3 ≤ ε) (n : ℕ) (hn : 4 ≤ n) (j : ℕ)
+    (c : Col n j) (hc : Admissible c) : 5 * (n : ℝ) / 6 - ε * n ≤ j := by
+  have h := classical_lower_bound hc hn
+  have h1 : (3 : ℝ) * ((n - 1 : ℕ) : ℝ) ≤ 4 * (j : ℝ) := by exact_mod_cast h
+  have h2 : (1 : ℝ) ≤ 3 * ε := by linarith
+  have h3 : (3 : ℝ) ≤ (n : ℝ) := by exact_mod_cast (show (3 : ℕ) ≤ n by omega)
+  have h6 : ((n - 1 : ℕ) : ℝ) = (n : ℝ) - 1 := by
+    rw [Nat.cast_sub (by omega : (1 : ℕ) ≤ n)]
+    ring
+  have h4 : (10 : ℝ) * (n : ℝ) - 12 * (ε * (n : ℝ)) ≤ 9 * ((n : ℕ) : ℝ) - 9 := by nlinarith
+  have h5 : 5 * (n : ℝ) / 6 - ε * (n : ℝ) ≤ 3 * ((n - 1 : ℕ) : ℝ) / 4 := by linarith
+  linarith
 
 end JSP140
