@@ -9,6 +9,7 @@ import JSPProblem.Rigidity
 import JSPProblem.Extremal
 import JSPProblem.Singles
 import JSPProblem.Tables
+import JSPProblem.Search
 
 /-!
 # JSP-000140 — the headline statement
@@ -659,5 +660,45 @@ colours (`Tables.sixCol_tight`) — the catalog condition `q = 5` cannot be lowe
 theorem catalogue_condition_is_tight :
     EG 6 = 5 ∧ (colorsOn sixCol ({0, 1, 2, 3} : Finset (Fin 6))).card = 5 :=
   ⟨EG_six, sixCol_tight⟩
+
+/-! ### The exact values of `f(n,4,5)` at small `n`, from the verified exhaustive search -/
+
+/-- `f(4,4,5) ≤ 5`: on `K₄` the colours are `01 → 0`, `02 → 0`, `03 → 1`, `12 → 2`,
+`13 → 3`, `23 → 4`, so the clique spans exactly the five colours the catalog condition
+prescribes — the minimum allowed. -/
+theorem EG_four_le : EG 4 ≤ 5 :=
+  EG_le 4 5 (listCol 4 5 (by norm_num) [0, 0, 0, 1, 0, 0, 2, 3, 0, 0, 0, 4, 0, 0, 0, 0]) (by
+    unfold Admissible; native_decide)
+
+/-- **THE EXACT VALUE `f(4,4,5) = 5`.** -/
+theorem EG_four : EG 4 = 5 := Nat.le_antisymm EG_four_le EG_four_ge
+
+/-- **THE EXACT VALUE `f(5,4,5) = 5`.**  The upper bound is the round-robin colouring
+`c({a,b}) = a + b` (admissible for odd `n`); the lower bound is the *certificate*
+`Search.cert_five_four`, i.e. a `native_decide` evaluation of the complete search
+`Search.searchAux_iff`.  **The sharp catalog lower bound `⌈5(n-1)/6⌉ = 4` is not attained at
+`n = 5`** — the first instance in this development at which the value of `f` is certified to
+exceed the counting bound of `Cherry`. -/
+theorem EG_five : EG 5 = 5 :=
+  Nat.le_antisymm (EG_le_sumCol 5 (by norm_num)) (EG_ge_of_cert cert_five_four)
+
+/-- The two exact values, in the real form used by the catalog estimate. -/
+theorem EG_four_five_real : (EG 4 : ℝ) = 5 ∧ (EG 5 : ℝ) = 5 := by
+  rw [EG_four, EG_five]; norm_num
+
+/-- **THE FIRST THREE EXACT VALUES OF THE ERDŐS–GYÁRFÁS FUNCTION IN THIS DEVELOPMENT**:
+`f(4,4,5) = 5`, `f(5,4,5) = 5`, `f(6,4,5) = 5`, obtained by *different* means at the three
+orders — the catalog condition itself at `n = 4`, the verified search at `n = 5`, and the
+1-factorisation of `K₆` at `n = 6`. -/
+theorem small_values : EG 4 = 5 ∧ EG 5 = 5 ∧ EG 6 = 5 :=
+  ⟨EG_four, EG_five, EG_six⟩
+
+/-- **THE SEARCH IS AN INDEPENDENT SOURCE OF LOWER BOUNDS FOR `f`.**  Every certificate
+`Search.hasAdmissible n k = false` — a statement settled by `native_decide` — yields
+`k + 2 ≤ f(n,4,5)`; conversely a verified `k+1`-colouring yields `f(n,4,5) ≤ k+1`
+(`Tables.EG_le_of_listCol`).  Both halves are formalised, so the value of `f` at any `n` for
+which the (pruned) search terminates is *decided* in Lean. -/
+theorem search_certificates_are_bounds {n k : ℕ}
+    (h : hasAdmissible n k = false) : k + 2 ≤ EG n := EG_ge_of_cert h
 
 end JSP140

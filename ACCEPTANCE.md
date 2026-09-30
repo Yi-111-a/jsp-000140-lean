@@ -41,6 +41,68 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 18)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 18 CHANGES THE ATTACK FAMILY A THIRD TIME: instead of classifying admissible
+colourings (rounds 2–15) or certifying explicit constructions (round 16), it BUILDS A COMPLETE,
+MACHINE-CHECKED EXHAUSTIVE SEARCH FOR THE VALUE OF `f(n,4,5)` ITSELF** — the quantity the
+catalog question actually asks for ("how many edge colors are necessary if every four-vertex
+clique must contain at least five colors?").
+
+New file `lean/JSPProblem/Search.lean` (456 lines, 30 declarations, zero `sorry`):
+
+* `slotOf`, `slotOf_slotEdge`, `slotOf_inj`, `slotOf_lt` — the **slot** of an edge `e = s(a,b)`
+  is `min(a,b)*n + max(a,b)`; the slots which carry an edge of `K_n` are exactly the
+  `d < n*n` with `d/n < d%n` (`meaningfulSlot`), and `slotEdge` is the inverse;
+* `Prefix`, `group`, `fourGroups`, `prefix_last` — **`group n d` = the four-element vertex
+  sets which become *complete* when slot `d` is filled in**; every `K₄` of `K_n` lies in
+  exactly one group, and `prefix_last` says every `K₄` is complete by the last slot;
+* `searchAux` — **the search**: a depth-first search which fills the slots `0, 1, 2, …` in
+  order, branching over the colours, and **prunes a branch as soon as one of the cliques
+  completed by the slot being filled fails the catalog condition**.  Each `K₄` is checked
+  exactly once, at the moment its last slot is filled, and only prefixes consistent with every
+  `K₄` seen so far are visited;
+* **`searchAux_iff` — THE COMPLETENESS THEOREM**: the search returns `true` on the colouring
+  `T` at level `d` **iff some extension of `T` which agrees with it on the edges of the slots
+  `< d` is an admissible colouring**.  It is proved by induction on the remaining fuel and
+  assumes nothing whatever about the search; this is the mathematical content of the file;
+* `hasAdmissible_iff` — `hasAdmissible n k = true ↔` some `k+1`-colouring of `K_n` is
+  admissible;
+* `liftCol`, `card_colorsOn_liftCol`, `admissible_liftCol` — relabelling the palette preserves
+  admissibility;
+* **`EG_ge_of_cert` — THE LOWER-BOUND ENGINE**: a certificate `hasAdmissible n k = false`
+  (a statement settled by `native_decide` in seconds, with no search required of the reader)
+  is a Lean proof that **no admissible colouring of `K_n` with `k+1` colours exists**, and
+  hence that `f(n,4,5) ≥ k+2`.
+
+Certificates and exact values (`Main.lean` gains `EG_four`, `EG_five`, `EG_four_le`,
+`EG_four_five_real`, `small_values`, `search_certificates_are_bounds`):
+
+* `cert_four_four` — no admissible 4-colouring of `K₄`;
+* `cert_five_four` — **no admissible 4-colouring of `K₅`**: the sharp catalog lower bound
+  `⌈5(n-1)/6⌉ = 4` is **not attained** at `n = 5`;
+* **`Main.EG_four : f(4,4,5) = 5`** and **`Main.EG_five : f(5,4,5) = 5`** (upper bounds: the
+  5-colouring of `K₄`, and the round-robin colouring `c({a,b}) = a+b` of `K₅`), so
+  `Main.small_values : f(4,4,5) = f(5,4,5) = f(6,4,5) = 5` — the first three exact values of
+  the Erdős–Gyárfás function in this development, obtained by three different means.
+
+**The next single ingredient is the colour-permutation symmetry reduction of the search**
+(branch only over colours in order of first occurrence).  Measured in Python, it cuts the
+node count of "no admissible 6-colouring of `K₇`" from `> 2·10⁷` to `1.3·10⁶`, after which
+`hasAdmissible 7 5 = false` and `hasAdmissible 8 5 = false` become `native_decide`-able and
+give `f(7,4,5) = 7` and `f(8,4,5) = 7` — the first orders at which `f` exceeds the counting
+bound `5(n-1)/6`.  The full design (definitions, the four open membership lemmas, and the
+relabelling step) is written out in `discovery/JSP-000140/policy.json` under `blockers`, and
+the node counts in `discovery/JSP-000140/eg3_symmetry_nodes.py`.
+
+Note that the round-16 "collision identity" is **no longer on the critical path**: the pruned
+search checks every `K₄` at the moment it becomes complete, so no hand proof of the identity
+is needed to certify the computational results of round 16.
+
 ## Status (round 16)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
