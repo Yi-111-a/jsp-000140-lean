@@ -578,4 +578,50 @@ theorem tight_classes_span {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
   rw [hterm i] at hdeg
   omega
 
+/-! ### Round 14: no colour class wastes a vertex in the extremal case -/
+
+/-- **In the extremal case every vertex is incident with a colour-`i` edge, for every colour `i`.**
+If `c` attains the counting bound of `Cherry.lean` and uses exactly `5(n-1)/6` colours, then
+
+    ∀ i k, ∀ v,  v ∈ twoA c i  ∨  v ∈ oneB c i,
+
+i.e. the sets of two-edge-path centres and of vertices with a single colour-`i` neighbour *cover* the
+vertex set: `(twoA c i) ∪ (oneB c i) = univ`.  So in the extremal case no colour class has an
+isolated vertex: each of the `5(n-1)/6` colour classes spans the vertex set with exactly one or two
+edges at every vertex, which is the vertex-counting equality behind the sharp constant `5/6` of the
+lower bound (`Paths.two_mul_classIn_le_add`, `tight_classes_span`). -/
+theorem tight_covers {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card) (hk : 6 * k = 5 * (n - 1))
+    (i : Fin k) (v : Verts n) :
+    v ∈ twoA c i ∨ v ∈ oneB c i := by
+  have hspan := tight_classes_span hc hn h3 hk i
+  have hsub : twoA c i ∪ oneB c i ⊆ (Finset.univ : Finset (Verts n)) :=
+    Finset.union_subset (Finset.filter_subset _ _) (Finset.filter_subset _ _)
+  have hdisj : Disjoint (twoA c i) (oneB c i) := by
+    refine Finset.disjoint_left.mpr fun w hw1 hw2 => ?_
+    have h1 := (Finset.mem_filter.mp hw1).2
+    have h2 := (Finset.mem_filter.mp hw2).2
+    omega
+  have hcard : (twoA c i ∪ oneB c i).card = n := by
+    rw [Finset.card_union_of_disjoint hdisj]
+    exact hspan
+  have heq : twoA c i ∪ oneB c i = (Finset.univ : Finset (Verts n)) :=
+    Finset.eq_of_subset_of_card_le hsub (by rw [Finset.card_fin]; omega)
+  exact Finset.mem_union.mp (heq ▸ Finset.mem_univ v)
+
+/-- **The extremal colourings have no isolated vertex in any colour class.**  In the extremal case
+every colour class has minimum degree at least `1` and maximum degree `2`, and a vertex has
+colour-degree `2` exactly when it is the centre of a two-edge path of that colour.  Equivalently,
+each colour class is a *spanning* union of two-edge paths and isolated single edges. -/
+theorem tight_degree {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card) (hk : 6 * k = 5 * (n - 1))
+    (i : Fin k) (v : Verts n) :
+    (v ∈ twoA c i ∧ (Nbrs c i v).card = 2) ∨ (v ∈ oneB c i ∧ (Nbrs c i v).card = 1) := by
+  rcases tight_covers hc hn h3 hk i v with h | h
+  · exact Or.inl ⟨h, card_twoA i h⟩
+  · refine Or.inr ⟨h, ?_⟩
+    have hcard1 : (nb c i v (Finset.univ : Finset (Verts n))).card = 1 := (Finset.mem_filter.mp h).2
+    rw [card_Nbrs i v]
+    exact hcard1
+
 end JSP140

@@ -540,4 +540,27 @@ theorem extremal_is_STS (n : ℕ) (hn : 5 ≤ n) (k : ℕ) (hk : 6 * k = 5 * (n 
   obtain ⟨h1, h2⟩ := fiveSixth_at_extremal n hn k hk ⟨c, hc⟩
   exact ⟨c, hc, tight_pathFinset_is_STS hc (by omega) (tight_attained hc (by omega) hk), h1, h2⟩
 
+
+/-! ### Round 14: no colour class wastes a vertex in the extremal case -/
+
+/-- **EXTREMAL COLOURINGS HAVE NO ISOLATED VERTEX IN ANY COLOUR CLASS.**  If `K_n` admits an
+admissible colouring with the extremal number `6k = 5(n-1)` of colours, then for every colour `i`
+and every vertex `v` either `v` is the centre of a two-edge path of colour `i` (two colour-`i`
+neighbours) or `v` has exactly one colour-`i` neighbour.  So each colour class of an extremal
+colouring is a *spanning* vertex-disjoint union of two-edge paths and isolated single edges
+(`Rigidity.tight_covers`, `Rigidity.tight_degree`).  This is the vertex-counting equality
+`2a_i + 3b_i = n` behind the sharp constant `5/6`: in the extremal case not one vertex is wasted by
+any colour class.
+
+Together with `Restriction.lean` — which proves `EG_mono` (monotonicity of `f(n,4,5)`) and
+`jsp_000140_main_of_STS_family` (the prize reduces to the single hypothesis that `K_m` admits an
+extremal colouring whose two-edge paths form a Steiner triple system, for every `m ≡ 1 mod 6`) —
+this completes the reduction of `jsp_000140_main` to the construction of arXiv:2207.02920. -/
+theorem extremal_no_isolated_vertex (n : ℕ) (hn : 5 ≤ n) (k : ℕ) (hk : 6 * k = 5 * (n - 1))
+    (hc : ∃ (c : Col n k), Admissible c) (i : Fin k) (v : Verts n) :
+    ∃ (c : Col n k), Admissible c ∧
+      ((v ∈ twoA c i ∧ (Nbrs c i v).card = 2) ∨ (v ∈ oneB c i ∧ (Nbrs c i v).card = 1)) := by
+  obtain ⟨c, hc⟩ := hc
+  exact ⟨c, hc, tight_degree hc (by omega) (tight_attained hc (by omega) hk) hk i v⟩
+
 end JSP140

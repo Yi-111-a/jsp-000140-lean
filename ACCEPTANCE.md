@@ -41,6 +41,43 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 14)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 14 CLOSES THE LOGICAL GAP LEFT BY ROUND 13: the prize now reduces to ONE hypothesis.**
+
+New file `lean/JSPProblem/Restriction.lean` (261 lines, 12 declarations, zero `sorry`):
+
+* `restrictCol`, `mem_edgeFinset_image`, `mem_edgeFinset_mk_image`, `colorsOn_restrictCol` —
+  restriction of an edge colouring along an injection `Fin m ↪ Fin n`: the colours of a restricted
+  `K₄` are **exactly** the colours it has in `K_n`;
+* `Admissible.restrict` — **the catalog condition survives restriction**;
+* `EG_mono` — **monotonicity of `f(n,4,5)`** (`m ≤ n → f(m,4,5) ≤ f(n,4,5)`), the one elementary
+  fact about `f` that had never been formalised here;
+* `exists_one_mod_six_ge` — for every `n ≥ 6` there is `m ≡ 1 (mod 6)` with `n ≤ m ≤ n + 6`;
+* `fiveSixthUpper_of_family_const` — **THE REDUCTION.**  If for every `m ≡ 1 (mod 6)` there is an
+  admissible `k`-colouring of `K_m` with `6k ≤ 5(m-1) + 6D` for a *fixed* constant `D`, then
+  `f(n,4,5) ≤ 5n/6 + ε n` for every `ε > 0` and all `n ≥ max(7, ⌈(D+5)/ε⌉+1)`: monotonicity
+  absorbs the five other residue classes and the `O(1)` slack is absorbed by `ε n`;
+* `fiveSixthUpper_of_extremal_family` (the same with `D = 0`), `fiveSixth_of_extremal_family` and
+  **`jsp_000140_main_of_STS_family` — THE REQUIRED STATEMENT REDUCED TO ONE HYPOTHESIS**:
+
+      (extremal colourings of `K_m`, `6k = 5(m-1)`, whose two-edge paths form a Steiner triple
+       system, for every `m ≡ 1 (mod 6)`)  ⟹  `jsp_000140_target`.
+
+`Rigidity.lean` gained **`tight_covers`** and **`tight_degree`**: in the extremal case
+`(twoA c i) ∪ (oneB c i) = univ` for every colour `i`, i.e. **no colour class of an extremal
+colouring wastes a vertex** (each colour class is a spanning union of two-edge paths and isolated
+single edges, `2a_i + 3b_i = n`), with the corollary `Main.extremal_no_isolated_vertex`.
+
+So the *whole* remaining content of the required theorem is the construction of arXiv:2207.02920
+(Bennett–Cushman–Dudek–Prałat), which is **probabilistic** (random triangle removal + differential
+equation method) — there is no explicit admissible colouring of `K_m` with `5(m-1)/6` colours in the
+literature to formalise.
+
 ## Status (round 13)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

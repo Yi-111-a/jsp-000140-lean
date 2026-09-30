@@ -5,3 +5,4 @@ import JSPProblem.Paths
 import JSPProblem.Ghost
 import JSPProblem.Construction
 import JSPProblem.Main
+import JSPProblem.Restriction
