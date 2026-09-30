@@ -258,4 +258,12 @@ theorem jsp_000140_main_of_STS_family
   obtain ⟨k, c, hc, hk, _⟩ := hfam m hm
   exact ⟨k, c, hc, hk⟩
 
+/-- **`f(n,4,5) ≥ 7` for every `n ≥ 7`** — by monotonicity of `f` (`Restriction.EG_mono`) from
+`EG 7 = 7` (`VertexSearch.EG_seven`).  So no admissible six-colouring exists on any `K_n` with
+`n ≥ 7`, and seven is the least number of colours which ever suffices for every `K_n`. -/
+theorem EG_ge_seven_of_seven {n : ℕ} (h : 7 ≤ n) : 7 ≤ EG n := by
+  have hm : EG 7 ≤ EG n := EG_mono h
+  have h7 : EG 7 = 7 := EG_seven
+  omega
+
 end JSP140

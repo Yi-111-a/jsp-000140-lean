@@ -11,6 +11,7 @@ import JSPProblem.Singles
 import JSPProblem.Tables
 import JSPProblem.Search
 import JSPProblem.FastSearch
+import JSPProblem.VertexSearch
 
 /-!
 # JSP-000140 — the headline statement
@@ -746,5 +747,54 @@ the same bound on `f(n,4,5)`. -/
 theorem the_searches_agree (n k : ℕ)
     (h1 : hasAdmissible n k = false) (h2 : hasAdmissibleSym n k = false) :
     k + 2 ≤ EG n ∧ k + 2 ≤ EG n := certs_agree n k h1 h2
+
+/-! ## `f(n,4,5)` at `n = 7` and `n = 8`: the first values above the counting bound -/
+
+set_option maxRecDepth 1000000 in
+/-- **CERTIFICATE (vertex-addition search): no admissible 6-colouring of `K₈`.**  Together with
+the ghost colouring of `K₈` (`EG_le_ghost_sub 8`, the ghost construction is admissible for
+`3 ∤ 7`) this pins `f(8,4,5) = 7`. -/
+theorem certC_eight_six : hasAdmissibleC 8 5 = false := by native_decide
+
+/-- **`f(8,4,5) ≥ 7`**, i.e. the counting bound `5(8-1)/6 = 35/6` is not attained at `n = 8`. -/
+theorem EG_eight_ge_seven : 7 ≤ EG 8 := EG_ge_of_certC certC_eight_six
+
+/-- **`f(8,4,5) = 7`.** -/
+theorem EG_eight : EG 8 = 7 :=
+  Nat.le_antisymm
+    (EG_le_ghost_sub 8 (by omega) (by omega) (by omega)) EG_eight_ge_seven
+
+/-- **THE FIRST TWO ORDERS AT WHICH `f(n,4,5)` EXCEEDS THE COUNTING BOUND `5(n-1)/6`.**
+`5(7-1)/6 = 5 < 7 = f(7,4,5)` and `5(8-1)/6 = 35/6 < 7 = f(8,4,5)`; for `n ≤ 6` the bound is
+attained (`f(4,4,5) = f(5,4,5) = f(6,4,5) = 5`). -/
+theorem first_above_counting :
+    EG 4 = 5 ∧ EG 5 = 5 ∧ EG 6 = 5 ∧ EG 7 = 7 ∧ EG 8 = 7 :=
+  ⟨EG_four, EG_five, EG_six, EG_seven, EG_eight⟩
+
+/-- **THE COUNTING BOUND `⌈5(n-1)/6⌉` IS STRICTLY EXCEEDED AT `n = 7` AND `n = 8`.**  In the
+integral form of `Tables.EG_ge_ceil_five_sixth`, the bound reads `5` and `6` respectively. -/
+theorem counting_bound_strict :
+    (5 * (7 - 1) + 5) / 6 < EG 7 ∧ (5 * (8 - 1) + 5) / 6 < EG 8 :=
+  ⟨by norm_num [EG_seven], by norm_num [EG_eight]⟩
+
+/-- **`f` IS CONSTANT ON `7 ≤ n ≤ 8`.** -/
+theorem EG_seven_eight_constant : EG 7 = EG 8 := by rw [EG_seven, EG_eight]
+
+/-- The catalog estimate `|f(n,4,5) - 5n/6| ≤ n/6` holds at `n = 7` **with equality**
+(`|7 - 35/6| = 7/6 = n/6`): the excess of `f(7,4,5)` over `5n/6` is exactly the `o(n)` term. -/
+theorem catalogue_estimate_at_seven : |(EG 7 : ℝ) - 5 * (7 : ℝ) / 6| ≤ (1 / 6 : ℝ) * 7 := by
+  have h : EG 7 = 7 := EG_seven
+  rw [h]
+  norm_num
+
+/-- **THE `o(n)` IN THE CATALOG HEADLINE IS NOT ZERO AT `n = 7`.**  The catalog statement is
+`f(n,4,5) = 5n/6 + o(n)`; at `n = 6` the excess vanishes (`f(6,4,5) = 5 = 5n/6`), at `n = 7` it is
+exactly `n/6` and at `n = 8` exactly `n/24`.  So the counting bound `5n/6` is attained for
+`n ≤ 6` and strictly exceeded from `n = 7` on. -/
+theorem the_o_n_term_is_needed :
+    ((EG 6 : ℝ) - 5 * (6 : ℝ) / 6 = 0) ∧
+      ((EG 7 : ℝ) - 5 * (7 : ℝ) / 6 = (7 : ℝ) / 6) ∧
+      ((EG 8 : ℝ) - 5 * (8 : ℝ) / 6 = (8 : ℝ) / 24) := by
+  norm_num [EG_six, EG_seven, EG_eight]
 
 end JSP140

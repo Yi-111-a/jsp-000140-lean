@@ -12,3 +12,4 @@ import JSPProblem.Singles
 import JSPProblem.Tables
 import JSPProblem.Search
 import JSPProblem.FastSearch
+import JSPProblem.VertexSearch

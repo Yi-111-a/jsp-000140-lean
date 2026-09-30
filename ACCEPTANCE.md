@@ -41,6 +41,90 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 21)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 21 CHANGES THE *ORDER* OF THE SEARCH AND OBTAINS THE FIRST TWO EXACT VALUES OF
+`f(n,4,5)` THAT EXCEED THE COUNTING BOUND: `f(7,4,5) = f(8,4,5) = 7`.**
+
+### 1. The diagnosis: the search order, not the search
+
+Blocker **B2** of round 20 ("the certificate `hasAdmissibleSym 7 5 = false` is a pure
+constant-factor question") is **closed**, and the constant factor was **344**, not a few
+percent.  The searches of `Search.lean` and `FastSearch.lean` fill the slots `a*n + b` in
+*lexicographic* order — all the edges at vertex `0`, then all the edges at vertex `1`, … — so
+the first `K₄` is completed only after `n-1 = 6` of the `21` edges have been coloured, and the
+first **four** only after `13`.  The pruning therefore fires extremely late.
+
+New file `lean/JSPProblem/VertexSearch.lean` (719 lines, 60 declarations, zero `sorry`)
+renumbers the slots by the **larger** endpoint: the position of the edge `{a,b}` (`a < b`) is
+`tri b + a` with `tri b = C(b,2)`, so the edge order is
+
+    (0,1), (0,2), (1,2), (0,3), (1,3), (2,3), (0,4), … , (n-2,n-1)
+
+(the triangle on `{0,1,2}` first, then the star from vertex `3`, then from vertex `4`, …).
+Every `K₄` is now completed as early as it possibly can be: the first after **six** edges, the
+first four after **ten**.  Measured with `discovery/JSP-000140/eg3_vertex_order_nodes.py`,
+which reproduces both orders:
+
+| order | search | nodes |
+| --- | --- | --- |
+| lexicographic (`FastSearch.lean`) | `K₇`, six colours | **13 301 689** |
+| vertex-addition (`VertexSearch.lean`) | `K₇`, six colours | **38 654** |
+
+13 301 689 is exactly the figure round 19 measured in Python, so the two numbers are directly
+comparable.  The new certificate is `native_decide`-able in seconds.
+
+### 2. What is proved
+
+* `tri`, `nEdgeC`, `slotC`, `slotOfC`, `posC`, `fuelC` — the numbering, with `tri_succ`
+  (`tri b + b = tri (b+1)`), `tri_mono`, `slotC_inj`, `slotOfC_inj`, `slotOfC_lt`,
+  `slotOfC_eq_slotC_iff`, `posC_succ`, `posC_skip`: the vertex-addition numbering is a
+  **bijection `[0, C(n,2)) → {edges of K_n}`**, and the state `(b,a)` of the search is exactly
+  the position `posC b a = tri b + min a b`;
+* `quadSlotsC`, `slotQuadC`, `quadOKC`, `allOKC`, `quadOKC_of`, `quadGroupsC` — the pruning
+  test and the group table in the new numbering;
+* **`searchAuxC_iff` — THE COMPLETENESS THEOREM**: the search returns `true` on the partial
+  colouring `M` at the position `posC b a` **iff some admissible colouring of `K_n` agrees with
+  `M` on every edge below that position**.  It is proved by induction on the fuel and assumes
+  nothing about the search; the symmetry step uses the round-19 `admissible_swapCol` /
+  `swapCol_apply_of_small` unchanged.  Because the new numbering is dense, the two awkward
+  features of the old proof disappear: there is no "slot carrying no edge" to skip and the
+  `K₄` completed at a position is determined by the position alone;
+* `hasAdmissibleC_iff`, `EG_ge_of_certC` — the lower-bound engine;
+* **`certC_seven_six : hasAdmissibleC 7 5 = false`** (`native_decide`) — **no admissible
+  six-colouring of `K₇`**; **`certC_seven_seven`** and **`certC_six_six`** are the
+  cross-checks on the other side (the search does find the round-robin colouring of `K₇` and
+  an admissible six-colouring of `K₆`, so it is not vacuously false);
+* **`VertexSearch.EG_seven : f(7,4,5) = 7`** — `certC_seven_six` for the lower bound,
+  `Construction.EG_le_sumCol 7` for the upper bound.  This is the **first exact value of the
+  Erdős–Gyárfás function in this development that exceeds the counting bound**
+  `5(n-1)/6 = 5`;
+* `Main.certC_eight_six`, **`Main.EG_eight : f(8,4,5) = 7`** (lower bound from the same
+  certificate, upper bound from the ghost colouring, `3 ∤ 7`);
+* `Main.first_above_counting` (`f(4) = f(5) = f(6) = 5`, `f(7) = f(8) = 7`),
+  `Main.counting_bound_strict` (`⌈5(n-1)/6⌉ < f(n,4,5)` at `n = 7, 8`),
+  `Main.the_o_n_term_is_needed` (the excess over `5n/6` is `0` at `n = 6`, `n/6` at `n = 7`,
+  `n/24` at `n = 8`), `Main.catalogue_estimate_at_seven` (the catalog estimate holds at
+  `n = 7` **with equality**), and `Restriction.EG_ge_seven_of_seven` (`f(n,4,5) ≥ 7` for every
+  `n ≥ 7`).
+
+### 3. NOT proved this round (blocker B2', now a pure constant-factor question again)
+
+* **`hasAdmissibleC 9 6 = false`** — no admissible **seven**-colouring of `K₉`, which with the
+  admissible eight-colouring the search itself produces would give `f(9,4,5) = 8`.  Measured
+  in C with the vertex-addition order: **21 286 763 nodes, 4.85 s**.  In Lean it did not finish
+  in 30 minutes: the per-leaf cost is dominated by `decide (Admissible (tabOfC …))`, which
+  quantifies over all `2^9` four-element `Finset`s, and by `collect6`, which allocates a
+  `List` and builds a `Finset (Fin k)` per `K₄`.  Replacing the leaf test by
+  `allOKC (tabOfC …) (quadsOf n)` (35 clique tests instead of 512 set enumerations) and
+  replacing `l.toFinset` by a `List`-level distinctness count are the two concrete
+  optimisations that would close this; both need a proved equivalence to `Admissible`.
+* The same certificate for `n = 10, 11` (identical node count — the search fails inside `K₇`).
+
 ## Status (round 20)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
