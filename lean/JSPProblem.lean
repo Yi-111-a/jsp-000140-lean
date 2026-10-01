@@ -16,3 +16,4 @@ import JSPProblem.FastSearch
 import JSPProblem.VertexSearch
 import JSPProblem.QuadEnum
 import JSPProblem.LeafFree
+import JSPProblem.Local

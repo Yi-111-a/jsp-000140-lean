@@ -16,6 +16,7 @@ import JSPProblem.QuadEnum
 import JSPProblem.Distinct
 import JSPProblem.LeafFree
 import JSPProblem.Star
+import JSPProblem.Local
 
 /-!
 # JSP-000140 — the headline statement
@@ -934,5 +935,75 @@ theorem star_centre_is_one_third_of_blocks {c : Col n k} (hc : Admissible c) (hn
     ((pathFinset c).filter (fun b => v ∈ b)).card * 2 = n - 1 ∧
       6 * (∑ i : Fin k, if v ∈ twoA c i then (1 : ℕ) else 0) = n - 1 :=
   ⟨tight_blocks_through hc hn h3 v, tight_star_centre hc hn h3 hk v⟩
+
+/-- **EVERY VERTEX OF AN EXTREMAL COLOURING IS INCIDENT WITH EXACTLY `(n-1)/3` SINGLE EDGES.**  This
+is the last local quantity of the extremal case (`Local.tight_singleStar`): in the extremal
+admissible colouring of `K_n` — whose two-edge paths form a Steiner triple system
+(`Rigidity.tight_pathFinset_is_STS`), with `v` the centre of `(n-1)/6` of the `(n-1)/2` blocks
+through it (`Star.tight_star_centre`, `Star.tight_blocks_through`) — exactly one third of the
+`n-1` edges at `v` are isolated single edges, and the other two thirds are the edges of the
+two-edge paths through `v`.  Equivalently, one third of the pairs at `v` are the blocks in which
+`v` is a leaf, and in each of them `v` has colour-degree `1` in a colour in which it is a leaf
+(`Local.single_iff_leaf`). -/
+theorem single_star_third_of_star {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (v : Verts n) :
+    3 * (singleStar c v).card = n - 1 :=
+  tight_singleStar hc hn h3 hk v
+
+/-- **AT `n = 13` — THE FIRST ORDER AT WHICH THE SHARP CONSTANT `5/6` COULD BE ATTAINED — EVERY
+VERTEX WOULD CARRY EXACTLY `4` SINGLE EDGES**, `2` of the `13` blocks of the Steiner triple system
+would be centred at it and `6` of the `10` colours would have colour-degree `1` at it.  Together
+with `Local.single_iff_leaf` this is the complete local specification that an extremal colouring of
+`K_13` would have to satisfy, and `Main.extremal_at_thirteen_is_open` is the corresponding
+existence question. -/
+theorem single_star_at_thirteen {c : Col 13 10} (hc : Admissible c)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts 13))).card) (v : Verts 13) :
+    (singleStar c v).card = 4 ∧
+      6 * (∑ i : Fin 10, if v ∈ twoA c i then (1 : ℕ) else 0) = 12 := by
+  have hk : 6 * (10 : ℕ) = 5 * (13 - 1) := by norm_num
+  have h1 := tight_singleStar hc (by norm_num) h3 hk v
+  have h2 := tight_star_centre hc (by norm_num) h3 hk v
+  constructor <;> omega
+
+/-- **THE LOCAL PROFILE IS UNIFORM AND GLOBALLY CONSISTENT.**  In the extremal case every one of the
+`n` vertices carries `(n-1)/3` single edges, so the single edges of the colouring number
+`n(n-1)/6` — exactly the global count of `Singles.tight_card_singles`, one leaf edge for each block
+of the Steiner triple system of two-edge paths.  The description of the extremal case is thus
+complete: it is determined locally, point by point, and the local data adds up to the global one. -/
+theorem extremal_profile_consistent {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) :
+    (singleFinset c).card = n * (n - 1) / 6 ∧
+      (∑ v : Verts n, (singleStar c v).card) = n * (n - 1) / 3 ∧
+      (singleFinset c).card = (∑ v : Verts n, (singleStar c v).card) / 2 :=
+  ⟨tight_card_singles hc hn h3 hk, tight_sum_singleStar hc hn h3 hk,
+    tight_singleFinset_of_star hc hn h3 hk⟩
+
+/-- **THE COMPLETE LOCAL PROFILE OF AN EXTREMAL COLOURING, AT ONE VERTEX.**  In an extremal
+admissible colouring of `K_n` (`6k = 5(n-1)`) every vertex `v` satisfies *all four* of the
+following, simultaneously:
+
+* it lies in exactly `(n-1)/2` blocks of the Steiner triple system of two-edge paths
+  (`Star.tight_blocks_through`), of which it is the centre in exactly `(n-1)/6`
+  (`Star.tight_star_centre`) and a leaf in the remaining `(n-1)/3`;
+* it has colour-degree `1` in exactly `2(n-1)/3` colours (`Star.tight_star_oneB`), namely
+  `(n-1)/3` of them in which the unique edge at `v` is an isolated single edge and `(n-1)/3` of
+  them in which it is an edge of a two-edge path through `v` (`Local.single_star_third_of_star`
+  together with `Local.card_singleStar`);
+* it is incident with exactly `(n-1)/3` isolated single edges, whose two ends are leaves of a
+  two-edge path (`Local.single_iff_leaf`).
+
+This is the whole of the extremal case as it is seen *point by point*, and it is what a
+construction of the extremal family of arXiv:2207.02920 would have to satisfy at every vertex. -/
+theorem extremal_local_profile {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (v : Verts n) :
+    ((pathFinset c).filter (fun b => v ∈ b)).card * 2 = n - 1 ∧
+      6 * (∑ i : Fin k, if v ∈ twoA c i then (1 : ℕ) else 0) = n - 1 ∧
+      3 * (∑ i : Fin k, if v ∈ oneB c i then (1 : ℕ) else 0) = 2 * (n - 1) ∧
+      3 * (singleStar c v).card = n - 1 :=
+  ⟨tight_blocks_through hc hn h3 v, tight_star_centre hc hn h3 hk v,
+    tight_star_oneB hc hn h3 hk v, tight_singleStar hc hn h3 hk v⟩
 
 end JSP140
