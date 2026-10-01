@@ -21,3 +21,4 @@ import JSPProblem.Classwise
 import JSPProblem.Criterion
 import JSPProblem.Design
 import JSPProblem.Triangles
+import JSPProblem.Leftover

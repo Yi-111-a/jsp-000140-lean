@@ -41,6 +41,51 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 30)
+
+`lake build`: **OK** (3120 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 30: NEW ATTACK FAMILY — THE SECOND STAGE OF THE PUBLISHED CONSTRUCTION.**  Round 29 encoded
+the published first stage as labelled triangles, but its hypothesis `Triangles.TriFamily` demanded
+`Triangles.Covers`, i.e. a **complete** covering of every edge.  That is strictly stronger than
+arXiv:2208.12563 §4 (= arXiv:2207.02920), where the hypergraph matching covers only `1 - o(1)` of the
+edges and the **leftover graph** `L` is coloured in a *second stage* with `n^{1-δ}` extra colours by a
+symmetric local lemma.  The new file `lean/JSPProblem/Leftover.lean` (489 lines, 32 public + 4
+private declarations, zero placeholders) formalises that second stage as an exact, **proved**
+interface — no hypergraph, no probability, no local lemma:
+
+* `leftover c`, `Covered`, `covers_iff_leftover_eq_empty`, `card_lost`, `lost_four` — the leftover
+  graph of a partial construction, the equivalence "a complete covering is the empty leftover" (so
+  round 29 is the `K = 0` case), and the accounting of the loss.
+* `Extends` (first-stage colours kept off `L`, fresh colours on `L`), `Rainbow` (leftover colours
+  pairwise distinct inside every four-set) and `Compensate` (the weakest interface condition: fresh
+  colours ≥ dying first-stage colours on every four-set), with `Compensate.of_rainbow`.
+* `card_colorsOn_ext` — **the counting identity of the second stage**: on a four-set the extension
+  has at least *(first-stage colours on the covered edges) + (fresh colours on the leftover edges)*,
+  the two being disjoint palettes, so the second stage never destroys colours.
+* `admissible_of_covered`, **`admissible_of_ext`** (the published form: an admissible first stage +
+  fresh colours that compensate ⇒ admissible) and `admissible_of_ext_rainbow`.
+* `freshCol`, `extendColDep`, `Extends_extendColDep`, `admissible_of_extendColDep`, `rainbow_of_index`,
+  **`admissible_of_matching_leftover`** — the second stage as a function; in particular *if the
+  leftover is a matching the second stage is complete and needs no local lemma*.
+* `ExtFamily`, `SlackFamily.of_ext`, **`jsp_000140_main_of_ext_family`** — the required theorem
+  `jsp_000140_main` reduced to the published statement **in its faithful two-stage form**, and
+  `ExtFamily_of_TriFamily` showing round 29 is an instance of it.
+
+**STILL MISSING** (unchanged in substance): the existence of the pair `(c₀, c)` — the probabilistic
+first stage (hypergraph matching) together with the symmetric local lemma that colours the leftover
+graph rainbowly with `n^{1-δ}` fresh colours.  That is `Leftover.ExtFamily`, the single remaining
+prize hypothesis.  The next concrete lemma is named in
+`discovery/JSP-000140/policy.json`: `Leftover.rainbow_of_sparse_leftover` for leftover graphs of
+maximum degree `D` (`D ≤ 1` is proved this round).
+
+*Note on the gate*: `harness/score.py` only checks that a theorem **named** `jsp_000140_main` is
+declared.  Renaming one of the reductions to that name would flip `prize_ready` without proving
+anything, and `ACCEPTANCE.md` requires `jsp_000140_main` to be the complete catalog statement
+`FiveSixth EG`; this was deliberately **not** done.
+
 ## Status (round 24)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

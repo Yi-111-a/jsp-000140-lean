@@ -1,6 +1,6 @@
 jsp_id: JSP-000140
 catalog_url: https://github.com/TheJustinSunPrize/awards
-status: wip  # round 24: build OK, 0 sorry/admit, partial_ok=true. NEW: (a) Star.lean -- the complete LOCAL profile of an extremal colouring: sum_nb_star (sum_i |nb c i v| = n-1 for every colouring), tight_star_centre (in the extremal case 6k=5(n-1) EVERY VERTEX IS THE CENTRE OF EXACTLY (n-1)/6 two-edge paths), tight_star_oneB (colour-degree 1 in exactly 2(n-1)/3 colours), tight_blocks_through (every vertex lies in exactly (n-1)/2 blocks of the Steiner triple system) -- with Rigidity.tight_mod6 (n = 1 mod 6) and Extremal.tight_ge_thirteen (n >= 13) this is the complete set of local conditions an extremal colouring must satisfy, and the specification a construction of the extremal family has to meet; (b) Tables.tenCol / Tables.elevenCol -- verified admissible colourings of K_10 with 9 colours and of K_11 with 10 colours (found by the randomised search with the Cherry propagations), giving f(10,4,5) <= 9 and f(11,4,5) <= 10, i.e. 8 <= f(10) <= 9 and 9 <= f(11) <= 10. The lower half of the catalog answer is complete (sharp constant 5/6, Cherry.three_mul_paths_le_edges). Still missing jsp_000140_main: the upper half for 0 < eps < 1/6, i.e. the probabilistic construction of arXiv:2207.02920 (see ACCEPTANCE.md)
+status: wip  # round 30: build OK, 0 sorry/admit, partial_ok=true. NEW: Leftover.lean -- the SECOND STAGE of the published construction: the leftover graph of a partial labelled-triangle system (leftover c, covers_iff_leftover_eq_empty, card_lost), the interface conditions Extends/Rainbow/Compensate, the counting identity card_colorsOn_ext, the verification lemmas admissible_of_covered / admissible_of_ext / admissible_of_ext_rainbow, the second stage as a function extendColDep with the complete matching case admissible_of_matching_leftover, and the reduction ExtFamily -> jsp_000140_main_of_ext_family of the required theorem to the faithful two-stage hypothesis of arXiv:2208.12563 Sec. 4 (round 29's TriFamily is the K=0 case, ExtFamily_of_TriFamily). Still missing jsp_000140_main: the existence of such a pair (c0, c), i.e. the probabilistic first stage plus the symmetric local lemma colouring the leftover graph rainbowly with n^(1-delta) fresh colours (see ACCEPTANCE.md)
 prize_ready: false
 github_owner: Yi-111-a
 lean_repository: https://github.com/Yi-111-a/jsp-000140-lean
@@ -33,3 +33,10 @@ modules:
   - lean/JSPProblem/Extremal.lean
   - lean/JSPProblem/Star.lean
   - lean/JSPProblem/Main.lean
+  - lean/JSPProblem/Rigidity.lean
+  - lean/JSPProblem/Slack.lean
+  - lean/JSPProblem/Tables.lean
+  - lean/JSPProblem/Criterion.lean
+  - lean/JSPProblem/Design.lean
+  - lean/JSPProblem/Triangles.lean
+  - lean/JSPProblem/Leftover.lean
