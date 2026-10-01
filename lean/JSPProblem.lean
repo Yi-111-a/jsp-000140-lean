@@ -11,5 +11,8 @@ import JSPProblem.Slack
 import JSPProblem.Singles
 import JSPProblem.Tables
 import JSPProblem.Search
+import JSPProblem.Distinct
 import JSPProblem.FastSearch
 import JSPProblem.VertexSearch
+import JSPProblem.QuadEnum
+import JSPProblem.LeafFree

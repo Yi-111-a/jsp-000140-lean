@@ -41,6 +41,136 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 22)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 22 CLOSES BLOCKER B2′ OF ROUND 21 — BOTH OF ITS NAMED OPTIMISATIONS ARE PROVED
+EQUIVALENT TO `Admissible` AND APPLIED — AND OBTAINS `f(9,4,5) = 8`, THE THIRD EXACT VALUE OF
+`f(n,4,5)` ABOVE THE COUNTING BOUND.**
+
+### 1. The two bridges round 21 said were missing (`JSPProblem/QuadEnum.lean`, 133 lines, 7 declarations, zero `sorry`)
+
+Blocker B2′ of round 21 said the two concrete optimisations of the pruning test "both need a proved
+equivalence to `Admissible`".  Those equivalences are now proved.
+
+* **`mem_quadsOf_of_incQuad`** — every increasing quadruple occurs in the list `quadsOf n`, and
+  **`incQuad_of_mem_quadsOf`** — conversely: the `K₄`s of `quadsOf n` are exactly the increasing
+  quadruples, so the search really tests every `K₄` of `K_n`;
+* **`exists_quadSet_of_card` / `exists_mem_quadsOf_of_card`** — **every four-element `Finset` of
+  `Verts n` is the vertex set of an increasing quadruple of `quadsOf n`**, proved by sorting the
+  set (`Finset.sort` of Mathlib `Data/Finset/Sort.lean`, the *same* sorting tool the vendored
+  Mathlib uses for `Finset.min'`/`max'`) and taking the four elements of the resulting four-element
+  list.  This is the statement that identifies the `Finset`-world of `Admissible` with the
+  quadruple-world of the search;
+* **`admissible_iff_all_quads`** — **`Admissible c` iff every `K₄` of `quadsOf n` spans at least
+  five colours** (in the form `decide (5 ≤ (quadColors c q).toFinset.card) = true`).
+
+### 2. The leaf-free search (`JSPProblem/LeafFree.lean`, 523 lines, 34 declarations, zero `sorry`)
+
+`VertexSearch.searchAuxC` tests, **at every leaf**, `decide (Admissible (tabOfC n dflt M))` — a
+predicate that quantifies over **all `2^9` four-element `Finset`s** of `K₉` and builds a
+`Finset.image` for each of them, once per complete assignment of the 36 slots (21 286 763 of them
+for the certificate of round 22).  **All of it is redundant**: every `K₄` is *completed* at the
+position `slotQuadC n q` — the largest of its six slots — and `slotQuadC n q < C(n,2)`
+(`slotQuadC_lt`), so every `K₄` has already been tested, and has already passed, by the time the
+search reaches the end of the table.
+
+New in this file:
+
+* `searchAuxD` — `searchAuxC` with the leaf replaced by `true`, and with `dflt`, `tabOfC` and
+  `Admissible` removed from the search program altogether;
+* **`QPassedC M t`** — the new invariant, "every `K₄` completed below the position `t` has already
+  passed the pruning test", with `QPassedC_update` (maintained by colouring the current slot) and
+  `QPassedC_skip` (survives the move from vertex `b` to `b+1`);
+* **`quadOKC_test`** — the pruning test *read backwards*: if a total colouring `c` agrees with the
+  partial colouring `M` on the six edges of a `K₄` and the `K₄` passes the test, then `c` gives it
+  at least five colours (through `collect6_eq_quadColors` and `quadColors_toFinset`);
+* **`admissible_of_quadsOKC`** — **the leaf lemma**: if `c` agrees with `M` on every edge and every
+  `K₄` passes the test on `M`, then `Admissible c`;
+* `mem_quadGroupsC_slotQuadC` — **the group table of the vertex-addition search is complete** (every
+  `K₄` is in the group of the position at which it is completed), the other half of what the leaf
+  was computing;
+* **`searchAuxD_iff` — THE COMPLETENESS THEOREM OF THE LEAF-FREE SEARCH**: the search returns
+  `true` on the partial colouring `M` at the position `posC b a` **iff some admissible colouring
+  of `K_n` agrees with `M` on every edge below that position**; `hasAdmissibleD_iff`,
+  `EG_ge_of_certD` — the lower-bound engine;
+* `certD_seven_six`, `certD_seven_seven`, `EG_seven_leaffree` — the certificate of round 21
+  re-derived by the new engine (`f(7,4,5) = 7` from the leaf-free search).
+
+### 3. The cheap distinctness count (`JSPProblem/Distinct.lean`, 109 lines, 11 declarations, zero `sorry`)
+
+The test `decide (5 ≤ (l.toFinset : Finset (Fin k)).card)` costs **six red-black-tree insertions per
+`K₄` test** in compiled code, and the search performs 269 824 034 of them for the `K₉` certificate.
+`insAll l []` computes the same number as a `List` length:
+
+* `insNew`, `insAll`, `insNew_mem`, `insNew_nodup`, `insAll_mem`, `insAll_nodup`,
+  `insAll_nil_toFinset`, **`ndist_eq_card` (`ndist l = (l.toFinset).card`)** and
+  **`decide_ndist` (the two `decide`s agree)**.
+
+`FastSearch.quadOK` and `VertexSearch.quadOKC` now use `ndist`; every existing certificate still
+verifies (the two `quadOK_of` proofs were adapted in one line each).  **Measured effect on the
+"no admissible 6-colouring of `K₈`" certificate, which is the same 38 654-node search as `K₇`:
+113 s wall / 22 s CPU before, 17 s wall / 5.4 s CPU after** — a factor of 4, and this is what brings
+the 21 286 763-node `K₉` certificate inside `lake build`.
+
+### 4. The third value above the counting bound: `f(9,4,5) = 8` (in `JSPProblem/Nine.lean`)
+
+**The `K₉` certificate is deliberately kept OUT of the default build.**  The search visits
+21 286 763 nodes and 269 824 034 `K₄` tests and `native_decide` needs of the order of **80 CPU
+minutes** — 4 h 12 min of wall clock in round 22 with the harness host at load 45–50 on 8 cores.
+The run *did* reach the end of the certificate in round 22 (it failed only on a name-resolution
+slip in the statement that follows it), so the `false` answer is confirmed; but putting it in the
+default build would make every *rebuild* cost that much, so the certificate and its consequences
+live in `lean/JSPProblem/Nine.lean`, which is not imported by `JSPProblem.lean`:
+
+```sh
+cd lean && lake build JSPProblem.Nine      # re-verify (~80 CPU-minutes)
+```
+
+What is in the default build is the cheap half: `Tables.EG_nine_le` (`f(9,4,5) ≤ 8`) together
+with the counting bound gives `Main.f_nine_between_seven_and_eight : 7 ≤ f(9,4,5) ≤ 8`.
+
+
+`Tables.lean` gains the colouring the search found, written down as a literal table and certified
+by `native_decide` over all `C(9,4) = 126` four-element vertex sets — independently of the search:
+
+* `nineCol`, **`admissible_nineCol`**, `EG_nine_le : f(9,4,5) ≤ 8`, `nineCol_some_tight` (some `K₄`
+  spans exactly five colours);
+* `Main.f_nine_between_seven_and_eight : 7 ≤ f(9,4,5) ≤ 8` (counting bound and `EG_nine_le`);
+* in `Nine.lean`: **`certD_nine_six : hasAdmissibleD 9 6 = false`** (no admissible 7-colouring of
+  `K₉`), **`EG_nine : EG 9 = 8`**, `counting_bound_strict_at_nine` (`8 > 7 = ⌈5·8/6⌉`),
+  `EG_nine_above_five_sixth` (`5·8 < 6·8`, a strict improvement of the sharp `5/6` constant at a
+  concrete order);
+* `Main.first_six_values` — `f(4) = f(5) = f(6) = 5`, `f(7) = f(8) = 7`;
+  `Main.admissible_is_all_quads`, `Main.every_four_set_is_tested`,
+  `Main.EG_seven_two_engines` (the two engines agree on `f(7,4,5)`).
+
+`f(9,4,5) = 8 > ⌈5(9-1)/6⌉ = 7` is the **third** order at which the Erdős–Gyárfás function exceeds
+the counting bound, and it is the third independent confirmation (after round 16's failure of
+`AG(2,3)` and round 13's characterisation by Steiner triple systems) that the **design-theoretic
+route to the extremal family does not exist at `n = 9`**: the extremal colouring would have to have
+`⌈5(9-1)/6⌉ = 7` colours, and there is none.
+
+### 5. NOT proved this round (blocker B3', now a pure constant-factor question)
+
+* **`hasAdmissibleD 10 6 = false`** — no admissible 7-colouring of `K_{10}`; measured in C with the
+  vertex-addition order and no leaf test: the search fails *inside* `K₉`, i.e. the same
+  21 286 763 nodes, so nothing new is required, only another ~80 CPU-minute evaluation.  The next
+  orders are `f(10,4,5)`, where the counting bound `⌈5·9/6⌉ = 8` would be attained if an admissible
+  8-colouring of `K_{10}` exists (the search at eight colours is out of reach in C: > 300 s), and
+  then, for `n = 11, 12, …`, the `o(n)` question.
+* **A cheaper evaluator.**  `native_decide` evaluates in the kernel/`Meta.reduce` interpreter, not
+  in compiled code; a 4x factor was recovered inside Lean (the `Finset`-free test of
+  `Distinct.lean`), but the remaining 21e6-node search would be a few minutes in *compiled* code.
+  Formalising "the search returns the same answer when evaluated by the C evaluator" is a separate
+  (large) project; a cheaper route would be to make the search's own work per node smaller (an
+  array instead of `List.getD` for the group table).
+* **The upper half of `jsp_000140_main` is untouched** — it needs the probabilistic construction
+  of arXiv:2207.02920 (blocker "SINGLE REMAINING PRIZE HYPOTHESIS", unchanged).
+
 ## Status (round 21)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

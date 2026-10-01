@@ -308,11 +308,11 @@ theorem le_slotQuadC {n : ℕ} (q : Quad n) (s : ℕ) (h : s ∈ quadSlotsC n q)
   · rw [h]; exact le_qslotC5 _ _ _ _ _ _
   · rw [h]; exact le_qslotC6 _ _ _ _ _ _
 
-/-- **THE PRUNING TEST.** -/
+/-- **THE PRUNING TEST** (the distinctness count `ndist`, see `Distinct.lean`). -/
 def quadOKC {n k : ℕ} (M : PTab k) (q : Quad n) : Bool :=
   match collect6 M (quadSlotsC n q) with
   | none => true
-  | some l => decide (5 ≤ (l.toFinset : Finset (Fin k)).card)
+  | some l => decide (5 ≤ ndist l)
 
 /-- All the `K₄`s of a group are admissible. -/
 def allOKC {n k : ℕ} (M : PTab k) : List (Quad n) → Bool
@@ -345,7 +345,6 @@ theorem quadOKC_of {n k : ℕ} {M : PTab k} {q : Quad n} {c : Col n k} {d : ℕ}
     rw [← slotCPair_mk, ← hd]; exact le_qslotC5 _ _ _ _ _ _
   have e6 : slotOfC s(q.c, q.d) ≤ d := by
     rw [← slotCPair_mk, ← hd]; exact le_qslotC6 _ _ _ _ _ _
-  simp only [quadSlotsC, collect6, quadOKC, slotCPair_mk]
   have hFD := fourDistinct_of_incQuad h
   have g1 : M (slotOfC s(q.a, q.b)) = some (c s(q.a, q.b)) :=
     hall _ (offDiag_iff.mpr hFD.1) e1
@@ -359,7 +358,11 @@ theorem quadOKC_of {n k : ℕ} {M : PTab k} {q : Quad n} {c : Col n k} {d : ℕ}
     hall _ (offDiag_iff.mpr hFD.2.2.2.2.1) e5
   have g6 : M (slotOfC s(q.c, q.d)) = some (c s(q.c, q.d)) :=
     hall _ (offDiag_iff.mpr hFD.2.2.2.2.2) e6
-  rw [g1, g2, g3, g4, g5, g6]
+  have key : quadOKC M q = decide (5 ≤ ndist (quadColors c q)) := by
+    simp only [quadOKC, quadSlotsC, collect6, slotCPair_mk]
+    rw [g1, g2, g3, g4, g5, g6]
+    rfl
+  rw [key, decide_ndist]
   exact quad_ok_of_admissible h hc
 
 /-- **THE GROUP TABLE** of the vertex-addition search, computed once. -/

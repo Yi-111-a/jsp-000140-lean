@@ -127,4 +127,45 @@ theorem six_is_attained : EG 6 = 5 ∧ 5 = (5 * (6 - 1) + 5) / 6 := by
   refine ⟨EG_six, ?_⟩
   norm_num
 
+/-! ### An admissible colouring of `K₉` with eight colours
+
+The colouring found by the leaf-free vertex-addition search of `LeafFree.lean` (with seven colours
+it fails: `LeafFree.certD_nine_six`).  It is written down here as a literal table and verified
+independently, by `native_decide` over all `C(9,4) = 126` four-element vertex sets.  Note that this
+is **not** the counting bound `⌈5(9-1)/6⌉ = 7`: the search shows that `K₉` has no admissible
+7-colouring, so `f(9,4,5) = 8` is a third value strictly above `5(n-1)/6`, and a third confirmation
+that the design-theoretic route to the extremal family (a Steiner triple system of two-edge paths
+with a colouring of the leaf edges) breaks at this order.
+-/
+
+set_option maxRecDepth 10000 in
+/-- **An admissible 8-colouring of `K₉`**, the first one found by the searches of this
+development.  (The `n = 6` table is read off the 1-factorisation; this one is machine-produced.) -/
+def nineCol : Col 9 8 := listCol 9 8 (by norm_num)
+  [0, 0, 0, 2, 2, 3, 4, 5, 6,
+   0, 0, 1, 3, 5, 4, 7, 6, 2,
+   0, 0, 0, 4, 6, 2, 3, 7, 5,
+   0, 0, 0, 0, 1, 5, 6, 0, 7,
+   0, 0, 0, 0, 0, 7, 0, 3, 4,
+   0, 0, 0, 0, 0, 0, 1, 4, 0,
+   0, 0, 0, 0, 0, 0, 0, 2, 5,
+   0, 0, 0, 0, 0, 0, 0, 0, 1,
+   0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+set_option maxRecDepth 10000 in
+/-- **The colouring of `K₉` is admissible**: every four vertices span at least five colours.  A
+Lean certificate over all `C(9,4) = 126` four-element vertex sets, independent of the search that
+produced it. -/
+theorem admissible_nineCol : Admissible nineCol := by
+  unfold Admissible; native_decide
+
+/-- `f(9,4,5) ≤ 8`.  With `LeafFree.certD_nine_six` (no admissible 7-colouring of `K₉`) this is
+`f(9,4,5) = 8`. -/
+theorem EG_nine_le : EG 9 ≤ 8 := EG_le 9 8 nineCol admissible_nineCol
+
+/-- **The catalog condition is tight here too**: some `K₄` of `nineCol` spans exactly five
+colours. -/
+theorem nineCol_some_tight : ∃ S : Finset (Verts 9), S.card = 4 ∧ (colorsOn nineCol S).card = 5 := by
+  native_decide
+
 end JSP140

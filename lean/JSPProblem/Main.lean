@@ -12,6 +12,9 @@ import JSPProblem.Tables
 import JSPProblem.Search
 import JSPProblem.FastSearch
 import JSPProblem.VertexSearch
+import JSPProblem.QuadEnum
+import JSPProblem.Distinct
+import JSPProblem.LeafFree
 
 /-!
 # JSP-000140 — the headline statement
@@ -796,5 +799,42 @@ theorem the_o_n_term_is_needed :
       ((EG 7 : ℝ) - 5 * (7 : ℝ) / 6 = (7 : ℝ) / 6) ∧
       ((EG 8 : ℝ) - 5 * (8 : ℝ) / 6 = (8 : ℝ) / 24) := by
   norm_num [EG_six, EG_seven, EG_eight]
+
+/-! ### Round 22: the leaf-free search and the third value above the counting bound -/
+
+/-- **The bridge used by the leaf-free search**: `Admissible c` iff every `K₄` of the list
+`quadsOf n` spans at least five colours.  This is the equivalence to `Admissible` that the leaf
+test of `VertexSearch.lean` used to provide by brute force. -/
+theorem admissible_is_all_quads (c : Col 6 5) :
+    Admissible c ↔ ∀ q : Quad 6, q ∈ quadsOf 6 →
+      decide (5 ≤ ((quadColors c q).toFinset : Finset (Fin 5)).card) = true :=
+  admissible_iff_all_quads c
+
+/-- **Every four-vertex set of `K_n` is tested by the search** (in the increasing-quadruple
+numbering), and the map `q ↦ quadSet q` is onto the four-element vertex sets. -/
+theorem every_four_set_is_tested (S : Finset (Verts 6)) (hS : S.card = 4) :
+    ∃ q : Quad 6, q ∈ quadsOf 6 ∧ quadSet q = S :=
+  exists_mem_quadsOf_of_card hS
+
+/-- **`f(7,4,5) = 7` also through the leaf-free engine** (no leaf test, no `Finset` per `K₄`). -/
+theorem EG_seven_two_engines : EG 7 = 7 := EG_seven_leaffree
+
+/-- **THE EXACT VALUES SO FAR**: `f(4) = f(5) = f(6) = 5`, `f(7) = f(8) = 7`.  (The third
+value above the counting bound, `f(9,4,5) = 8`, is in `JSPProblem.Nine`, which is kept off the
+default build path: its machine certificate costs of the order of 80 CPU-minutes.) -/
+theorem first_six_values :
+    EG 4 = 5 ∧ EG 5 = 5 ∧ EG 6 = 5 ∧ EG 7 = 7 ∧ EG 8 = 7 :=
+  ⟨EG_four, EG_five, EG_six, EG_seven, EG_eight⟩
+
+/-- **`f(9,4,5)` IS A SEVEN OR AN EIGHT.**  The lower bound is the counting bound
+`⌈5(9-1)/6⌉ = 7` (`EG_ge_ceil_five_sixth`), the upper bound the verified 8-colouring
+`Tables.nineCol`.  The certificate `Nine.certD_nine_six` ("no admissible 7-colouring of `K₉`"),
+which selects the eight, is in `JSPProblem.Nine`. -/
+theorem f_nine_between_seven_and_eight : 7 ≤ EG 9 ∧ EG 9 ≤ 8 :=
+  ⟨by norm_num [EG_ge_ceil_five_sixth 9 (by norm_num)], EG_nine_le⟩
+
+/-- **The leaf-free search and the `VertexSearch` search agree on `f(7,4,5)`.** -/
+theorem the_two_engines_agree_at_seven : EG 7 = 7 ∧ EG 7 = 7 :=
+  ⟨EG_seven, EG_seven_leaffree⟩
 
 end JSP140

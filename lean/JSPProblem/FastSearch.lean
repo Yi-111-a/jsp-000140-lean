@@ -1,4 +1,5 @@
 import JSPProblem.Search
+import JSPProblem.Distinct
 
 /-!
 # JSP-000140 — a *fast, symmetry-reduced* verified exhaustive search for `f(n, 4, 5)`
@@ -366,11 +367,13 @@ def collect6 {k : ℕ} (M : PTab k) : List ℕ → Option (List (Fin k))
       | some c => (collect6 M ss).map (fun l => c :: l)
 
 /-- **THE PRUNING TEST.**  A `K₄` which is not complete yet imposes no constraint; a complete
-`K₄` must span at least five colours. -/
+`K₄` must span at least five colours.  The distinctness count `ndist` of `Distinct.lean` is
+`decide`-equal to the `Finset` cardinality (`Distinct.decide_ndist`) but costs a linear scan
+instead of six red-black-tree insertions. -/
 def quadOK {n k : ℕ} (M : PTab k) (q : Quad n) : Bool :=
   match collect6 M (quadSlots n q) with
   | none => true
-  | some l => decide (5 ≤ (l.toFinset : Finset (Fin k)).card)
+  | some l => decide (5 ≤ ndist l)
 
 /-- All the `K₄`s of a group are admissible. -/
 def allOK {n k : ℕ} (M : PTab k) : List (Quad n) → Bool
@@ -405,7 +408,6 @@ theorem quadOK_of {n k : ℕ} {M : PTab k} {q : Quad n} {c : Col n k} {d : ℕ}
     rw [← slotOfPair_mk, ← hd]; exact le_qslot5 _ _ _ _ _ _
   have e6 : slotOf s(q.c, q.d) ≤ d := by
     rw [← slotOfPair_mk, ← hd]; exact le_qslot6 _ _ _ _ _ _
-  simp only [quadSlots, collect6, quadOK, slotOfPair_mk]
   have hFD := fourDistinct_of_incQuad h
   have g1 : M (slotOf s(q.a, q.b)) = some (c s(q.a, q.b)) :=
     hall _ (offDiag_iff.mpr hFD.1) e1
@@ -419,7 +421,11 @@ theorem quadOK_of {n k : ℕ} {M : PTab k} {q : Quad n} {c : Col n k} {d : ℕ}
     hall _ (offDiag_iff.mpr hFD.2.2.2.2.1) e5
   have g6 : M (slotOf s(q.c, q.d)) = some (c s(q.c, q.d)) :=
     hall _ (offDiag_iff.mpr hFD.2.2.2.2.2) e6
-  rw [g1, g2, g3, g4, g5, g6]
+  have key : quadOK M q = decide (5 ≤ ndist (quadColors c q)) := by
+    simp only [quadOK, quadSlots, collect6, slotOfPair_mk]
+    rw [g1, g2, g3, g4, g5, g6]
+    rfl
+  rw [key, decide_ndist]
   exact quad_ok_of_admissible h hc
 
 /-! ### The group of a slot -/
