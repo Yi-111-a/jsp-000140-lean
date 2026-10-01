@@ -17,6 +17,7 @@ import JSPProblem.Distinct
 import JSPProblem.LeafFree
 import JSPProblem.Star
 import JSPProblem.Local
+import JSPProblem.Classwise
 
 /-!
 # JSP-000140 — the headline statement
@@ -1005,5 +1006,113 @@ theorem extremal_local_profile {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
       3 * (singleStar c v).card = n - 1 :=
   ⟨tight_blocks_through hc hn h3 v, tight_star_centre hc hn h3 hk v,
     tight_star_oneB hc hn h3 hk v, tight_singleStar hc hn h3 hk v⟩
+
+/-! ### Round 26: the per-colour profile of an extremal colouring (`Classwise.lean`) -/
+
+/-- **THE COMPLETE PER-COLOUR PROFILE OF AN EXTREMAL COLOURING, COLOUR BY COLOUR.**  Let `c` be an
+admissible colouring of `K_n` attaining the counting bound with `5(n-1)/6` colours, and let `i` be a
+colour.  Then there is a unique integer `u ≤ t - 1` (with `n = 6t+1`) such that
+
+* the colour class `i` contains exactly `2u + 1` two-edge paths and `3(t-1-u) + 2` isolated single
+  edges — i.e. **`3 a_i + 2 s_i = n`: the colour class partitions the `n` vertices into `a_i`
+  triples and `s_i` pairs** (`Classwise.tight_class_vertex_count`, `Classwise.tight_class_profile`);
+* hence it contains at least one two-edge path and at least two isolated single edges, and its
+  number of single edges is `≡ 2 (mod 3)` (`Classwise.tight_class_mixed`,
+  `Classwise.tight_single_mod_three`);
+* its size is `(n + a_i)/2` edges (`Classwise.tight_class_edges`), and globally the `k` colour
+  classes each partition the vertex set, `3 * Paths c + 2 * (#single edges) = k * n`
+  (`Classwise.tight_sum_class_vertex`), with the single edges splitting evenly over the classes,
+  `Σ_i s_i = Paths c` (`Classwise.tight_sum_single_eq_paths`) and `Paths c ≡ 2k (mod 3)`
+  (`Classwise.tight_sum_single_mod_three`).
+
+Together with `Main.extremal_local_profile` (the per-vertex side, round 25) this makes the extremal
+case fully determined both point by point and colour by colour, which is the whole specification a
+construction of the extremal family of arXiv:2207.02920 must meet. -/
+theorem extremal_class_profile {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (t : ℕ) (ht : n = 6 * t + 1) (i : Fin k) :
+    (∃ u : ℕ, u ≤ t - 1 ∧ (twoA c i).card = 2 * u + 1 ∧
+        (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card = 3 * (t - 1 - u) + 2)
+      ∧ 2 * (classIn c i (Finset.univ : Finset (Verts n))).card = n + (twoA c i).card ∧
+      2 ≤ (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card :=
+  ⟨tight_class_profile hc hn h3 hk t ht i, tight_class_edges hc hn h3 hk i,
+    tight_single_ge_two hc hn h3 hk t ht i⟩
+
+/-- **AT `n = 13` — THE FIRST ORDER AT WHICH THE SHARP CONSTANT `5/6` COULD BE ATTAINED — THE
+COLOUR-CLASS PROFILE IS COMPLETELY DETERMINED.**  An admissible `10`-colouring of `K_13` is
+extremal (`6 * 10 = 5 * 12`), and then:
+
+* every colour class consists of either `3` two-edge paths + `2` isolated single edges (hence `8`
+  edges) or `1` two-edge path + `5` isolated single edges (hence `7` edges)
+  (`Classwise.tight_thirteen_profile`, `Classwise.tight_thirteen_edges`);
+* **exactly eight of the ten classes are of the first type** (`Classwise.tight_thirteen_eight`),
+  since `8 * 3 + 2 * 1 = 26 = Paths c = 13 * 12 / 6` (`Classwise.tight_thirteen_paths_total`), and
+  `8 * 8 + 2 * 7 = 78 = C(13,2)`;
+* each vertex is in `(n-1)/3 = 4` single edges and is the centre of `2` blocks
+  (`Main.single_star_at_thirteen`).
+
+So any admissible `10`-colouring of `K_13` — the open question `Main.extremal_at_thirteen_is_open` —
+would have to have exactly this colour-class profile: eight classes of eight edges and two of
+seven, `26` two-edge paths forming a Steiner triple system, `26` isolated single edges. -/
+theorem extremal_at_thirteen_profile {c : Col 13 10} (hc : Admissible c) (hn : 4 ≤ 13) :
+    (∑ i : Fin 10, if (twoA c i).card = 3 then (1 : ℕ) else 0) = 8 ∧
+      (∑ i : Fin 10, (twoA c i).card) = 26 ∧
+      ∀ i : Fin 10, 7 ≤ (classIn c i (Finset.univ : Finset (Verts 13))).card ∧
+        (classIn c i (Finset.univ : Finset (Verts 13))).card ≤ 8 ∧
+        ((twoA c i).card = 1 ∧
+            (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts 13))).card = 5 ∨
+          ((twoA c i).card = 3 ∧
+            (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts 13))).card = 2)) := by
+  refine ⟨tight_thirteen_eight hc hn, tight_thirteen_paths_total hc hn, ?_⟩
+  intro i
+  have hed := tight_thirteen_edges hc hn i
+  exact ⟨hed.1, hed.2, tight_thirteen_profile hc hn i⟩
+
+/-- **NO COLOUR CLASS OF AN EXTREMAL COLOURING IS A PERFECT PACKING OF TWO-EDGE PATHS.**  Every one
+of the `5(n-1)/6` colour classes of an extremal colouring contains at least two isolated single
+edges, and the number of them is `2 (mod 3)`; and the total number of single edges is
+`≡ 2k (mod 3)` (`Classwise.tight_sum_single_mod_three`), consistently with
+`Singles.tight_card_singles` (`#single edges = n(n-1)/6`). -/
+theorem extremal_class_never_pure {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (t : ℕ) (ht : n = 6 * t + 1) :
+    (∀ i : Fin k, 2 ≤ (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card) ∧
+      (∑ i : Fin k, (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card)
+        = Paths c ∧
+      Paths c % 3 = (2 * k) % 3 :=
+  ⟨fun i => tight_single_ge_two hc hn h3 hk t ht i,
+    tight_sum_single_eq_paths hc hn h3 hk, tight_sum_single_mod_three hc hn h3 hk t ht⟩
+
+/-- **EXTREMALITY IS EXACTLY THE PER-COLOUR TILING CONDITION.**  For an admissible colouring of
+`K_n` (`n ≥ 4`) with exactly `5(n-1)/6` colours, the sharp counting bound of
+`Cherry.five_sixth_lower` is attained **iff every colour class partitions the vertex set into its
+two-edge paths and its isolated single edges** (`3 a_i + 2 s_i = n` for every colour `i`):
+
+    Classwise.classwise_tiling_iff_extremal.
+
+So the extremal colourings — equivalently, the colourings whose two-edge paths form a Steiner triple
+system with a `1/3`-balanced centre function and whose single edges are the leaf edges — are exactly
+the *perfect* colourings: every class is a maximal packing of the vertex set, triple by triple
+(two-edge paths) and pair by pair (isolated single edges).  This is the sharpest structural
+statement of the development: it makes `Rigidity.tight_pathFinset_is_STS` a consequence of a
+per-colour counting identity, and it is what a construction of the extremal family of
+arXiv:2207.02920 would have to satisfy colour by colour. -/
+theorem extremal_iff_classwise_tiling {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (hk : 6 * k = 5 * (n - 1)) :
+    (∀ i : Fin k, 3 * (twoA c i).card
+        + 2 * (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card = n)
+      ↔ 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card :=
+  classwise_tiling_iff_extremal hc hn hk
+
+/-- **THE SHARP `5/6` COUNTING BOUND IS A PER-COLOUR CONSEQUENCE.**  If every colour class of an
+admissible colouring of `K_n` partitions the vertex set into two-edge paths and isolated single
+edges, then `k ≥ 5(n-1)/6` (`Classwise.five_sixth_of_classwise_tiling`).  So the constant `5/6` of
+the Erdős–Gyárfás lower bound is produced by a *local* (per-colour) tiling condition, and the
+extremal case is exactly the colouring in which every class tiles perfectly. -/
+theorem five_sixth_of_tiling {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (htiling : ∀ i : Fin k, 3 * (twoA c i).card
+        + 2 * (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card = n) :
+    5 * (n - 1) ≤ 6 * k :=
+  five_sixth_of_classwise_tiling hc hn htiling
 
 end JSP140
