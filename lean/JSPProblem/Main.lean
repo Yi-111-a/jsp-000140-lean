@@ -18,6 +18,7 @@ import JSPProblem.LeafFree
 import JSPProblem.Star
 import JSPProblem.Local
 import JSPProblem.Classwise
+import JSPProblem.Criterion
 
 /-!
 # JSP-000140 — the headline statement
@@ -1114,5 +1115,27 @@ theorem five_sixth_of_tiling {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
         + 2 * (singleFinset c ∩ classIn c i (Finset.univ : Finset (Verts n))).card = n) :
     5 * (n - 1) ≤ 6 * k :=
   five_sixth_of_classwise_tiling hc hn htiling
+
+/-! ### The structural criterion for the catalog condition (round 28) -/
+
+/-- **THE CATALOG CONDITION IS EQUIVALENT TO FOUR LOCAL CONDITIONS.**  For `n ≥ 4`,
+
+    `Admissible c  ↔  Design c`
+
+i.e. "every `K₄` spans at least five colours" holds **iff**
+
+* every colour class is a vertex-disjoint union of two-edge paths and isolated single edges
+  (`Criterion.Tile`),
+* two two-edge paths never share two vertices (`Criterion.Packed`),
+* no `K₄` contains both a two-edge path and two vertex-disjoint edges of one colour
+  (`Criterion.NoBadFour`),
+* no `K₄` has two vertex-disjoint edges in each of two colours (`Criterion.NoCrossFour`).
+
+So the *catalog condition itself* — the hypothesis of every theorem of `Cherry.lean`,
+`Rigidity.lean`, `Classwise.lean` — can be verified locally, which is exactly what a construction
+of the upper half of `f(n,4,5) = 5n/6 + o(n)` needs (`Criterion.DesignFamily`,
+`jsp_000140_main_of_design_family`). -/
+theorem admissible_iff_design {c : Col n k} (hn : 4 ≤ n) : Admissible c ↔ Design c :=
+  design_iff_admissible hn
 
 end JSP140

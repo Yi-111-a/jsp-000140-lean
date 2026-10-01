@@ -18,3 +18,5 @@ import JSPProblem.QuadEnum
 import JSPProblem.LeafFree
 import JSPProblem.Local
 import JSPProblem.Classwise
+import JSPProblem.Criterion
+import JSPProblem.Design
