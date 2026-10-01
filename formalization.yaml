@@ -1,6 +1,6 @@
 jsp_id: JSP-000140
 catalog_url: https://github.com/TheJustinSunPrize/awards
-status: wip  # round 10: build OK, 0 sorry/admit, partial_ok=true. THE COMPLETE LOWER HALF of the catalog answer is proved: f(n,4,5) >= 5(n-1)/6 for all n >= 4 (sharp constant 5/6 of BCDP22, no o(n) loss) via Cherry.three_mul_paths_le_edges (3 * Paths c <= |E(K_n)|), and hence FiveSixthLower EG for every eps > 0 (Main.fiveSixthLower_eg, Main.admissibleLower_eps) together with the symmetric bound |f - 5n/6| <= n/6 for n >= 5, n != 4 mod 6. Upper half: f <= n (odd n), f <= n-1 for n = 0,2 mod 6, so eps >= 1/6 there. Still missing jsp_000140_main: the upper half for 0 < eps < 1/6 (the BCDP22/JoMu22 construction) (see ACCEPTANCE.md)
+status: wip  # round 24: build OK, 0 sorry/admit, partial_ok=true. NEW: (a) Star.lean -- the complete LOCAL profile of an extremal colouring: sum_nb_star (sum_i |nb c i v| = n-1 for every colouring), tight_star_centre (in the extremal case 6k=5(n-1) EVERY VERTEX IS THE CENTRE OF EXACTLY (n-1)/6 two-edge paths), tight_star_oneB (colour-degree 1 in exactly 2(n-1)/3 colours), tight_blocks_through (every vertex lies in exactly (n-1)/2 blocks of the Steiner triple system) -- with Rigidity.tight_mod6 (n = 1 mod 6) and Extremal.tight_ge_thirteen (n >= 13) this is the complete set of local conditions an extremal colouring must satisfy, and the specification a construction of the extremal family has to meet; (b) Tables.tenCol / Tables.elevenCol -- verified admissible colourings of K_10 with 9 colours and of K_11 with 10 colours (found by the randomised search with the Cherry propagations), giving f(10,4,5) <= 9 and f(11,4,5) <= 10, i.e. 8 <= f(10) <= 9 and 9 <= f(11) <= 10. The lower half of the catalog answer is complete (sharp constant 5/6, Cherry.three_mul_paths_le_edges). Still missing jsp_000140_main: the upper half for 0 < eps < 1/6, i.e. the probabilistic construction of arXiv:2207.02920 (see ACCEPTANCE.md)
 prize_ready: false
 github_owner: Yi-111-a
 lean_repository: https://github.com/Yi-111-a/jsp-000140-lean
@@ -30,4 +30,6 @@ modules:
   - lean/JSPProblem/Cherry.lean
   - lean/JSPProblem/Ghost.lean
   - lean/JSPProblem/Construction.lean
+  - lean/JSPProblem/Extremal.lean
+  - lean/JSPProblem/Star.lean
   - lean/JSPProblem/Main.lean

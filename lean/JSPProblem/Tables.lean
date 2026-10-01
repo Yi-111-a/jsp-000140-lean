@@ -168,4 +168,109 @@ colours. -/
 theorem nineCol_some_tight : ∃ S : Finset (Verts 9), S.card = 4 ∧ (colorsOn nineCol S).card = 5 := by
   native_decide
 
+/-! ### An admissible colouring of `K₁₀` with nine colours
+
+Round 24 replaced the exhaustive search by a *randomised depth-first search with the structural
+propagations of `Cherry.lean`* (`discovery/JSP-000140/eg6_struct.c`: colour-degree `≤ 2`, the leaf
+edge of a two-edge path is an isolated single edge, two-edge paths do not share a pair), which
+finds admissible colourings in tens of thousands of nodes where the exhaustive search of
+`LeafFree.lean` needs millions.  The colouring of `K₁₀` below was produced by it after
+`1 544 452` nodes and is verified here over all `C(10,4) = 210` four-element vertex sets — again a
+Lean certificate independent of the program that found it.
+
+It is the first upper bound of this development below `n` colours for an even `n` (the previous
+best was `f(10,4,5) ≤ n + 1 = 11`, since the ghost colouring needs `3 ∤ (n-1)` and the round-robin
+colouring needs `n` odd), and it shows that the counting bound `⌈5(n-1)/6⌉ = 8` is *not* attained
+at `n = 10` by any of the colourings searched so far.
+-/
+
+set_option maxRecDepth 10000 in
+/-- **An admissible 9-colouring of `K₁₀`**, the first even order at which this development
+certifies fewer than `n` colours. -/
+def tenCol : Col 10 9 := listCol 10 9 (by norm_num)
+  [0, 0, 1, 2, 5, 7, 4, 6, 8, 3,
+   0, 0, 1, 3, 2, 3, 7, 5, 6, 4,
+   0, 0, 0, 4, 4, 2, 8, 7, 3, 5,
+   0, 0, 0, 0, 6, 8, 0, 1, 5, 7,
+   0, 0, 0, 0, 0, 5, 3, 8, 1, 0,
+   0, 0, 0, 0, 0, 0, 6, 0, 4, 1,
+   0, 0, 0, 0, 0, 0, 0, 2, 0, 8,
+   0, 0, 0, 0, 0, 0, 0, 0, 7, 6,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 2,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+set_option maxRecDepth 10000 in
+/-- **The colouring of `K₁₀` is admissible**: every four vertices span at least five colours.  A
+Lean certificate over all `C(10,4) = 210` four-element vertex sets, independent of the search that
+produced it. -/
+theorem admissible_tenCol : Admissible tenCol := by
+  unfold Admissible; native_decide
+
+/-- `f(10,4,5) ≤ 9`.  With `EG_ge_ceil_five_sixth 10` (`= 8`) this gives
+`Main.f_ten_between_eight_and_nine`. -/
+theorem EG_ten_le : EG 10 ≤ 9 := EG_le 10 9 tenCol admissible_tenCol
+
+/-- **The catalog condition is tight at `n = 10` too**: some `K₄` of `tenCol` spans exactly five
+colours, so `tenCol` is not admissible by a wide margin. -/
+theorem tenCol_some_tight : ∃ S : Finset (Verts 10), S.card = 4 ∧ (colorsOn tenCol S).card = 5 := by
+  native_decide
+
+/-- **The colour classes of `tenCol` partition the edges of `K₁₀`** — the trivial consistency
+check on the table, machine-checked. -/
+theorem tenCol_classes_cover :
+    (∑ i : Fin 9, (classIn tenCol i (Finset.univ : Finset (Verts 10))).card)
+      = (edgeFinset (Finset.univ : Finset (Verts 10))).card := by native_decide
+
+/-! ### An admissible colouring of `K₁₁` with ten colours
+
+The same randomised search found an admissible **10-colouring of `K₁₁`** after `3 920 144` nodes
+(`discovery/JSP-000140/eg6_struct.c`, seed 21).  Together with the counting bound
+`⌈5(11-1)/6⌉ = 9` this gives the interval `9 ≤ f(11,4,5) ≤ 10`, and it improves the previous best
+bound at this order (`f(11,4,5) ≤ n = 11`, the round-robin colouring).  Whether `K₁₁` admits an
+admissible **9**-colouring — which would make the counting bound *attained* at `n = 11` — was not
+decided: the search did not find one in 900 s of CPU, and proving that none exists is the
+exhaustion of a tree that no round has finished.
+-/
+
+set_option maxRecDepth 10000 in
+/-- **An admissible 10-colouring of `K₁₁`**, found by the randomised search with the structural
+propagations after `3 920 144` nodes. -/
+def elevenCol : Col 11 10 := listCol 11 10 (by norm_num)
+  [0, 0, 1, 3, 4, 2, 2, 3, 6, 8, 5,
+   0, 0, 2, 4, 1, 6, 7, 8, 3, 5, 9,
+   0, 0, 0, 2, 3, 5, 8, 5, 0, 9, 6,
+   0, 0, 0, 0, 5, 0, 6, 9, 8, 7, 1,
+   0, 0, 0, 0, 0, 1, 3, 0, 4, 2, 7,
+   0, 0, 0, 0, 0, 0, 9, 4, 7, 3, 8,
+   0, 0, 0, 0, 0, 0, 0, 1, 5, 0, 4,
+   0, 0, 0, 0, 0, 0, 0, 0, 2, 6, 7,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 9,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 4,
+   0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+
+set_option maxRecDepth 10000 in
+/-- **The colouring of `K₁₁` is admissible**: every four vertices span at least five colours.  A
+Lean certificate over all `C(11,4) = 330` four-element vertex sets. -/
+theorem admissible_elevenCol : Admissible elevenCol := by
+  unfold Admissible; native_decide
+
+/-- `f(11,4,5) ≤ 10`. -/
+theorem EG_eleven_le : EG 11 ≤ 10 := EG_le 11 10 elevenCol admissible_elevenCol
+
+/-- **The catalog condition is tight at `n = 11` too.** -/
+theorem elevenCol_some_tight : ∃ S : Finset (Verts 11), S.card = 4 ∧ (colorsOn elevenCol S).card = 5 := by
+  native_decide
+
+/-- **The two new colourings together with the counting bound give the sharpest intervals this
+development has for `n = 10, 11`:**
+
+    8 ≤ f(10,4,5) ≤ 9        and        9 ≤ f(11,4,5) ≤ 10.
+
+Both intervals have width `1`; the counting bound `⌈5(n-1)/6⌉` is attained at `n = 6` only so far,
+and is *not* attained by any colouring found at `n = 7, 8, 9, 10, 11`. -/
+theorem new_intervals :
+    (8 ≤ EG 10 ∧ EG 10 ≤ 9) ∧ (9 ≤ EG 11 ∧ EG 11 ≤ 10) := by
+  refine ⟨⟨by norm_num [EG_ge_ceil_five_sixth 10 (by norm_num)], EG_ten_le⟩,
+    ⟨by norm_num [EG_ge_ceil_five_sixth 11 (by norm_num)], EG_eleven_le⟩⟩
+
 end JSP140

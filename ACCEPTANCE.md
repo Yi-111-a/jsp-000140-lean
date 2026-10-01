@@ -41,6 +41,101 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 24)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 24 CHANGES THE ATTACK FAMILY TWICE: the exhaustive search becomes a PROPAGATOR (which
+makes the *upper* bound movable at all), and the extremal structure gets its missing PER-VERTEX
+half.**
+
+### 1. The search of rounds 18–22 was only able to *refute*; now it finds
+
+Rounds 18–22 built a complete depth-first search whose only pruning test is "the `K₄` completed by
+this slot must span five colours" — a test that can only fire at the **six-th** edge of a clique.
+Round 24 adds the three consequences of admissibility that `Cherry.lean` has *already proved*, so
+that they can be used as propagations instead of a leaf test (`discovery/JSP-000140/eg6_struct.c`):
+
+* colour-degree `≤ 2` at every vertex (`Counting.nbrsIn_card_le_two`);
+* if `x – a – b` is a `j`-path then the leaf edge `{x,b}` has a colour `≠ j` and **neither `x` nor
+  `b` has any other neighbour in that colour** (`Cherry.nb_eq_singleton_of_cherry`), maintained
+  incrementally as a lock on the two endpoints;
+* two two-edge paths never share a pair (`Rigidity.pathSet_sub_inter`), i.e. the leaf edge of a path
+  is registered once.
+
+All three are consequences of `Admissible`, so the search still decides exactly the same question;
+with a random colour order at every node and restarts it becomes a **witness finder**:
+
+| instance | nodes | note |
+| --- | --- | --- |
+| `n = 6, k = 5` | 254 | `Tables.sixCol`, the 1-factorisation |
+| `n = 7, k = 6` | 42 429 | **the round-21 certificate** (13 301 689 nodes before) |
+| `n = 8, k = 7` | 751 660 | |
+| `n = 9, k = 8` | 127 957 | `Tables.nineCol` of round 22 |
+| `n = 10, k = 9` | 1 544 452 | **new** `Tables.tenCol`, `f(10,4,5) ≤ 9` |
+| `n = 11, k = 10` | 3 920 144 | **new** `Tables.elevenCol`, `f(11,4,5) ≤ 10` |
+
+(`discovery/JSP-000140/eg5_localsearch.c`, a WalkSAT on the same constraint system, was measured and
+**rejected**: it cannot even rediscover the *known* 8-colouring of `K₉`.)
+
+Consequences, all in the default build:
+
+* `Tables.admissible_tenCol`, `Tables.EG_ten_le` — an admissible **9-colouring of `K₁₀`**, verified
+  by `native_decide` over all `C(10,4) = 210` four-element vertex sets.  This is the first even
+  order at which this development certifies fewer than `n` colours (before: `f(10,4,5) ≤ n + 1`);
+* `Tables.admissible_elevenCol`, `Tables.EG_eleven_le` — an admissible **10-colouring of `K₁₁`**
+  (`C(11,4) = 330` four-element vertex sets), improving the round-robin bound `f ≤ n`;
+* `Main.f_ten_between_eight_and_nine`, `Main.f_eleven_between_nine_and_ten`,
+  `Main.two_new_intervals` — `8 ≤ f(10,4,5) ≤ 9` and `9 ≤ f(11,4,5) ≤ 10`, both of width one.
+
+### 2. New file `lean/JSPProblem/Star.lean` — the local profile of an extremal colouring
+
+Everything known about the extremal case (rounds 13–15) was *global*: the two-edge paths form a
+Steiner triple system (`Rigidity.tight_pathFinset_is_STS`), every colour class spans `V`
+(`Rigidity.tight_covers`).  `Star.lean` records what a **vertex** sees — the constraints a
+construction of such a colouring must satisfy:
+
+* `Star.sum_nb_star` — **the star identity**: `∑_i |nb c i v| = n - 1` for **every** colouring and
+  every `v` (the per-vertex handshaking lemma; the colour classes restricted to the star of `v`
+  partition its `n-1` edges).  No admissibility needed;
+* `Star.star_centred_colours` — under "every colour class spans `V`", the number of colours in which
+  `v` is the **centre** of a two-edge path is `n - 1 - k`;
+* `Star.tight_star_centre` — in the extremal case `6k = 5(n-1)`, **every vertex is the centre of
+  exactly `(n-1)/6` two-edge paths**;
+* `Star.tight_star_oneB` — `v` has colour-degree `1` in exactly `2(n-1)/3` colours;
+* `Star.tight_blocks_through` — **every vertex lies in exactly `(n-1)/2` blocks** of the Steiner
+  triple system (the per-vertex form of `Rigidity.sum_card_filter_pairIn`);
+* `Main.star_centre_is_one_third_of_blocks`, `Main.star_profile_at_thirteen` — the centre function
+  is therefore **`1/3`-balanced at every point**, and for the first order at which the sharp constant
+  `5/6` can be attained at all (`n ≡ 1 (mod 6)` by `Rigidity.tight_mod6`, `n ≥ 13` by
+  `Extremal.tight_ge_thirteen`): a hypothetical admissible 10-colouring of `K₁₃` must have every
+  vertex the centre of exactly `2` of the `26` paths and colour-degree `1` in exactly `8` of the
+  `10` colours.  `Main.extremal_at_thirteen_is_open` states the corresponding open question.
+
+### 3. NOT proved this round (blockers B4, B5, B7)
+
+* **`f(10,4,5) = 8` or `9`?** and **`f(11,4,5) = 9` or `10`?** — closing either needs an exhaustion
+  of "no admissible 8-colouring of `K₁₀`" / "no admissible 9-colouring of `K₁₁`"; the randomised
+  search did not finish the tree in 900–1200 s of wall clock, and such a certificate would cost as
+  much as `Nine.certD_nine_six` (≈ 80 CPU-minutes, off the default build path).
+* **Is `K₁₃` admissible with ten colours?** (`Main.extremal_at_thirteen_is_open`.)  This is the
+  first order at which the counting bound `5(n-1)/6 = 10` could be attained; the search found no
+  such colouring in 1500 s.  Note that at every order found so far (`n = 7, 8, 9, 10, 11`) the
+  search finds nothing **at** the counting bound, which is direct computational evidence that the
+  `o(n)` of the headline is necessary.
+* **B7** — the single-edge side of the local profile: `Star.tight_star_oneB` plus
+  `Star.tight_blocks_through` give "exactly `(n-1)/3` of the `2(n-1)/3` colours in which `v` has
+  colour-degree `1` are isolated single edges"; the identification with `Singles.singleFinset` is
+  not yet formalised.
+* **The single remaining prize hypothesis is unchanged**: `Slack.jsp_000140_main_of_STS_slack_family`
+  — for every `δ > 0` and all large `m ≡ 1 (mod 6)` an admissible `k`-colouring of `K_m` with
+  `6k ≤ 5(m-1) + δm`.  This is the **probabilistic** construction of arXiv:2207.02920 (random
+  triangle removal + differential equation method); there is no explicit colouring in the
+  literature to formalise, and round 24 confirms that no *explicit* construction is reachable by
+  search: nothing is found at the counting bound for any `n ≥ 7`.
+
 ## Status (round 22)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

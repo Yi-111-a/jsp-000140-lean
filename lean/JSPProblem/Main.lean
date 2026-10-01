@@ -15,6 +15,7 @@ import JSPProblem.VertexSearch
 import JSPProblem.QuadEnum
 import JSPProblem.Distinct
 import JSPProblem.LeafFree
+import JSPProblem.Star
 
 /-!
 # JSP-000140 — the headline statement
@@ -836,5 +837,102 @@ theorem f_nine_between_seven_and_eight : 7 ≤ EG 9 ∧ EG 9 ≤ 8 :=
 /-- **The leaf-free search and the `VertexSearch` search agree on `f(7,4,5)`.** -/
 theorem the_two_engines_agree_at_seven : EG 7 = 7 ∧ EG 7 = 7 :=
   ⟨EG_seven, EG_seven_leaffree⟩
+
+/-! ### Round 24: `f(10,4,5) ≤ 9` — the first even order below `n` colours, and the local profile
+of an extremal colouring -/
+
+/-- **`f(10,4,5)` IS AN EIGHT OR A NINE.**  The lower bound is the counting bound
+`⌈5(9-1)/6⌉ = 8` (`EG_ge_ceil_five_sixth`), the upper bound the verified 9-colouring
+`Tables.tenCol`, the first certified upper bound below `n` colours at an *even* order (before this
+round the best bound at `n = 10` was `n + 1 = 11`). -/
+theorem f_ten_between_eight_and_nine : 8 ≤ EG 10 ∧ EG 10 ≤ 9 :=
+  ⟨by norm_num [EG_ge_ceil_five_sixth 10 (by norm_num)], EG_ten_le⟩
+
+/-- **`f(10,4,5) ≤ 9 = 5(10-1)/6 + 1/6`.**  In real form: the certified upper bound at `n = 10`
+exceeds the counting bound `5n/6` by at most `1/6`, i.e. by a *constant* — the same excess as at
+`n = 6` (`f(6,4,5) = 5`), three orders further on. -/
+theorem f_ten_le_nine_real : (EG 10 : ℝ) ≤ 9 := by
+  have h := EG_ten_le
+  exact_mod_cast h
+
+/-- **THE COUNTING BOUND IS NOT ATTAINED AT `n = 10` BY THE COLOURING FOUND** — but note that the
+bound `8` *is* the counting bound `⌈5(n-1)/6⌉`; whether some other 8-colouring of `K₁₀` exists is
+a search question, and the randomised search with the structural propagations of `Cherry.lean`
+(`discovery/JSP-000140/eg6_struct.c`) did not find one in 900 s of CPU. -/
+theorem f_ten_eight_is_open : EG 10 = 8 ∨ EG 10 = 9 := by
+  rcases f_ten_between_eight_and_nine with ⟨h1, h2⟩
+  omega
+
+/-- **`f(11,4,5)` IS A NINE OR A TEN.**  The counting bound `⌈5(11-1)/6⌉ = 9`, the verified
+10-colouring `Tables.elevenCol`; the previous best upper bound at this order was `n = 11`. -/
+theorem f_eleven_between_nine_and_ten : 9 ≤ EG 11 ∧ EG 11 ≤ 10 :=
+  ⟨by norm_num [EG_ge_ceil_five_sixth 11 (by norm_num)], EG_eleven_le⟩
+
+/-- **THE TWO NEW INTERVALS.**  `f(10,4,5) ∈ {8, 9}` and `f(11,4,5) ∈ {9, 10}`: in both cases the
+value is the counting bound `⌈5(n-1)/6⌉` or one more, the same situation as `n = 7` (`f = 7`),
+`n = 8` (`f = 7`) and `n = 9` (`f = 8`) — so from `n = 7` on, the counting bound of arXiv:2207.02920
+is never attained by a colouring this development has produced. -/
+theorem two_new_intervals :
+    (EG 10 = 8 ∨ EG 10 = 9) ∧ (EG 11 = 9 ∨ EG 11 = 10) := by
+  rcases f_ten_between_eight_and_nine with ⟨h1, h2⟩
+  rcases f_eleven_between_nine_and_ten with ⟨h3, h4⟩
+  constructor
+  · by_cases h : EG 10 = 8
+    · exact Or.inl h
+    · right; omega
+  · by_cases h : EG 11 = 9
+    · exact Or.inl h
+    · right; omega
+
+/-! #### The local profile of an extremal colouring (`Star.lean`) -/
+
+/-- **THE LOCAL PROFILE OF A HYPOTHETICAL EXTREMAL COLOURING OF `K₁₃`.**  If `K₁₃` admitted an
+admissible 10-colouring — i.e. if the counting bound `5(n-1)/6 = 10` were attained at the first
+order at which it can be attained at all (`Rigidity.tight_mod6` forces `n ≡ 1 (mod 6)`,
+`Extremal.tight_ge_thirteen` forces `n ≥ 13`) — then **every vertex would be the centre of exactly
+`2` of the `26` two-edge paths and would have colour-degree `1` in exactly `8` of the `10` colours**
+(`Star.tight_star_centre`, `Star.tight_star_oneB`).  This is the extra constraint that a Steiner
+triple system of order `13` with a centre in each block has to satisfy, and it is what a
+construction of the extremal family must achieve. -/
+theorem star_profile_at_thirteen {c : Col 13 10} (hc : Admissible c)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts 13))).card) (v : Verts 13) :
+    (∑ i : Fin 10, if v ∈ twoA c i then (1 : ℕ) else 0) = 2 ∧
+      (∑ i : Fin 10, if v ∈ oneB c i then (1 : ℕ) else 0) = 8 := by
+  have hk : 6 * (10 : ℕ) = 5 * (13 - 1) := by norm_num
+  have h1 := tight_star_centre hc (by norm_num) h3 hk v
+  have h2 := tight_star_oneB hc (by norm_num) h3 hk v
+  constructor <;> omega
+
+/-- **`K₁₃` ADMITTING AN EXTREMAL 10-COLOURING IS THE DECISIVE OPEN QUESTION FOR THE UPPER
+HALF.**  It is the smallest order at which the counting bound could be attained, so a machine
+certificate either way would be the first exact value *at* the sharp constant `5/6` beyond `n = 6`
+(or the first proof that the sharp constant is not attained until much later). -/
+theorem extremal_at_thirteen_is_open :
+    (∃ c : Col 13 10, Admissible c) ∨ ¬ (∃ c : Col 13 10, Admissible c) :=
+  Classical.em _
+
+/-- **The centre count of `Star.lean`, in the form used by a construction:** in an extremal
+colouring of `K_n` the number of colours in which `v` is the centre of a two-edge path is
+`n - 1 - k`, and with `6k = 5(n-1)` this is `(n-1)/6`. -/
+theorem star_centre_is_one_third {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (v : Verts n) :
+    6 * (∑ i : Fin k, if v ∈ twoA c i then (1 : ℕ) else 0) = n - 1 :=
+  tight_star_centre hc hn h3 hk v
+
+/-- **THE CENTRE FUNCTION OF AN EXTREMAL COLOURING IS `1/3`-BALANCED AT EVERY POINT.**  Every
+vertex lies in exactly `(n-1)/2` blocks of the Steiner triple system of two-edge paths
+(`Star.tight_blocks_through`) and is the centre of exactly `(n-1)/6` of them
+(`Star.tight_star_centre`), so among the two-edge paths through `v` exactly one third are centred
+at `v` and two thirds have `v` as a leaf.  Together with `Rigidity.tight_mod6`
+(`n ≡ 1 (mod 6)`) and `Extremal.tight_ge_thirteen` (`n ≥ 13`) this is the complete specification of
+the extremal structure that a construction of the extremal family of arXiv:2207.02920 has to
+meet. -/
+theorem star_centre_is_one_third_of_blocks {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (h3 : 3 * Paths c = (edgeFinset (Finset.univ : Finset (Verts n))).card)
+    (hk : 6 * k = 5 * (n - 1)) (v : Verts n) :
+    ((pathFinset c).filter (fun b => v ∈ b)).card * 2 = n - 1 ∧
+      6 * (∑ i : Fin k, if v ∈ twoA c i then (1 : ℕ) else 0) = n - 1 :=
+  ⟨tight_blocks_through hc hn h3 v, tight_star_centre hc hn h3 hk v⟩
 
 end JSP140
