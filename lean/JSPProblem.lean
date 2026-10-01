@@ -20,3 +20,4 @@ import JSPProblem.Local
 import JSPProblem.Classwise
 import JSPProblem.Criterion
 import JSPProblem.Design
+import JSPProblem.Triangles
