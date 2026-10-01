@@ -22,3 +22,4 @@ import JSPProblem.Criterion
 import JSPProblem.Design
 import JSPProblem.Triangles
 import JSPProblem.Leftover
+import JSPProblem.Second

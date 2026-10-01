@@ -41,6 +41,74 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 31)
+
+`lake build`: **OK** (3121 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 31: THE SECOND STAGE IS CORRECTED AGAINST THE SOURCES, AND ITS DETERMINISTIC HALF IS
+PROVED.**  New file `lean/JSPProblem/Second.lean` (528 lines, 26 declarations, zero placeholders).
+
+### 1. The interface of round 30 was too strong — the papers were read this round
+
+Round 30 stated the second stage as `Leftover.Rainbow` ("the leftover edges receive pairwise
+distinct fresh colours inside every four-set") and named `Leftover.rainbow_of_sparse_leftover` as
+the next lemma, attributing its existence to the symmetric local lemma.  arXiv:2207.02920 §12 and
+arXiv:2208.12563 §4 (verbatim quotations in `acceptance.json`, key `literature_round31`) say
+something different:
+
+* the hypergraph matching of the first stage covers only `1 - n^{-δ}` of the edges (BCDP stops at
+  `i_max = ⅙ n²(1-n^{-δ})`, §4), leaving a leftover graph `L` with `Θ(n^{2-δ})` edges;
+* `L` is then coloured with `n^{1-δ}` fresh colours (JM) resp. `εn/2` fresh colours (BCDP), each
+  fresh colour being **reused `Θ(n^{1-δ})` times**;
+* what the local lemma has to exclude is (i) two *adjacent* leftover edges getting the same fresh
+  colour — `A_{e,f,i}` (JM §4), `B₁` (BCDP §12); (ii) an *alternating* four-cycle inside `L` —
+  `B_D`, `B₂`; (iii) a crossing leftover pair of equal fresh colour above a phase-1 monochromatic
+  pair — `C_{D,i}`, `B₃`.  BCDP: "**Note that if none of the events in `ℬ` happens, then Phase 2
+  gives us a `(4,5)`-coloring**".
+
+So the published second stage is **proper** (every fresh colour class is a matching), not
+rainbow: `Rainbow` would demand `|L| = Θ(n^{2-δ})` colours.
+
+### 2. What is proved in `Second.lean`
+
+* **`colorsOn_ext_card`** — the *exact* counting identity of the second stage (round 30 had only
+  the `≤` version `Leftover.card_colorsOn_ext`);
+* **`admissible_iff_second_stage`** — the verification condition is an **iff**: under `Extends`,
+  `Admissible c ↔ SecondStage c₀ c L`, where `SecondStage` says that on every four-set the
+  surviving first-stage colours plus the fresh colours number at least five.  Nothing else is
+  needed, and nothing less will do; `secondStage_of_ext` shows round 30's `Compensate` route is an
+  instance;
+* `Shares`, `DegL`, `SparseL`, **`Proper`** — the graph vocabulary of the published second stage
+  (`Proper c L` = every fresh colour class on `L` is a matching = no `A_{e,f,i}`);
+* `card_shares_le`, `proper_of_sparseL` — at most `2D` leftover edges meet a given leftover edge,
+  hence the greedy step;
+* **`rainbow_of_sparse_leftover`** — **the named next lemma of round 30, proved in the published
+  form**: a leftover graph of maximum degree `D` has a colouring by `2D+1` fresh colours in which
+  two leftover edges sharing a vertex never get the same colour.  This is the *deterministic*
+  half of the local lemma (`A_{e,f,i}` / `B₁`), needs no probability, and costs
+  `2Δ(L)+1 = 2n^{1-δ}+1 = o(n)` fresh colours;
+* `DegL_le`, **`DegL_leftover`**, `proper_of_leftover` — `Δ(leftover c) ≤ n-1` for every colouring,
+  so the second stage *always* exists and costs at most `2n-1` fresh colours;
+* `exists_four_adjacent`, **`Rainbow.proper`**, `Rainbow.proper_leftover` — two adjacent edges of
+  `K_n` lie in a common four-set, so the round-30 interface is at least as strong as the published
+  properness.
+
+### 3. NOT proved this round (blockers)
+
+* **the composition theorem** `Second.admissible_of_stage2`: `Design c₀` (round 28) + `Extends` +
+  `Proper` + "no alternating four-cycle of leftover edges" + "no crossing equal-coloured leftover
+  pair above a monochromatic first-stage pair" + leaf-closure `⇒ Admissible c`.  The case analysis
+  is complete in writing (a violating `K₄` is a double-doubling; two doubled paths contradict
+  `Criterion.Packed`, path + crossing contradict `NoBadFour`, two crossings form an alternating
+  four-cycle) but the Lean proof is not;
+* **`Rainbow_iff_injOn`**, the full sharpness statement (`Rainbow ↔ Set.InjOn c L` for `4 ≤ n`,
+  hence `Rainbow` costs `|L|` colours).  Only the adjacent case is proved (`Rainbow.proper`);
+  the general case needs the cardinality of a four-point endpoint set, which did not fit the
+  round;
+* **the symmetric local lemma itself** — (P2) and (P3) above.  Mathlib has no LLL.
+
 ## Status (round 30)
 
 `lake build`: **OK** (3120 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
