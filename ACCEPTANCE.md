@@ -1,3 +1,69 @@
+## Status (round 39)
+
+`lake build`: **OK** (3128 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 39 CLOSES THE ROUND-38 BLOCKER COMPLETELY: `Tile` AND `Packed` OF THE FINISHED COLOURING
+ARE FREE, AND THE REQUIRED THEOREM IS REDUCED TO THE PUBLISHED FIRST STAGE WITH AN ARBITRARY
+LEFTOVER AND A DETERMINISTIC SECOND STAGE.**
+`lean/JSPProblem/Partial.lean` grows from 437 to 1038 lines (20 -> 47 declarations, zero `sorry`).
+
+*Section 4 — the leaf half of the tiling condition* (the lemma round 38 isolated as `next_lemma`):
+
+* `partner_coverNbrs` — the edge from `v` to a covered colour-`i` neighbour of `v` is an edge of
+  the member holding the slot `(v,i)` (the forcing step of `coverNbrs_mem`, isolated);
+* `coverNbrs_card_le_one_of_leaf` — **a leaf of the slot graph has at most one covered colour-`i`
+  neighbour** (the four partner lemmas force it to be a single vertex);
+* `coverNbrs_eq_pair_of_card_two` — **TWO COVERED NEIGHBOURS MEAN A CENTRE**: `v` is the centre of
+  the member holding `(v,i)`, `i = cfgI g`, and the two neighbours are exactly its two leaves;
+* **`coverNbrs_card_one_of_mem_card_two`** — **the leaf half of `Criterion.Tile` for a partial first
+  stage**: each of the two has covered colour-degree exactly one;
+* `coverNbrs_eq_singleton_of_card_two` — the same in the form `{centre}`, and `edgeCol_spoke_leaf`
+  (a spoke of a configuration carries the centre colour).
+
+*Section 5 — the finished colouring.*  With `c := extendColDep (colOf F d) (leftoverF F) g`
+(the first-stage colours kept, every leftover edge given a fresh colour):
+
+* `finCol`, `extendColDep_finCol_of_leftover`, `covered_of_nmem_leftoverF`, **`mem_Nbrs_finCol`**
+  and `card_Nbrs_finCol` — **the bridge**: for a first-stage colour `i` and `a ≠ v`,
+  `a` is an `i`-neighbour of `v` in the finished colouring **iff** it is a *covered* `i`-neighbour
+  of `v` in the matching; and an edge of the leftover never receives a first-stage colour;
+* `card_le_one_of_fresh` — **a fresh colour has colour-degree at most one**, by `Proper`;
+* **`tile_of_fam_partial`** — **`Tile c` from `OkF + LinF + SlotFree + Proper` alone**: degree half
+  from `coverNbrs_card_le_two`, leaf half from `coverNbrs_card_one_of_mem_card_two`, fresh case from
+  `Proper`.  No `Covers`, no bound on the leftover;
+* `mem_twoA_card_two`, **`pathSet_eq_cfgVerts`** — the two-edge paths of the finished colouring are
+  *exactly* the three vertices of the members of `F`, with their centre colours;
+* **`packed_of_fam_partial`** — **`Packed c` from the same hypotheses** (`cfgVerts_lin`).
+
+*Sections 6–7 — the reduction.*
+
+* **`FamPartialFamily`** — the published construction in the form it actually has: for every
+  `δ > 0` and all large `m ≡ 1 (mod 6)` a matching `F` in the auxiliary hypergraph of
+  arXiv:2208.12563 §4 / arXiv:2207.02920 Phase 1, a **sparse leftover** (`SparseL D`, = JM (IV) of
+  Thm 4.2 = BCDP Claim 4), a **proper** second stage (`A_{e,f,i}` resp. `B₁`), the two four-set
+  conditions (`B_D`, `C_{D,i}`) and the budget `6(k+K) ≤ 5(m-1) + δm`.  **No colouring is
+  quantified over**: `F` is a finset of configurations and `g` is its second-stage colouring.
+  **No complete covering is required** — this is the published (partial) covering, in contrast with
+  round 37's `FamFamily`;
+* `FamPartialFamily.admissible`, `FamPartialFamily.slack`,
+  **`jsp_000140_main_of_fam_partial_family`** — the required theorem reduced to it;
+* **`greedyF`, `proper_greedyF`** — the **deterministic** second stage: if the leftover has maximum
+  degree `D`, the greedy edge colouring of `Second.proper_of_sparseL` gives a proper colouring of
+  the leftover with `2D+1` fresh colours, so `Proper` need not be a hypothesis at all;
+* **`FamGreedyFamily`, `famGreedyFamily_partial`, `jsp_000140_main_of_greedy_family`** — the sharpest
+  interface found so far: the leftover's *sparsity* alone pays for the second stage, and what is
+  left is (i) the matching in the auxiliary hypergraph, (ii) its leftover degree, (iii) the
+  exclusion of the alternating four-cycles and the crossing pairs — the only genuinely probabilistic
+  part of the two papers.
+
+**NOT proved this round.**  The existence of the first stage: the hypergraph matching of
+arXiv:2208.12563 §4 (Thm 4.2) / the random triangle removal of arXiv:2207.02920, together with the
+two four-set conditions of its second stage.  Mathlib has neither a Rödl nibble nor a local lemma.
+`jsp_000140_main` therefore remains undeclared: the reduction theorems have the honest hypothesis
+`FamGreedyFamily`, which is a probabilistic existence statement.
+
 ## Status (round 38)
 
 `lake build`: **OK** (3128 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
