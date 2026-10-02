@@ -721,7 +721,53 @@ rainbow: `Rainbow` would demand `|L| = Θ(n^{2-δ})` colours.
   round;
 * **the symmetric local lemma itself** — (P2) and (P3) above.  Mathlib has no LLL.
 
+## Status (round 42)
+
+`lake build`: **OK** (3131 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 42: THE EDGE CENSUS OF `H` — THE THIRD AND LAST LOCAL DATUM — PLUS THE FIRST PER-VERTEX
+CONSTRAINT ON A MATCHING.**  Rounds 40 and 41 computed the hypervertex degrees
+(`Hyper.card_auxDeg_le`) and the four-set census (`Spoil.card_auxF_four`) of the auxiliary
+hypergraph `H` of arXiv:2208.12563 §4, and retired maximality and maximality-with-avoidance *by
+theorem*.  The third local datum — the number of hyperedges through a **given edge of `K_n`** — had
+never been computed.  New file `lean/JSPProblem/Edge.lean` (715 lines, 37 declarations, zero
+placeholders):
+
+* `mem_cfgEdges_eq`, `eq_spk`, `eq_sqk`, `eq_sqp` — **the three roles of an edge in a
+  configuration**: an edge is one of its two spokes or its opposite edge, and `Sym2.eq_iff` gives
+  the two orientations.
+* `card_auxF_spoke1`, `card_auxF_spoke2`, `card_auxF_opp` — **the census of each role**: exactly
+  `2(n-2)k(k-1)` hyperedges of `H` have `s(a,b)` as their first spoke, as their second spoke, or as
+  their opposite edge (two orientations of the endpoints, `n-2` free vertices, `k(k-1)` colour pairs;
+  each proved by `Finset.card_bij` from the parameter finset `endsPair ×ˢ freeVerts ×ˢ colourPairs`).
+* **`card_auxF_edge` — THE EDGE CENSUS OF `H`: EXACTLY `6(n-2)k(k-1)` HYPEREDGES OF `H` CONTAIN A
+  GIVEN EDGE OF `K_n`.**  Together with the hypervertex degrees and the four-set census this is the
+  **complete local census of `H`**: every finite first-moment or local-lemma argument on `H` needs
+  only these three numbers.
+* **`auxF_edge_double` — the census is consistent**: summed over the `C(n,2)` edges the local count
+  returns `3·|E(H)|`, as it must, every hyperedge of `H` having three edges.
+* `coverF F e` and the three classes `coverA`/`coverB`/`coverC` (`a`-central, `b`-central,
+  leaf-only); **`coverF_role` — the role analysis**, `coverF_leaf`, `coverBC_leaf` (a covering member
+  in which `a` is not the centre has `a` as a leaf and uses **both** colour slots at `a`),
+  `coverA_slot`, `coverBC_mem`, `coverF_eq_three`.
+* `SlotsAtF F v`, `slotPair g`, and **`card_SlotsAtF` — the per-vertex slot count**: the slots of a
+  family at `v` number at most `|centF F v| + 2·|leafF F v|` — the first constraint on a matching in
+  `H` that goes beyond the global `5|F| ≤ nk` of `Fam.slots_countF`.
+* **`sum_slots_at_card` — `Σ_v (|centF F v| + 2·|leafF F v|) = 5·|F|`**, the per-vertex form of
+  `Fam.card_SlotsF`, with `sum_centreF_card`, `card_leafF`, `sum_leafF_card` as the three counting
+  ingredients.
+
+**STILL MISSING** (unchanged in substance): the existence of the near-perfect matching in `H`
+(`Partial.FamGreedyFamily`) — a Rödl-nibble / random-triangle-removal existence theorem that Mathlib
+cannot host.  **Next round's first item** (drafted this round, machinery in the build): the per-vertex
+*budget* `|centF F v| + 2·|leafF F v| ≤ k` (which needs `SlotFree` applied one vertex at a time)
+and then the per-edge bound `3·|coverF F (s(a,b))| ≤ 2k` (the same disjointness summed over the two
+endpoints of the edge).
+
 ## Status (round 30)
+
 
 `lake build`: **OK** (3120 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
 (invoked on `problems/JSP-000140/lean`):
