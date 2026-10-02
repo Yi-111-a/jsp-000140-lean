@@ -1,3 +1,40 @@
+## Status (round 38)
+
+`lake build`: **OK** (3128 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 38 REMOVES THE COMPLETE-COVERING REQUIREMENT FROM TWO OF THE FOUR LOCAL CONDITIONS.**
+Round 37 could only close the *extremal* first stage (`FamFamily` demands `leftoverF F = ∅`),
+because `Tile` and `Packed` were imported from `Triangles.lean`, where they are consequences of
+`Covers`.  New file `lean/JSPProblem/Partial.lean` (437 lines, 20 declarations, zero `sorry`)
+attacks that blocker, and the mechanism is one lemma:
+
+* **`colSlot_covered` — THE SLOT LEMMA.**  If a **covered** edge `s(v,a)` has colour `i` in the
+  induced colouring `colOf F d`, then the member covering that edge uses the **slot** `(v,i)`.
+  Since `SlotFree` admits at most one member per slot, **every colour-degree of the induced
+  colouring of an arbitrary matching in the auxiliary hypergraph is at most two — with no
+  `Covers` hypothesis and no bound whatsoever on the leftover.**  This is `Criterion.Tile`'s
+  degree half, and it is *free*.
+* **`coverNbrs_mem`** — the **explicit classification** of a covered colour-`i` neighbour of `v`:
+  a leaf if `v` is the centre of the member holding the slot `(v,i)`, the centre if `v` is a leaf,
+  the other leaf if the colour is the `cfgJ` colour.  (This is the local form of
+  `Cherry.leaf_not_centre`.)  With `partner_of_centre`, `partner_of_leaf`, `partner_of_leafJ`,
+  `partner_of_leafJ'` it is the whole combinatorics of a two-edge path in the matching world.
+* **`coverNbrs_card_le_two`** — **THE COLOUR-DEGREE BOUND IS FREE.**
+* **`cfgVerts_lin` — THE PACKING CONDITION IS FREE.**  Two members whose triples meet in two
+  vertices share an edge, so `LinF` forces them to be equal: the triples of the members of a
+  family form a **partial Steiner triple system**.  This is `Criterion.Packed` outright, again
+  with no complete covering.
+
+**NOT proved this round.**  The **leaf half** of the tiling condition
+(`coverNbrs_card_one_of_mem_card_two`: a vertex with two covered colour-`i` neighbours gives each
+of them exactly one), hence `Tile` and `Packed` of the **finished** colouring, hence the reduction
+`jsp_000140_main_of_fam_partial_family` to a leftover-tolerant first stage.  The draft of that
+chain and the exact failing tactics are recorded in `discovery/JSP-000140/policy.json`
+(`next_lemma`); it is mechanical once the leaf half is in.  The single remaining *existence*
+object is unchanged (the hypergraph matching of arXiv:2208.12563 §4 / arXiv:2207.02920 Phase 1).
+
 ## Status (round 37)
 
 `lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
