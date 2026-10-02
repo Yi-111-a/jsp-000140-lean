@@ -1,3 +1,82 @@
+## Status (round 40)
+
+`lake build`: **OK** (3129 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 40 ATTACKS THE EXISTENCE SIDE FOR THE FIRST TIME IN THE MATCHING WORLD, AND PROVES — AS A
+THEOREM, NOT AS PROSE — THAT THE CHEAPEST DETERMINISTIC CONSTRUCTION CANNOT WORK.**
+Rounds 31–39 only *assumed* the first stage exists.  This round builds the auxiliary `8`-uniform
+hypergraph `H` of arXiv:2208.12563 §4 (= arXiv:2207.02920 Phase 1) as **data**, computes it exactly,
+and then runs the *whole* of the greedy / maximal-matching argument on it.  New file
+`lean/JSPProblem/Hyper.lean` (831 lines, 51 declarations, zero `sorry`).
+
+### 1. §1 — `H` as data, and its census
+
+The hypervertices of `H` are the slots `Verts n × Fin k`; its hyperedges are the five-slot sets of
+the well-formed configurations.
+
+* **`auxF`, `mem_auxF`, `OkF_iff`** — the edge set of `H`, and `OkF F ↔ F ⊆ auxF n k`.
+* **`card_auxF` — THE CENSUS OF `H`: `|E(H)| = n(n-1)(n-2)·k(k-1)`.**  Three pairwise distinct
+  vertices and two distinct colours.  No colouring, no four-vertex clique, no probability anywhere.
+  (The ingredients `card_offdiag` — ordered pairs of distinct vertices avoiding a given one — and
+  `sum_ite_ne` — `k(k-1)` ordered pairs of distinct colours — are proved too.)
+
+### 2. §2 — the degree of a hypervertex of `H`
+
+* **`card_ok_centre`** — the hyperedges prescribing the centre slot number exactly
+  `(n-1)(n-2)(k-1)` (the other two vertices avoid `x` and each other, the other colour avoids `c`);
+* **`swapUP`, `swapPQ`, `swapIJ`** (each an `Equiv`, each preserving `Ok`) and the four transfer
+  lemmas `card_ok_leafP`, `card_ok_leafQ`, `card_ok_leafPJ`, `card_ok_leafQJ` — a prescribed *pair* of
+  slots may be moved to any other pair, so one count suffices;
+* **`card_auxDeg_le` — THE DEGREE OF A HYPERVERTEX OF `H`:
+  `|{ g ∈ H : σ ∈ slots g }| ≤ 5(n-1)(n-2)(k-1)`.**  Exact.
+
+### 3. §3 — the greedy (maximal-matching) argument, in full
+
+* **`SlotMaximal`** — no hyperedge of `H` outside `F` is slot-disjoint from `F`; this is exactly the
+  output of a greedy hypergraph-matching algorithm;
+* **`blockedF`, `blocked_card_le`** — at most `25(n-1)(n-2)(k-1)` hyperedges share a slot with a fixed
+  member of `F`;
+* **`card_auxF_le_of_maximal`** — the double count `|E(H)| ≤ |Slots F|·5(n-1)(n-2)(k-1)`;
+* **`greedy_guarantee` — WHAT THE TRIVIAL ARGUMENT PROVES: `25|F| ≥ n·k`, i.e. `|F| ≥ nk/25`.**
+  This is the *entire* content of the nibble-free argument: a maximal matching covers at least
+  `3nk/25` edges of `K_n`, about a fifth of them.
+
+### 4. §4 — what the catalog budget demands, and the gap
+
+* **`budget_k_le`** (`6k ≤ (5+δ)n − 11`) and **`budget_le_D`** (`7D + 6 ≤ δn`, the converse
+  direction of `First.proper_fits`), from the budget and the slot counting;
+* **`first_stage_size` — WHAT THE BUDGET FORCES: `42|F| ≥ n((7-δ)n − 1)`, i.e. `|F| ≈ n²/6`** — more
+  than five times what §3 delivers;
+* **`leftover_frac_le`**, **`leftover_frac_le_of_small`** — the leftover is at most a `δ/7`-fraction
+  of the edges, and **at the published `δ ≤ 1/6` it is at most `1/42` of them**: the first stage must
+  cover more than `41/42` of `E(K_n)`;
+* **`greedy_gap` — THE GAP: `42nk < 25n((7-δ)n−1)` for `δ ≤ 1/6`, `n ≥ 1`**, i.e. the greedy
+  guarantee `nk/25` is strictly below the size of every valid first stage, by a factor
+  `42(5+δ)/(25(7-δ)) > 4`;
+* **`greedy_short`, `no_greedy_first_stage`** — every valid first stage has `25|F| > n·k`, and **no
+  family of size at most `nk/25` satisfies the published budget**.  The Rödl nibble / random triangle
+  removal is therefore *necessary*, and this is now a theorem of the development rather than a remark.
+
+*Honest scope*: `greedy_guarantee` and `first_stage_size` are both **lower bounds** on `|F|` and are
+mutually compatible — a maximal family may be lucky.  What is proved is that the *guarantee* the
+trivial argument delivers is short of what the budget requires by a factor `> 4`, so maximality can
+never *certify* a first stage.
+
+### 5. §5 — what the prize hypothesis says about its witness
+
+* **`witness_size`** — reading the two theorems off `Partial.FamGreedyFamily`: for `δ ≤ 1/6` any
+  family paying the budget has more than `n((7-δ)n−1)/42` members and leaves at most `1/42` of the
+  edges uncovered.  So the object of arXiv:2208.12563 §4 is a *near-perfect* hypergraph matching.
+
+**NOT proved this round.**  The existence of that matching: it is a hypergraph-matching existence
+theorem (Rödl nibble / differential-equation method / random triangle removal); Mathlib has neither a
+nibble nor a local lemma, and both papers are existential, so there is no colouring to write down.
+§3–§4 above now *prove* that this is a real obstruction rather than an omission of effort.
+`pairFree_of_admissible`, B4 (`f(10,4,5) ∈ {8,9}`, `f(11,4,5) ∈ {9,10}`) and B5 (`K₁₃` with ten
+colours) are unchanged.
+
 ## Status (round 39)
 
 `lake build`: **OK** (3128 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
