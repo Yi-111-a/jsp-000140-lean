@@ -1,3 +1,79 @@
+## Status (round 43)
+
+`lake build`: **OK** (3131 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 43 PROVES THE PER-VERTEX AND PER-EDGE BUDGETS OF A FIRST STAGE — AND, FROM THEM, THAT A
+NEAR-PERFECT MATCHING WITH A SPARSE LEFTOVER MUST HAVE A CENTRE AT *EVERY* VERTEX.**  Round 42
+listed the per-vertex budget and the per-edge bound as its `next_lemma` and cut both to keep the build
+green; both are in this file, and the per-vertex *edge* accounting that goes with them turned out to
+be the sharper object.  `lean/JSPProblem/Edge.lean` grows from 737 to 1655 lines (37 -> 88
+declarations, zero placeholders).
+
+### 1. §5 — the per-vertex slot budget (`slots_at_le`)
+
+* **`card_SlotsAtF_eq`** — the colours a family uses at `v` are *exactly* one per member centred at
+  `v` and two per member having `v` as a leaf.  Round 42 could only prove `≤`: it did not know that
+  the colour projection of the slots at `v` is injective, i.e. that **`SlotFree` holds at one vertex
+  and one colour at a time** (`injOn_col_slotsF`).  The ingredients are `mem_slotPair`,
+  `card_slotPair`, `mem_cfgSlots_leaf` and `SlotsAtF_eq`;
+* **`slots_at_le` — THE PER-VERTEX SLOT BUDGET: `|centF F v| + 2·|leafF F v| ≤ k` for every vertex.**
+  This is `Fam.slots_countF` (`5·|F| ≤ nk`, the slot counting of JM §4 that produced the `5/6`) made
+  *pointwise*, and with `leafF_card_le` (`2·|leafF F v| ≤ k`) and `centF_card_le`.
+
+### 2. §6 — the per-edge budget (`coverF_card_le`)
+
+* `s_swap`, `coverF_swap`, `coverF_leaf'`, `coverF_leaf''` (the covering-member role analysis of §3,
+  in a form that does not mention the three classes), `cover_ABC_disj` and
+  **`card_coverF_eq_three`** — the three classes `coverA/coverB/coverC` (a-central, b-central,
+  leaf-only) partition the members covering `s(a,b)`;
+* `class_slots_le` (the engine: one colour at `v` for a centred class, two for a leaf class) and its
+  two instances `coverA_card_le`, `coverB_card_le`;
+* **`coverF_card_le` — NO EDGE OF `K_n` IS COVERED BY MORE THAN `2k/3` MEMBERS OF A MATCHING:
+  `3·|coverF F (s(a,b))| ≤ 2k`** (and `coverF_card_le'`, at most `k` members).  So with the published
+  `k ≈ 5n/6` each edge is covered at most `5n/9` times, while JM (IV)/BCDP Claim 4 allow `n^{1-δ}`
+  leftover edges at each vertex: the per-edge budget is what forces the *leftover*, not the covering.
+
+### 3. §7 — the per-vertex edge accounting (`degL_at`)
+
+* `spokes`, `card_spokes`, `edgesAt`, `card_edgesAt`, `mem_edgesAt`, `covAt`,
+  **`card_covAt` — A CONFIGURATION COVERS TWO OF ITS THREE EDGES AT EACH OF ITS VERTICES** (at the
+  centre: the two spokes; at a leaf: the spoke *and the opposite edge* — this is round 43's correction
+  of the round-43-draft, which wrongly counted one edge at a leaf);
+* `card_throughF` (the members through `v` are the centred ones and the ones having `v` as a leaf),
+  `covAll`, **`card_covAll` — the covered edges through `v` number `2·(|centF F v| + |leafF F v|)`**,
+  **`covAll_eq_inter` — they are exactly `edgesAt v ∩ coveredF F`**, `covR`, `card_covR`,
+  `covAll_covR_disj`, `edgesAt_eq_union`;
+* **`degL_at` — THE PER-VERTEX EDGE ACCOUNTING:
+  `n - 1 = 2·(|centF F v| + |leafF F v|) + DegL (leftoverF F) v`**, the local form of
+  `Fam.edgeCoverF`.
+
+### 4. §8 — the density a sparse leftover forces
+
+* **`throughF_card_ge` — `2·(|centF F v| + |leafF F v|) ≥ (n-1) - D`**, i.e. *every* vertex is
+  passed through by at least `⌈((n-1-D)/2)⌉` members: JM (IV) / BCDP Claim 4, per vertex
+  (compare `First.SparseL_iff_degTris`);
+* **`centF_card_ge` — `|centF F v| ≥ (n-1-D) - k`** (from the density and the slot budget), and
+  `leafF_card_ge`; this is the *local* form of the slot counting `First.count_lower`, and it says a
+  first stage cannot hide its work at a few centres and pay for it with leaves;
+* **`centF_card_ge_one` / `centre_cover_univ` — IF `(n-1) - D > k` THEN EVERY VERTEX IS THE CENTRE OF
+  AT LEAST ONE MEMBER**, and `sum_centF_card_ge` (the global `|F| ≥ n(n-1-D-k)`);
+* `throughF_card_eq` — `|throughF F v| = |centF F v| + |leafF F v|`.
+
+### 5. NOT proved this round
+
+The existence of the matching itself, i.e. `Partial.FamGreedyFamily`: for every `δ > 0` and all large
+`m ≡ 1 (mod 6)` a *near-perfect* matching in `H` with a sparse leftover, no bad and no crossing
+four-set, and `6(k+2D+1) ≤ 5(m-1) + δm`.  Round 40 retired plain maximality (`Hyper.greedy_gap`), round
+41 retired maximality-with-avoidance (`Spoil.avoid_price`), and rounds 42–43 now give *three further
+necessary conditions on its witness* (the per-vertex budget, the per-edge bound, and a centre at every
+vertex) that no maximality rule produces.  The obstacle is unchanged and is the density of the
+matching, not the local conditions: the Rödl nibble / differential-equation method / random triangle
+removal, none of which Mathlib contains.
+`pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`, `f(11,4,5) ∈ {9,10}`); B5 (`K₁₃` with ten colours)
+— unchanged.
+
 ## Status (round 41)
 
 `lake build`: **OK** (3130 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
