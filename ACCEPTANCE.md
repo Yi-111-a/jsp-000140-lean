@@ -41,6 +41,76 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 36)
+
+`lake build`: **OK** (3126 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 36 PROVES THE SLOT COUNTING — THE CONSTANT `5/6` IS NOW A THEOREM ABOUT THE FIRST STAGE
+ALONE, AND THE CATALOG BUDGET IS SHOWN TO BE *EQUIVALENT* TO THE FIRST STAGE'S COLOUR BOUND.**  This
+closes the blocker that round 35 had to isolate as a hypothesis (`First.FirstStageCounting`), so the
+residual prize hypothesis no longer contains any counting axiom.
+
+### 1. New file `lean/JSPProblem/Slot.lean` (497 lines, 24 declarations, zero placeholders)
+
+* **`triPairs_eq_anchorPairs`** — THE INGREDIENT ROUND 35 WAS MISSING.  The five `(vertex, colour)`
+  pairs of a labelled triangle `(u,p,q)` are the *anchor* pairs of its **vertex set**: `(x,j)` with
+  `x ∈ T` and `j` the colour of an edge of the triangle at `x`.  So the slot count is a function of
+  the vertex set and of the colouring, and round 35's impossible "canonical labelling"
+  (`lab : triSet c → …` cannot be total, `Fin 0` being `Empty`) is simply not needed: `triSets c` is
+  the *image* of the finset of labelled triangles, so no representative is ever chosen;
+* **`card_triPairs`** — five distinct pairs per triangle (the hypervertices `{u_i,v_i,w_i,v_j,w_j}`
+  of the auxiliary `8`-uniform hypergraph `H` of arXiv:2208.12563 §4);
+* **`slots_five`** — **THE SLOT COUNTING**, `5 · |triSets c| ≤ n · k`: the slots of two different
+  triangles are disjoint (`PairFree.of_common`), and there are `n·k` of them;
+* **`edgeCover_count`** — **THE OTHER HALF**, the exact identity `C(n,2) = 3·|triSets c| + |leftover c|`:
+  every edge of `K_n` lies in a unique labelled triangle or is leftover;
+* **`sum_DegL_two_mul_card`, `handshake_le`** — the **handshaking lemma** `2·|L| ≤ n·D` for a leftover
+  of maximum degree `D` (round 35 had only the weaker `|L| ≤ n·D`, which is why its slack was `10D`);
+* `lin3_triSets` — two triangles of the system sharing an edge are the same triangle, so the triangle
+  system is **linear** (this is where `PairFree` is consumed).
+
+### 2. `lean/JSPProblem/First.lean` §6 — fourteen new theorems
+
+* **`count_lower` — THE SLOT COUNTING AS A THEOREM: `5(n-1) ≤ 6k + 5D` from `PairFree` and
+  `SparseL (leftover c) D` alone.**  **No four-vertex clique is checked anywhere in this proof**, so
+  the constant `5/6` of the catalog answer follows from the hypergraph-matching structure of the first
+  stage by itself: five slots buy three edges;
+* **`count_lower_tight`, `tight_attained_of_le`** — for a *complete* covering (`D = 0`):
+  `5(n-1) ≤ 6k`, attained or strictly exceeded, never fallen short of;
+* **`budget_published_iff` — THE SHARP FORM OF THE CATALOG BUDGET.**
+
+      `6(k + 2D + 1) ≤ 5(n-1) + δn  ↔  6k + 5D ≤ 5(n-1) + δn - 7D - 6`,
+
+  i.e. **the budget of the published two-stage construction is not an extra hypothesis**: it *is* the
+  first stage's colour bound, with the second stage's `7D+6` (the greedy properness `2D+1`, see
+  `proper_fits`) already deducted.  (An earlier draft claimed the budget follows from `7D+6 ≤ δn`
+  alone; that is **false** and was deleted — `count_lower` is `≥`, so the slot count must also be
+  tight.  The truth is the iff above.)
+* **`budget_and_count`** — with `count_lower`, the budget squeezes the first stage's colour count
+  into an interval of width `δn`: the published slot count must be asymptotically tight;
+* `leftover_eq_leftoverTris` — the leftover of a colouring *is* the leftover of its triangle system;
+* **`SparseL_iff_degTris_triSets`** — round 35's density lemma, now for the objects the construction
+  actually produces: `SparseL (leftover c) D ↔ 2·degTris (triSets c) v ≥ n-1-D` at every vertex, i.e.
+  the first stage must pass through every vertex at least `⌈(n-1-D)/2⌉` times;
+* `sum_degL_edgeFinset`, `edge_count_two_mul` — `2·C(n,2) = n(n-1)`;
+* `first_stage_numbers` — the three numbers of a first stage (slots, edges, degree) in one statement.
+
+### 3. NOT proved this round (blockers)
+
+* **the existence of the first stage** — `First.PartialStageFamily`, now with its budget rewritten as
+  the first stage's colour bound by `budget_published_iff`: an almost-complete linear triple system
+  with `PairFree`, no bad/crossing four-set, leaf closure, leftover degree `D`, `o(n)` crossing pairs
+  and at most `5(m-1)/6 + (δm-7D-6)/6` colours.  This is JM Thm 4.2 / BCDP Phase 1, a *probabilistic*
+  existence theorem; Mathlib has neither the Rödl nibble nor the local lemma, so no amount of
+  verification-side work reaches it.
+* **the deterministic maximal-matching obstruction** — the cheapest deterministic fragment of the
+  existence side, and the `next_lemma` of round 37 (see `policy.json`).
+* `pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`, `f(11,4,5) ∈ {9,10}`); B5 (`K₁₃` with ten
+  colours) — unchanged.
+
 ## Status (round 35)
 
 `lake build`: **OK** (3125 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

@@ -1,4 +1,5 @@
 import JSPProblem.Cross
+import JSPProblem.Slot
 
 /-!
 # JSP-000140 — the *first* stage, its density content, and the price of a deterministic second
@@ -41,9 +42,12 @@ at most one vertex).  For such a family:
 
 ## 2. **THE PRICE OF A DETERMINISTIC SECOND STAGE** — the headline of this round
 
-A first stage with leftover degree `D` uses at least `5(n-1-D)/6` colours (`FirstStageCounting`; the
-formalisation of the slot count is the next concrete lemma of round 36, and the verdicts below do
-not depend on its details).  `budget_leftover` then says that the budget of the catalog answer,
+A first stage with leftover degree `D` uses at least `5(n-1-D)/6` colours
+(`FirstStageCounting`).  **As of round 36 that counting is no longer a hypothesis: it is the
+theorem `count_lower` below**, derived in `Slot.lean` from `PairFree` and `SparseL` alone — five
+slots per triangle, three edges per triangle, `2|L| ≤ nD` by the handshaking lemma.  Every
+verdict of §2 is therefore a theorem about the published first stage itself.
+`budget_leftover` then says that the budget of the catalog answer,
 `6(k + fresh) ≤ 5(n-1) + δn`, leaves
 
     `6 · fresh ≤ 5D + δn`
@@ -415,14 +419,15 @@ private theorem six_proper (D : ℕ) :
 `5(n-1-D)/6` colours.
 
 This is the slot counting of arXiv:2208.12563 §4: a matching in the auxiliary `8`-uniform
-hypergraph uses each of the `n·k` pairs `(vertex, colour)` at most once, each labelled triangle uses
-five of them (the definition of `triPairs`; `card_triPairs` is the five-element computation), and a
-first stage covering all but a leftover of degree `D` has at least `n(n-1-D)/6` triangles (§1:
-`sum_degTris` and `SparseL_iff_degTris`).  The formalisation of the *middle* step — injectivity of
-`(triangle, vertex, colour) ↦ (vertex, colour)`, which needs the fact that the centre of a
-first-stage triangle is determined by its vertex set — is **the next concrete lemma of round 36**.  It
-is taken as a hypothesis here because every theorem below is a statement about what happens *once* it
-is available, and none of the verdicts depends on its details. -/
+hypergraph uses each of the `n·k` pairs `(vertex, colour)` at most once (`Slot.slots_five`), each
+labelled triangle uses five of them (`Slot.card_triPairs`), a first stage covers three edges per
+triangle (`Slot.edgeCover_count`), and a leftover of maximum degree `D` has at most `nD/2` edges
+(`Slot.handshake_le`).
+
+**Round 36 proved it**: `count_lower` below derives this from `PairFree` and `SparseL` alone.  The
+statement is kept as a `def` only because the verdicts of §2 and §3 are cleaner when it is named;
+`FirstStageCounting_of_tri` shows it is a theorem about the published construction, and
+`count_lower_tight` its version for a complete covering. -/
 def FirstStageCounting (n k D : ℕ) : Prop := 5 * (n - 1) ≤ 6 * k + 5 * D
 
 /-- **THE COUNTING BOUND, IN REAL NUMBERS.** -/
@@ -692,5 +697,220 @@ theorem crossStageFamily_partial (hfam : CrossStageFamily) : PartialStageFamily 
   have h4m : 4 ≤ m := by omega
   exact ⟨k, c₀, almostCovers_of_leftover_card m k c₀,
     ⟨tile_of_tri hC hP h4m, packed_of_tri hC hP h4m, hX, hB⟩, leafClosed_of_tri hC hP, hD, hThin, hk⟩
+
+/-! ### 6. THE SLOT COUNTING IS A THEOREM (round 36) -/
+
+/-- `triSets c` is a triple system: every vertex set in it is the vertex set of a labelled
+triangle. -/
+theorem tri3_triSets {n k : ℕ} (c : Col n k) : Tri3 (triSets c) := fun _ hT => card_mem_triSets hT
+
+/-- `triSets c` is **linear**: two of its vertex sets share at most one vertex.  This is the
+edge-disjointness of the first stage, and it is where `PairFree` enters the counting. -/
+theorem lin3_of_triSets {n k : ℕ} {c : Col n k} (hP : PairFree c) : Lin3 (triSets c) :=
+  lin3_triSets hP
+
+/-- **THE LEFTOVER OF A COLOURING IS THE LEFTOVER OF ITS TRIANGLE SYSTEM.**  The two definitions
+of "the edges no triangle covers" coincide, so the triple-system world of `Slot.lean` and the
+colouring world of `Second.lean` are the same object. -/
+theorem leftover_eq_leftoverTris {n k : ℕ} (c : Col n k) : leftover c = leftoverTris (triSets c) := by
+  ext e
+  rw [mem_leftover, mem_leftoverTris]
+  constructor
+  · rintro ⟨h1, h2⟩
+    refine ⟨h1, ?_⟩
+    rintro ⟨T, hT, he⟩
+    exact h2 (covered_is_Covered (mem_covered.mpr ⟨T, hT, he⟩))
+  · rintro ⟨h1, h2⟩
+    refine ⟨h1, ?_⟩
+    rintro ⟨u, p, q, h, he⟩
+    exact h2 ⟨triVerts u p q, mem_triSets.mpr ⟨u, p, q, h, rfl⟩,
+      (triEdges_eq_edgeFinset h) ▸ he⟩
+
+/-- **THE FIRST-STAGE DENSITY CONDITION IS THE PER-VERTEX DEGREE CONDITION OF ROUND 35.**  For an
+actual published construction — a colouring together with `PairFree` —
+
+    `SparseL (leftover c) D  ↔  2 · degTris (triSets c) v ≥ n - 1 - D` for every vertex `v`,
+
+i.e. arXiv:2208.12563 §4 (IV) / arXiv:2207.02920 Claim 4 is *exactly* the statement that the first
+stage passes through every vertex at least `⌈(n-1-D)/2⌉` times.  (Round 35 proved this for an
+abstract triple system; this is the same theorem for the objects the construction actually
+produces.) -/
+theorem SparseL_iff_degTris_triSets {n k D : ℕ} {c : Col n k} (hP : PairFree c) :
+    SparseL (leftover c) D ↔ ∀ v : Verts n, 2 * degTris (triSets c) v ≥ n - 1 - D := by
+  rw [leftover_eq_leftoverTris c, SparseL_iff_degTris (tri3_triSets c) (lin3_of_triSets hP) D]
+
+theorem sum_degL_edgeFinset (n : ℕ) :
+    ∑ v : Verts n, DegL (edgeFinset (Finset.univ : Finset (Verts n))) v = n * (n - 1) := by
+  have key : ∀ v : Verts n, DegL (edgeFinset (Finset.univ : Finset (Verts n))) v = n - 1 := by
+    intro v
+    have h1 := degL_eq_card_nbrsL (L := edgeFinset (Finset.univ : Finset (Verts n)))
+      (fun _ he => he) v
+    have h2 : nbrsL (edgeFinset (Finset.univ : Finset (Verts n))) v
+        = (Finset.univ : Finset (Verts n)) \ {v} := by
+      ext x
+      rw [mem_nbrsL, Finset.mem_sdiff, Finset.mem_singleton]
+      constructor
+      · intro hx
+        refine ⟨Finset.mem_univ x, ?_⟩
+        intro hx'
+        exact hx.1 hx'
+      · rintro ⟨_, hx'⟩
+        refine ⟨hx', ?_⟩
+        exact mem_edgeFinset.mpr
+          ⟨Finset.mk_mem_sym2_iff.mpr ⟨Finset.mem_univ v, Finset.mem_univ x⟩,
+            offDiag_iff.mpr (Ne.symm hx')⟩
+    rw [h1, h2, Finset.card_sdiff_of_subset (Finset.subset_univ ({v} : Finset (Verts n))),
+      Finset.card_singleton,
+      Finset.card_univ, Fintype.card_fin]
+  rw [Finset.sum_congr rfl (fun v _ => key v), Finset.sum_const, Finset.card_univ, Fintype.card_fin]
+  norm_num [Nat.mul_comm]
+
+/-- **`2 · C(n,2) = n(n-1)`**, the number of ordered pairs of distinct vertices. -/
+theorem edge_count_two_mul (n : ℕ) :
+    2 * (edgeFinset (Finset.univ : Finset (Verts n))).card = n * (n - 1) := by
+  have h1 := sum_DegL_two_mul_card (L := edgeFinset (Finset.univ : Finset (Verts n)))
+    (fun _ he => he)
+  rw [sum_degL_edgeFinset n] at h1
+  exact h1.symm
+
+/-- **THE SLOT COUNTING — `First.count_lower`, the blocker of round 35, closed.**
+
+A first stage whose leftover graph has maximum degree `D` uses at least `5(n-1-D)/6` colours:
+
+    **`5(n-1) ≤ 6k + 5D`**
+
+from `PairFree` alone.  The three ingredients, all in `Slot.lean`:
+
+* `slots_five` — five `(vertex, colour)` slots per triangle, all distinct, out of `n·k` of them;
+* `edgeCover_count` — three edges per triangle, exactly: `C(n,2) = 3·|tris| + |leftover|`;
+* `handshake_le` — `2|leftover| ≤ nD` (the handshaking lemma), i.e. `C(n,2) = n(n-1)/2`.
+
+**No four-vertex clique is checked anywhere in this proof**, so the constant `5/6` of the catalog
+answer is a consequence of the hypergraph-matching structure of the first stage alone. -/
+theorem count_lower {n k D : ℕ} {c : Col n k} (hP : PairFree c) (hD : SparseL (leftover c) D) :
+    FirstStageCounting n k D := by
+  have h5 : 5 * (triSets c).card ≤ n * k := slots_five hP
+  have h3 := edgeCover_count hP
+  have hHS : 2 * (leftover c).card ≤ n * D :=
+    handshake_le (fun e he => (mem_leftover.mp he).1) hD
+  have key : 10 * (edgeFinset (Finset.univ : Finset (Verts n))).card
+      ≤ 6 * (n * k) + 5 * (n * D) := by
+    have h6 : 30 * (triSets c).card ≤ 6 * (n * k) := by
+      have h := Nat.mul_le_mul_left 6 h5
+      have h' : 6 * (5 * (triSets c).card) = 30 * (triSets c).card := by ring
+      rw [h'] at h
+      exact h
+    have h7 : 10 * (leftover c).card ≤ 5 * (n * D) := by
+      have h := Nat.mul_le_mul_left 5 hHS
+      have h' : 5 * (2 * (leftover c).card) = 10 * (leftover c).card := by ring
+      rw [h'] at h
+      exact h
+    have h8 : 10 * (edgeFinset (Finset.univ : Finset (Verts n))).card
+        = 30 * (triSets c).card + 10 * (leftover c).card := by
+      rw [h3]
+      ring
+    omega
+  have h10 : 10 * (edgeFinset (Finset.univ : Finset (Verts n))).card
+      = 5 * (n * (n - 1)) := by
+    have h11 : 10 * (edgeFinset (Finset.univ : Finset (Verts n))).card
+        = 5 * (2 * (edgeFinset (Finset.univ : Finset (Verts n))).card) := by ring
+    rw [h11, edge_count_two_mul n]
+  rw [h10] at key
+  rw [show 5 * (n * (n - 1)) = n * (5 * (n - 1)) from by ring] at key
+  rw [show 6 * (n * k) + 5 * (n * D) = n * (6 * k + 5 * D) from by ring] at key
+  rcases Nat.eq_zero_or_pos n with h0 | hn
+  · subst h0
+    show 5 * (0 - 1) ≤ 6 * k + 5 * D
+    omega
+  · exact Nat.le_of_mul_le_mul_left key hn
+
+/-- **AND `FirstStageCounting` IS NOT AN EXTRA AXIOM.** -/
+theorem FirstStageCounting_of_tri {n k D : ℕ} {c : Col n k} (hP : PairFree c)
+    (hD : SparseL (leftover c) D) : FirstStageCounting n k D :=
+  count_lower hP hD
+
+/-- **THE COUNTING BOUND FOR A COMPLETE FIRST STAGE: `5(n-1) ≤ 6k`.**  A covering of arXiv:2208.12563
+§4 leaves nothing over, and `D = 0`.  This is the sharp form of the catalog lower bound, obtained
+here **without checking a single four-vertex clique**: the `5/6` is the ratio "five slots per three
+edges" of the first stage. -/
+theorem count_lower_tight {n k : ℕ} {c : Col n k} (hP : PairFree c) (hC : Covers c) :
+    FirstStageCounting n k 0 :=
+  count_lower hP (by
+    have h0 := covers_iff_leftover_eq_empty.mp hC
+    intro v
+    rw [DegL, h0]
+    simp)
+
+/-- **THE COUNTING BOUND IS ATTAINED OR STRICTLY EXCEEDED, NEVER STRICTLY FALLEN SHORT.**  If a
+complete first stage uses at most `5(n-1)/6` colours then it uses exactly that many. -/
+theorem tight_attained_of_le {n k : ℕ} {c : Col n k} (hP : PairFree c) (hC : Covers c)
+    (hk : 6 * k ≤ 5 * (n - 1)) : 6 * k = 5 * (n - 1) := by
+  have h : 5 * (n - 1) ≤ 6 * k := by
+    have h' := count_lower_tight hP hC
+    simp only [FirstStageCounting] at h'
+    omega
+  omega
+
+/-- **THE BUDGET, WITH THE COUNTING DERIVED RATHER THAN ASSUMED.**  The whole of §2 with
+`hdeg : FirstStageCounting` replaced by the two structural hypotheses of the published first
+stage. -/
+theorem budget_of_tri {n k D fresh : ℕ} {c : Col n k} (δ : ℝ) (hδ : 0 < δ) (hP : PairFree c)
+    (hD : SparseL (leftover c) D)
+    (hbudget : 6 * ((k + fresh : ℕ) : ℝ) ≤ 5 * ((n - 1 : ℕ) : ℝ) + δ * (n : ℝ)) :
+    6 * (fresh : ℝ) ≤ 5 * (D : ℝ) + δ * (n : ℝ) :=
+  budget_leftover δ hδ (count_lower hP hD) hbudget
+
+/-- **THE CATALOG BUDGET IS EXACTLY THE FIRST STAGE'S COLOUR BOUND.**
+
+Round 31's greedy properness costs `fresh = 2D + 1` fresh colours, and the published first stage
+pays `5D/6` extra colours for its leftover (`count_lower`).  So the budget of the catalog answer,
+`6(k + 2D + 1) ≤ 5(n-1) + δn`, is *not* an extra condition: it is the statement
+
+    `6k + 5D ≤ 5(n-1) + (δn - 7D - 6)`,
+
+i.e. **the first stage uses at most `5(n-1)/6 + (δn - 7D - 6)/6` colours, the second stage having
+already paid `7D+6` of the budget.**  (The remaining side condition `7D + 6 ≤ δn`, under which the
+budget is non-vacuous, is `proper_fits` from round 35.) -/
+theorem budget_published_iff {n k D : ℕ} {c : Col n k} (δ : ℝ) (hP : PairFree c)
+    (hD : SparseL (leftover c) D) :
+    (6 : ℝ) * ((k + (2 * D + 1) : ℕ) : ℝ) ≤ 5 * ((n - 1 : ℕ) : ℝ) + δ * (n : ℝ) ↔
+      (6 : ℝ) * (k : ℝ) + 5 * (D : ℝ)
+        ≤ 5 * ((n - 1 : ℕ) : ℝ) + (δ * (n : ℝ) - (7 : ℝ) * (D : ℝ) - 6) := by
+  constructor
+  · intro h
+    rw [six_add k (2 * D + 1), six_proper D] at h
+    linarith
+  · intro h
+    rw [six_add k (2 * D + 1), six_proper D,
+      show (12 : ℝ) * (D : ℝ) + 6 = 5 * (D : ℝ) + ((7 : ℝ) * (D : ℝ) + 6) from by ring]
+    linarith
+
+/-- **AND THE BUDGET SQUEEZES THE FIRST STAGE'S COLOUR COUNT INTO AN INTERVAL OF WIDTH `δn`.**
+
+Together with `count_lower` (`6k + 5D ≥ 5(n-1)`), the catalog budget says the first stage of
+arXiv:2208.12563 §4 uses between `5(n-1-D)/6` and `5(n-1-D)/6 + (δn - 7D - 6)/6` colours: the
+slot count must be **asymptotically tight**, up to the `δn` slack the catalog answer allows.  This is
+the sharpest statement about the published first stage that follows without the local lemma. -/
+theorem budget_and_count {n k D : ℕ} {c : Col n k} (δ : ℝ) (hP : PairFree c)
+    (hD : SparseL (leftover c) D)
+    (hbudget : (6 : ℝ) * ((k + (2 * D + 1) : ℕ) : ℝ) ≤ 5 * ((n - 1 : ℕ) : ℝ) + δ * (n : ℝ)) :
+    5 * ((n - 1 : ℕ) : ℝ) ≤ (6 : ℝ) * (k : ℝ) + 5 * (D : ℝ)
+      ∧ (6 : ℝ) * (k : ℝ) + 5 * (D : ℝ)
+        ≤ 5 * ((n - 1 : ℕ) : ℝ) + (δ * (n : ℝ) - (7 : ℝ) * (D : ℝ) - 6) :=
+  ⟨cast_count (count_lower hP hD), (budget_published_iff δ hP hD).mp hbudget⟩
+
+/-- **THE THREE NUMBERS OF A FIRST STAGE.**  `tris` = number of triangles, `L` = number of leftover
+edges, `k` = number of colours:
+
+    `5·tris ≤ n·k`  (slots),  `C(n,2) = 3·tris + |L|`  (edges),  `2|L| ≤ nD`  (degree).
+
+Equivalently: the first stage of arXiv:2207.02920 §4 trades, for each unit of leftover degree,
+exactly `5/6` of a colour. -/
+theorem first_stage_numbers {n k D : ℕ} {c : Col n k} (hP : PairFree c)
+    (hD : SparseL (leftover c) D) :
+    5 * (triSets c).card ≤ n * k ∧
+      (edgeFinset (Finset.univ : Finset (Verts n))).card = 3 * (triSets c).card + (leftover c).card ∧
+      2 * (leftover c).card ≤ n * D :=
+  ⟨slots_five hP, edgeCover_count hP, handshake_le (fun e he => (mem_leftover.mp he).1) hD⟩
 
 end JSP140
