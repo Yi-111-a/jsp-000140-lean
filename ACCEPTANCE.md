@@ -1,3 +1,120 @@
+## Status (round 48)
+
+`lake build`: **OK** (3136 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 48 REPLACES THE MECHANISM OF THE BLOW-UP OBSTRUCTION — AND THEREBY *FINDS* AN ADMISSIBLE
+BLOW-UP, AT A PALETTE STRICTLY ABOVE THE BUDGET.**  Round 47 killed the lexicographic-product route
+to `5n/6` for the palette `Fin q × Fin m` (`q·m = 5·(6m)/6` colours on `6m` vertices — exactly the
+catalog budget).  Its proof needed `y ↦ L i₀ j x₀ y : Fin m → Fin m` to be **surjective**, which it
+got from injectivity *at equal cardinalities*.  The moment the palette is `Fin q × Fin r` with
+`r ≠ m` — which is precisely the regime a budget-respecting construction would use, since a
+*cheaper* palette means `r < m` — that step is unavailable, and round 47's argument simply does not
+apply.  New file `lean/JSPProblem/Amplify.lean` (548 lines, 34 declarations, zero placeholders, on
+the default build path) redoes the obstruction **without** any surjectivity step, refutes the whole
+budget range, and then exhibits an admissible blow-up just above it.  The family is now pinned down
+exactly.
+
+### 1. §1–§2 — the blow-up with an *arbitrary* cross-index space
+
+`blockColR` / `blockColRT` (palette `Fin (q * r)`, cross-index space `Fin r` completely free),
+`blockColR_swap`, `blockColRT_same`, `blockColRT_cross`.  `xrange L i j x` is **the set of cross
+indices the `m` edges out of the inner vertex `x` of block `i` to block `j` receive**; `mem_xrange`,
+`card_xrange` (`= m`, from injectivity), `card_xrange_le` (`≤ r`), and
+
+* **`m_le_r_of_hinj`** — **injectivity of the cross labelling already forces `m ≤ r`**: `Fin m`
+  injects into `Fin r`.  So the palette `q·r` of this shape is *never* smaller than `q·m`, and the
+  catalog budget `q·r ≤ q·m` leaves no choice at all — it means `r = m`.
+
+### 2. §3 — **THE INDEX-AVOIDANCE THEOREM** (the new mechanism)
+
+* **`bad_fourSet`** — **the bad `K₄`, exhibited**: if the internal edge `x₀x₁` of block `i` carries
+  the product colour `xcolQ (f i j) l₀` and the cross index `l₀` is realised by `x₀y₁` *and* by
+  `x₁y₂`
+  with `y₁ ≠ y₂`, then the three edges `x₀x₁`, `x₀y₁`, `x₁y₂` carry the same colour, so
+  `{x₀, x₁, y₁, y₂}` spans **at most four** colours.  No surjectivity anywhere;
+* **`xrange_avoid`** — **if the product colouring is admissible, then for every block `i`, every
+  `j ≠ i`, every internal edge `x₀x₁` whose colour is `xcolQ (f i j) l₀`, and every `x₀ ≠ x₁`, the
+  index `l₀` is missed by the cross edges of `x₀` or by those of `x₁`.**  The hypotheses are only:
+  symmetry of `f` and `L`, the 1-factorisation covering property `hcover`, and injectivity of `L`
+  in its first inner variable — exactly as in round 47, but **the statement holds at every palette
+  `Fin (q·r)`, with no relation between `m` and `r`**.
+
+### 3. §4 — **THE BUDGET IS EXACTLY THE POINT AT WHICH THE FAMILY DIES**
+
+* **`xrange_eq_univ_of_le`** — if `r ≤ m` the cross-index set of an inner vertex has `m = r` elements
+  inside `Fin r`, i.e. it is **all of `Fin r`**: a cross-index space within the budget hides
+  nothing, and every colour index is hit from every inner vertex;
+* **`blockColRT_not_admissible_of_budget`** — hence for `r ≤ m` a bad `K₄` always exists.  (Round 47
+  proved only `r = m`, and by a different mechanism: injectivity + equal cardinality ⟹ surjectivity.)
+* **`r_gt_m_of_admissible` / `r_ge_succ_of_admissible` / `palette_ge_succ_of_admissible`** — the sharp
+  quantitative form: **an admissible blow-up needs a *strictly* larger cross-index space than the
+  block, i.e. a palette of at least `q·(m+1) = q·m + q` colours.**  With the `K₆` factor and `q = 5`
+  this exceeds the counting bound `5m ≤ f(6m,4,5)` (`Product.EG_ge_five_mul_six`) by five colours,
+  so the blow-up route misses the counting bound and therefore `5n/6`;
+* **`no_amplify_K6_within_budget`** — the budget case for the `K₆` witness, quantified over the
+  palette.
+
+### 4. §5 — **… AND THE FAMILY IS NOT DEAD, ONLY WASTEFUL: THE FIRST ADMISSIBLE BLOW-UP IN THIS
+DEVELOPMENT**
+
+`Lblk6` labels the cross edges of a `K₆`-by-`K₂` blow-up by the (block-ordering of the) pair of
+inner indices, so the four cross edges between two blocks get the four cross indices `0, 1, 2, 3`
+(`Lblk6_symm`, `Lblk6_inj`, `Lblk6_inj'`, `Lblk6_lt_four`, all `native_decide`); `psi6` gives the
+single internal edge of block `i` the product colour with factor `i mod 5` and cross index `4 + i`,
+which no cross edge ever carries.
+
+* **`admissible_blowup_K6_m2`** — **an admissible edge colouring of `K₁₂` with `50 = 5 · 10` colours
+  which is a lexicographic blow-up of the `K₆` witness `Product.fact6Col`** (`native_decide` over the
+  `C(12,4) = 495` four-sets, ≈ 2.5 min);
+* `EG_le_fifty_blowup` (`EG 12 ≤ 50`), `counting_bound_at_twelve` (`⌈5·11/6⌉ = 10`).
+
+So the answer to "can the blow-up reach `5n/6`?" is now a theorem in both directions: **no at the
+budget (`palette_ge_succ_of_admissible`), and yes strictly above it (`admissible_blowup_K6_m2`) —
+at a factor of five.**  The mechanism of the failure is exactly one unit of cross-index space.
+
+### 5. §6 — a blow-up is only as good as the colourings inside its blocks
+
+`encInj`, `restrictCol_block` (restricting the blow-up to one block returns the internal colouring),
+`colorsOn_block`, **`Admissible_block`** (**an admissible blow-up forces every internal colouring to
+be admissible**) and `EG_le_palette_of_admissible` (`f(m,4,5) ≤ q·r`).  A lexicographic product is
+never better than the colourings it is built from, so `K₂`-blocks — the only block size at which an
+admissible blow-up was exhibited — cannot be iterated to reach `5n/6`.
+
+### 6. What this costs the prize, stated honestly
+
+The prize hypothesis `Partial.FamGreedyFamily` (a near-perfect matching in the auxiliary hypergraph,
+a sparse leftover, the two four-set conditions, `6(k+2D+1) ≤ 5(m-1)+δm`) is **untouched**: it is a
+Rödl-nibble / random-triangle-removal existence theorem and Mathlib contains neither.  What round 48
+changes is the state of the *construction* side: the lexicographic-product family is no longer
+"refuted at the budget but otherwise unexplored", it is **settled** — one theorem says an admissible
+blow-up needs ≥ `q(m+1)` colours, one theorem says an admissible blow-up exists at `5·10` for
+`K₆→K₂`, and a third says any admissible blow-up's blocks must themselves be admissible.  A
+non-product family (with genuinely different colour classes in different blocks) must exist, and
+none is known.  `jsp_000140_main` was again **not** declared.  `pairFree_of_admissible`; B4
+(`f(10,4,5) ∈ {8,9}`) and B5 (`EG 13 ∈ {10,11}`) — unchanged.
+
+### 7. Abandoned / not done this round
+
+* **The general statement `blockColRT_not_admissible` for arbitrary `r` is FALSE and was deleted.**
+  It was drafted from the mistaken belief that an injective `Fin m → Fin r` is surjective when
+  `m ≤ r` (it is: `m = r`; injectivity forces `m ≤ r`, surjectivity forces `r ≤ m`).  With `r > m`
+  the family is admissible — see §5 — and the Python check that revealed this is recorded in
+  `discovery/JSP-000140/blowup_threshold.py` (reproduce: 495 four-sets, 0 violations);
+* blow-ups by blocks `K_m` with `m ≥ 3` are not attempted: a `3+1` split puts a `K₃` inside one block,
+  and a monochromatic triangle there would leave the four-set with only four colours, so the internal
+  colourings would have to be triangle-free in every colour class — a genuinely harder design
+  question, recorded as `next_lemma`;
+* iterated blow-ups (`K₆` blown up by `K₂` and then again) are not attempted: it needs a *covering*
+  factor map on `K₁₂` with 50 colours, which the `K₂` blow-up does not supply;
+* round 45's census obstruction stays cancelled (its margin is negative only at `(7,6)` and `(8,6)`,
+  both settled by search);
+* **Cost note for the next round**: `JSPProblem/Amplify.lean` costs **≈ 150 s** of `native_decide`
+  (the 495 four-sets of `K₁₂` dominate; the `Lblk6` facts are instant).  `Seven.lean` (≈ 50 min) was
+  not touched and its `.olean` was reused.  Keep new material in new files.
+
 ## Status (round 47)
 
 `lake build`: **OK** (3135 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).

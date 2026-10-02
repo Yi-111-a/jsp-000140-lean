@@ -37,3 +37,4 @@ import JSPProblem.Surplus
 import JSPProblem.Census
 import JSPProblem.Seven
 import JSPProblem.Product
+import JSPProblem.Amplify
