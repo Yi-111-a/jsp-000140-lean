@@ -28,3 +28,4 @@ import JSPProblem.StarColour
 import JSPProblem.Cross
 import JSPProblem.Slot
 import JSPProblem.First
+import JSPProblem.Fam

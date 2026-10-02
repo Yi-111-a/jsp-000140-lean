@@ -1,3 +1,67 @@
+## Status (round 37)
+
+`lake build`: **OK**.  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 37 CHANGES THE SHAPE OF THE RESIDUAL HYPOTHESIS: THE FIRST STAGE IS NO LONGER A
+COLOURING BUT A MATCHING IN THE AUXILIARY HYPERGRAPH.**
+
+Every hypothesis of this development up to `First.PartialStageFamily` is stated for a colouring
+`c : Col n k`.  That is the wrong way round for an *existence* theorem: what
+arXiv:2207.02920 (Phase 1) and arXiv:2208.12563 (§4, Thm 4.2) produce is a **matching in an
+auxiliary `8`-uniform hypergraph** whose hypervertices are the `(vertex, colour)` slots, and the
+colouring of `K_n` is a *consequence* of that matching.  New file `lean/JSPProblem/Fam.lean`
+(1021 lines, 55 declarations, zero `sorry`) makes that object the primitive one.
+
+* **A CONFIGURATION is data**: `Cfg n k = Verts n × Verts n × Verts n × Fin k × Fin k` — centre,
+  two leaves, the colour at the centre, the colour of the opposite edge — with `cfgEdges` (the
+  hyperedge: three edges of `K_n`), `cfgSlots` (the five hypervertices of arXiv:2208.12563 §4),
+  `edgeCol`, `Ok`; a **family** `F : Finset (Cfg n k)` with `OkF`, `LinF` (two members share no
+  edge), `SlotFree` (**the matching condition**: two members share no slot), `coveredF`, `leftoverF`.
+
+* **The slot counting of round 36, with no colouring anywhere**: `card_cfgSlots` (5),
+  `card_cfgEdges` (3), `card_SlotsF` (`5·|F|`), **`slots_countF`** (`5·|F| ≤ n·k`),
+  `card_coveredF` (`3·|F|`), **`edgeCoverF`** (`C(n,2) = 3·|F| + |leftoverF|`), `handshakeF`
+  (`2·|leftoverF| ≤ n·D`), **`count_lowerF`** (`5(n-1) ≤ 6k + 5D`), `count_lowerF_tight`,
+  `first_stage_numbersF`.
+
+* **THE COLOURING IS INDUCED, AND THE ENCODING IS AN EQUIVALENCE.**
+  `colOf F d` is the colouring prescribed by the matching; `mem_cfgSlots_end` (every endpoint of an
+  edge of a configuration uses the slot of that edge's colour) and `eq_long_of_same` (two edges of a
+  configuration with the same colour are the two edges at its centre) are the combinatorics of the
+  hyperedge; then **`labTri_of_mem`** (a member of the family is a labelled triangle of `colOf`),
+  **`covers_colOf`** and **`pairFree_colOf`** (a family covering `E(K_n)` *is* a labelled-triangle
+  system in the sense of `Triangles.lean`), with the converse
+  **`mem_or_mem_swap_of_labTri`** / `mem_or_mem_swap_of_labTri'` — every labelled triangle of
+  `colOf` comes from **one** member of the family, because the slot `(u,i)` is shared by the two
+  configurations covering the two edges at the centre and `SlotFree` forces them to coincide.
+
+* **`FamFamily` and `jsp_000140_main_of_fam_family`**: the required theorem `jsp_000140_main`
+  reduced to the existence, for every `δ > 0` and all large `m ≡ 1 (mod 6)`, of a matching in the
+  auxiliary hypergraph (a finset of configurations, pairwise edge- and slot-disjoint, covering all
+  of `E(K_m)`, with no bad and no crossing four-set in the induced colouring, and at most
+  `5(m-1)/6 + δm/6` colours).  **No colouring is quantified over in the hypothesis**, so it is a
+  finite combinatorial condition on a finset — a checkable object, which is what a construction can
+  actually provide.
+
+* **THE CENTRE BALANCE (section 5)**: `centF`, `leafF`, `throughF`; `slotsAt` with
+  `slotsAt_centre` (exactly **one** slot at the centre), `slotsAt_leaf`/`slotsAt_leaf'` (exactly
+  **two** at a leaf), `slotsAt_ne` (none elsewhere), `card_slotsAt`; and
+  **`card_slotsF`** — the slots a family uses at `v` are one per configuration centred at `v` and
+  two per configuration having `v` as a leaf:
+  `(slotsF F v).card = (centF F v).card + 2·(leafF F v).card`, with `card_slotsF_le` (`≤ k`).
+
+**NOT proved this round (blockers B1, B2 in `discovery/JSP-000140/policy.json`)**:
+`FamFamily` is an existence theorem about a hypergraph matching (Rödl nibble / differential-equation
+method), and Mathlib has neither.  Moreover the interface proved here needs a **complete** covering,
+because `pairFree_colOf` (hence `tile_of_tri`/`packed_of_tri`, and with them the automatic `Tile`
+and `Packed`) needs `Covers`; with a leftover the uncovered edges carry the default colour and
+spurious labelled triangles appear.  The published Phase 1 leaves `Θ(n^{2-δ})` edges over
+(BCDP §4: the matching stops at `i_max = (1/6)n²(1-n^{-δ})`), so the complete interface is the
+*extremal* case and the partial one needs `Tile`/`Packed`/`LeafClosed`/`CrossThin` ported to
+configurations.  That port is the single next step (policy `next_round_plan` item 1).
+
 # ACCEPTANCE — JSP-000140
 
 ## Catalog statement (record `JSP-000140`, fetched 2026-09-30)
