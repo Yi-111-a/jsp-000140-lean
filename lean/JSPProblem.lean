@@ -31,3 +31,4 @@ import JSPProblem.First
 import JSPProblem.Fam
 import JSPProblem.Partial
 import JSPProblem.Hyper
+import JSPProblem.Spoil

@@ -1,3 +1,78 @@
+## Status (round 41)
+
+`lake build`: **OK** (3130 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 41 COMPUTES THE FIRST-MOMENT ESTIMATE OF arXiv:2208.12563 §4 AS A THEOREM, AND PROVES —
+AS A THEOREM — THAT MAXIMALITY-WITH-AVOIDANCE CANNOT CERTIFY THE CATALOG BUDGET FOR ANY CHOICE OF
+THE FOUR-SET CONDITIONS.**  Rounds 31–40 reduced the prize to the existence of a *near-perfect
+matching* in the auxiliary hypergraph `H`; round 40 retired the *plain greedy* way of getting one.
+The papers do not use maximality: they take a **partial** matching which avoids the hyperedges that
+would create a bad four-set, and they bound the number of those **spoiled** hyperedges by a first
+moment.  That estimate is a *finite counting statement about `H`* — no probability, no Rödl nibble,
+no local lemma — and this file computes it.  New file `lean/JSPProblem/Spoil.lean` (785 lines,
+27 declarations, zero placeholders).
+
+### 1. §1 — the four-set census of `H`
+
+* **`card_fours_sup` / `card_fours_tri` — EXACTLY `n - 3` FOUR-SETS CONTAIN A GIVEN TRIANGLE** (a
+  configuration of `H` has three vertices).  This is the ingredient that turns a set of bad
+  four-sets into a set of spoiled hyperedges: **each spoiled hyperedge lies in at most `n-3`
+  four-sets.**
+* **`card_auxF_four` — THE FOUR-SET CENSUS OF `H`: EXACTLY `24·k(k-1)` HYPEREDGES OF `H` HAVE THEIR
+  THREE VERTICES IN A GIVEN FOUR-SET** (twelve ordered triples of distinct vertices out of four,
+  times `k(k-1)` ordered pairs of distinct colours).  One bad four-set therefore spoils *exactly*
+  `24k(k-1)` hyperedges, whatever "bad" means.
+* `cfgVerts_sub_iff`, `card_filter_le`, `sum_ite_mem_card`, `sum_ite_filter_card` — the counting
+  tools (the last two are the indicator-sum identities used throughout).
+
+### 2. §2 — spoiled hyperedges: both sides of the first moment
+
+* **`spoilF B`** — the hyperedges of `H` lying inside one of the four-sets of `B`;
+* **`spoil_double` — THE DOUBLE COUNT** of the pairs `(hyperedge, bad four-set containing it)`,
+  from either side;
+* **`card_spoilF_le` — UPPER SIDE: `|B|` bad four-sets spoil at most `24·k(k-1)·|B|` hyperedges;**
+* **`card_spoilF_ge` — LOWER SIDE: they spoil at least `24·k(k-1)·|B|` hyperedges `n-3` times over;**
+* **`spoil_squeeze` — THE TWO SIDES TOGETHER: `24·k(k-1)·|B| ≤ (n-3)·|spoilF B| ≤ 24·k(k-1)·|B|`.**
+  Bad four-sets and spoiled hyperedges are equivalent up to a factor `n-3`, and the four-set
+  direction is exact.  This is the whole content of the first moment of §4, deterministically.
+
+### 3. §3 — the avoidance rule, and its price
+
+* **`SlotFresh`, `AvoidClosed`** — the rule "add a hyperedge whenever it is unblocked and
+  unspoiled", and its fixed point;
+* **`card_blocked_le`, `closed_census` — THE CENSUS OF A CLOSED FAMILY:
+  `|E(H)| ≤ 25(n-1)(n-2)(k-1)·|F| + |spoiled|`** (every hyperedge of `H` is blocked by a slot of
+  `F`, or is unblocked and hence spoiled);
+* **`avoid_first_moment` — WHAT THE RULE DELIVERS:
+  `n(n-1)(n-2)·k(k-1) ≤ 25(n-1)(n-2)(k-1)·|F| + 24·k(k-1)·|B|`;**
+* **`avoid_certify` — THE PRICE OF THE FOUR-SET CONDITIONS: `25·|F| + n ≥ n·k` as soon as
+  `24k·|B| ≤ n(n-1)(n-2)`** — a four-set condition costing `o(n²)` four-sets costs the rule at most
+  `n` slots out of `n·k`;
+* **`avoid_gap` / `avoid_gap_of_budget` / `avoid_price` — AND THE PUNCHLINE.**  At `δ ≤ 1/6`, with
+  the catalog budget `6k ≤ (5+δ)n − 11`, the best size the rule can certify is at most
+  `n((5+δ)n−17)/150`, and that is **strictly below** `n((7−δ)n−1)/42`, the size every valid first
+  stage must have (`Hyper.first_stage_size`).  So **maximality-with-avoidance cannot certify the
+  budget, whatever the four-set conditions are**: the Rödl nibble is needed for the *matching
+  itself*, not for the local conditions.  This is the strict generalisation of round 40's
+  `Hyper.greedy_gap` to a strictly stronger deterministic rule.
+
+### 4. §4 — the bridge back to the catalog condition
+
+* **`badFours`, `mem_badFours`, `badFours_eq_empty_iff` — `Admissible c ↔ badFours c = ∅`:**
+  the set of four-sets a colouring fails on, and the equivalence with the catalog condition;
+* **`spoilF_empty_of_admissible`** — an admissible colouring spoils no hyperedge at all, i.e. the
+  four-set conditions of §4 are exactly the filter of the avoidance rule.
+
+**NOT proved this round.**  The existence of the near-perfect matching
+(`Partial.FamGreedyFamily`, the single remaining prize hypothesis).  §2–§3 above now *prove* that
+the first-moment counting of the local conditions is available and cheap, and that the resulting
+deterministic rule is short of the budget by a factor `≈ 25/7 · 7/(5+δ) > 4`; the missing step is
+the one that is genuinely probabilistic (Rödl nibble / differential-equation method / random
+triangle removal), and Mathlib has neither.  `pairFree_of_admissible`, B4 (`f(10,4,5) ∈ {8,9}`,
+`f(11,4,5) ∈ {9,10}`) and B5 (`K₁₃` with ten colours) are unchanged.
+
 ## Status (round 40)
 
 `lake build`: **OK** (3129 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
