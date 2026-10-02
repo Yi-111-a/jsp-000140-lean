@@ -41,6 +41,73 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 34)
+
+`lake build`: **OK** (3124 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 34 REMOVES THE OTHER BAD-EVENT FAMILY TOO: THE WHOLE SECOND STAGE OF BOTH PAPERS IS
+DETERMINISTIC.**  Round 33 removed `B_D` and declared the last bad event `C_{D,i}`
+(= `B₃`) ungreedyable "because it constrains *disjoint* pairs of leftover edges", leaving the
+symmetric Lovász Local Lemma as the only remaining probabilistic tool.  **That is a statement about
+the colours, not about the combinatorics, and this file corrects it**: what a greedy colouring needs
+is a *bound* on the number of partners each edge has, not adjacency.
+
+New file `lean/JSPProblem/Cross.lean` (581 lines, 22 public + 8 private declarations, zero
+placeholders):
+
+* **`greedy_of_boundedRel` — THE GENERAL ENGINE.**  For *any* symmetric relation `R` on a finite set
+  `F` in which every `e ∈ F` is `R`-related to at most `M` others, there is a map `g : F → Fin (M+1)`
+  injective on every `R`-related pair of distinct elements (elements added one at a time by
+  `Finset.induction_on`; each new element avoids the colours of the at most `M` already-coloured
+  elements related to it).  `Second.rainbow_of_sparse_leftover` is the instance `R = Shares`,
+  `M = 2D`; round 33's `star_greedy` is the instance `R = Shares ∨ Sep`, `M = 2D² + 2D`;
+* **`Cross` — the crossing relation of `C_{D,i}`** (two crossing leftover edges whose complementary
+  pair is covered and phase-1 monochromatic), with `Cross.symm`, `ne_of_Cross`, and
+  **`noCrossFresh_of_inj`**: a fresh colouring injective on the `Cross` pairs cannot produce the bad
+  event at all — a strictly stronger statement than `NoCrossFresh`, which only asks for distinctness
+  when the complementary pair happens to be monochromatic;
+* **`crossF`, `card_crossF_le` — THE UNCONDITIONAL BOUND `4n`.**  A partner of `e = s(a,c)` is
+  `s(b,d)` with `c₀ s(a,d) = c₀ s(b,c)` (or the same for the other complementary pairing of the
+  4-set), so for each of the `≤ n` choices of `b` there are at most two choices of `d` — by the first
+  stage's colour-degree bound `Tile` (`tile_of_tri`; for an admissible colouring this is `Cherry`'s
+  `5/6` count).  No hypothesis is used, not even sparsity of the leftover;
+* **`CrossPairs`, `CrossThin`, `card_crossF_le_of_thin` — THE USABLE BOUND.**  What the first
+  stage's analysis has to deliver is a *counting statement about its own output* ("at most `T` pairs
+  of crossing leftover edges have a monochromatic complement"), and `card_crossF_le_of_thin` turns
+  such a **total** bound — the shape a first-moment argument produces — into the **per-edge** bound
+  the greedy engine consumes;
+* **`FreshRel` = `Shares ∨ Sep ∨ Cross`, `card_freshRel_le` (`2D² + 2D + T`), `cross_greedy_extend`,
+  `second_stage_of_cross` — THE COMPLETE SECOND STAGE.**  `Proper` (`A_{e,f,i}` = `B₁`),
+  `NoAltCycle` (`B_D` = `B₂`) and `NoCrossFresh` (`C_{D,i}` = `B₃`) hold *simultaneously* with
+  `2D² + 2D + T + 1` fresh colours, given only that the leftover has maximum degree `D` and at most
+  `T` crossing pairs.  No probability anywhere;
+* **`admissible_of_cross`, `CrossStageFamily`, `SlackFamily.of_cross`,
+  `jsp_000140_main_of_cross_stage_family`** — the required theorem `jsp_000140_main` reduced to the
+  published construction with **no probabilistic object in the second stage at all**;
+* **`CrossThin.mono`, `second_stage_of_cross_wide`** — the fresh-colour cost is monotone in the
+  crossing count, so a first stage with *no* crossing pair reproduces exactly the `2D² + 2D + 1`
+  fresh colours of round 33.
+
+**THE HONEST PRICE, AND THE CORRECTION TO ROUND 33.**  The deterministic route costs `T` extra fresh
+colours over round 33 (`2D² + 2D + T + 1` instead of `2D² + 2D + 1`), where `T` is the crossing-pair
+count of the first stage's output; the expected value of `CrossPairs c₀ L` is `Θ(n^{1-2δ})` for the
+published `D = n^{1-δ}`, hence `o(n)`, so the budget is unaffected — but the hypothesis is a *new*
+one, a density statement about the first stage, and it is **not** implied by round 33's
+`StarStageFamily` (which asserts the `C_{D,i}`-avoidance of one particular colouring).  What this
+round establishes is therefore: (i) the Lovász Local Lemma is **not needed anywhere** in the second
+stage of either paper, and (ii) its content can be replaced by two counting statements about the
+output of the first stage — the maximum degree `D` (already known from JM (IV) / BCDP Claim 4) and
+the crossing-pair count `T`.
+
+**Abandoned this round:** `StarStageFamily.of_cross` (`CrossStageFamily → StarStageFamily`).  It
+was written, then *deleted as false*: `CrossThin c₀ L T` with `T` given cannot yield a colouring
+with `2D² + 2D + 1` fresh colours, because the greedy genuinely needs the `T + 1` extra colours of
+the crossing pairs it has to separate.  The two families are alternative hypotheses for the same
+conclusion, not comparable ones.
+
 ## Status (round 33)
 
 `lake build`: **OK** (3123 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

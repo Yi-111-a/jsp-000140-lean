@@ -25,3 +25,4 @@ import JSPProblem.Leftover
 import JSPProblem.Second
 import JSPProblem.Stage2
 import JSPProblem.StarColour
+import JSPProblem.Cross

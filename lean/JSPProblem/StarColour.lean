@@ -88,6 +88,18 @@ theorem Sep.symm {n : ℕ} {L : Finset (Sym2 (Verts n))} {e f : Sym2 (Verts n)}
   · exact Or.inr hm
   · exact Or.inl hm
 
+/-- **THE TWO EDGES OF A SEPARATED PAIR ARE DISTINCT.**  Public from round 34 on: the generalised
+greedy engine of `JSPProblem/Cross.lean` needs the distinctness of `FreshRel`-related pairs to apply
+`greedy_of_boundedRel`. -/
+theorem ne_of_Sep {n : ℕ} {L : Finset (Sym2 (Verts n))} {e f : Sym2 (Verts n)}
+    (h : Sep L e f) : e ≠ f := by
+  obtain ⟨a, b, p, q, h4, he, hf, hm⟩ := h
+  intro hcon
+  have hEq : s(a, b) = s(p, q) := he.symm.trans (hcon.trans hf)
+  rcases sym2_inj hEq with ⟨e1, e2⟩ | ⟨e1, e2⟩
+  · exact absurd e1 h4.2.1
+  · exact absurd e1 h4.2.2.1
+
 /-- **A FRESH COLOURING WHICH RESPECTS THE SEPARATED PAIRS.**  The first conjunct is the published
 properness (`A_{e,f,i}` / `B₁`, already proved to exist with `2Δ+1` colours by
 `Second.proper_of_sparseL`); the second is the additional condition that this file proves to be
@@ -279,14 +291,16 @@ private theorem card_wit_le {n D : ℕ} {L : Finset (Sym2 (Verts n))} (hD : Spar
     exact Nat.mul_le_mul h6 (le_refl D)
   exact le_trans h3 (le_trans h4 h7)
 
-/-- **THE LEFTOVER EDGES SEPARATED FROM `e`.** -/
-private noncomputable def sepF {n : ℕ} (L : Finset (Sym2 (Verts n))) (e : Sym2 (Verts n)) :
+/-- **THE LEFTOVER EDGES SEPARATED FROM `e`.**  Public from round 34 on: `Cross.card_freshRel_le`
+of `JSPProblem/Cross.lean` reuses this bound together with the crossing bound to drive the
+generalised greedy engine. -/
+noncomputable def sepF {n : ℕ} (L : Finset (Sym2 (Verts n))) (e : Sym2 (Verts n)) :
     Finset (Sym2 (Verts n)) :=
   (((Finset.univ : Finset (Verts n)).filter (fun v => v ∈ e)).biUnion
       fun v => (wit L e v).image (fun t => s(t.1, t.2))).filter (fun f => Sep L e f)
 
 /-- **AT MOST `2D²` LEFTOVER EDGES ARE SEPARATED FROM A GIVEN LEFTOVER EDGE.** -/
-private theorem card_sepF_le {n D : ℕ} {L : Finset (Sym2 (Verts n))} (hD : SparseL L D)
+theorem card_sepF_le {n D : ℕ} {L : Finset (Sym2 (Verts n))} (hD : SparseL L D)
     (e : Sym2 (Verts n)) : (sepF L e).card ≤ 2 * D * D := by
   set E : Finset (Sym2 (Verts n)) :=
     ((Finset.univ : Finset (Verts n)).filter (fun v => v ∈ e)).biUnion
@@ -332,7 +346,7 @@ private theorem mem_wit {n : ℕ} {L : Finset (Sym2 (Verts n))} {e : Sym2 (Verts
   exact ⟨h1, h2, h3, h4, h5⟩
 
 /-- **EVERY SEPARATED LEFTOVER EDGE IS IN `sepF`.** -/
-private theorem mem_sepF {n : ℕ} {L : Finset (Sym2 (Verts n))} {e f : Sym2 (Verts n)}
+theorem mem_sepF {n : ℕ} {L : Finset (Sym2 (Verts n))} {e f : Sym2 (Verts n)}
     (hf : f ∈ L) (h : Sep L e f) : f ∈ sepF L e := by
   obtain ⟨a, b, p, q, h4, he, hf', hm⟩ := h
   have hsep : Sep L e f := ⟨a, b, p, q, h4, he, hf', hm⟩
