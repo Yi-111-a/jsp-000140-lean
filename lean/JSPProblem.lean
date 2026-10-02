@@ -36,3 +36,4 @@ import JSPProblem.Edge
 import JSPProblem.Surplus
 import JSPProblem.Census
 import JSPProblem.Seven
+import JSPProblem.Product

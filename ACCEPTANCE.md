@@ -1,3 +1,92 @@
+## Status (round 47)
+
+`lake build`: **OK** (3135 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 47 CHANGES ATTACK FAMILY: THE *BLOW-UP* (LEXICOGRAPHIC PRODUCT) ROUTE TO `5n/6` — AND KILLS
+IT IN FULL GENERALITY.**  `Tables.EG_six : EG 6 = 5` is the **only** order of this development at
+which the catalog constant `5/6` is attained (`5 = 5·6/6`; `EG 7 = 7`, `EG 8 = 7` both miss it), so
+the most tempting route to the missing upper bound `f(n,4,5) ≤ 5n/6 + o(n)` is to **amplify that one
+witness**: blow `K₆` up `m` times into `6` blocks of `m` inner vertices, colour inside each block
+arbitrarily, and colour across two blocks by the pair *(factor colour of the two blocks, cross index
+of the two inner vertices)*.  The palette is `Fin 5 × Fin m`, i.e. **`5m = 5·(6m)/6` colours on `6m`
+vertices — exactly the catalog budget, at every blow-up size.**  New file
+`lean/JSPProblem/Product.lean` (431 lines, 28 declarations, zero placeholders, on the default build
+path).
+
+### 1. §1 — the blow-up as data
+
+`encT` / `blkT` / `innT` (`Fin t × Fin m` encoded in `Fin (t·m)`, with `encT_inj_inner`,
+`encT_inj_block`, `blkT_encT`, `innT_encT`); `xcolQ` / `xcolQDec` / `xcolQDec_xcolQ` /
+**`exists_xcolQ`** (every colour of the palette splits *uniquely* into a block colour and a cross
+index); `blockCol` (the colour of an **ordered** pair), **`blockCol_swap`** (it is a function of the
+unordered pair — the statement that `f` and `L` are symmetric), `blockColT` (the colouring),
+`blockColT_same` / `blockColT_cross` (the colour inside a block / across two blocks).
+
+### 2. §2 — **THE PRODUCT OBSTRUCTION**
+
+* **`blockCol_not_admissible` — NO LEXICOGRAPHIC PRODUCT COLOURING OF THIS SHAPE IS EVER
+  ADMISSIBLE.**  For **any** number of blocks `t`, **any** number of factor colours `q`, **any**
+  blow-up size `m ≥ 2`, **any** internal colourings `psi` and **any** symmetric cross labelling `L`
+  injective in its first inner variable, the product colouring fails `Admissible` — the only
+  hypothesis on the construction is `hcover`, that *the factor map covers every colour at every
+  block* (the 1-factorisation property).  The bad `K₄` is exhibited: take two inner vertices
+  `x₀ ≠ x₁` of a block `i₀`, split the colour of `x₀x₁` as `(a, l)`, choose a block `j ≠ i₀` with
+  `f i₀ j = a`, and choose `y₁ ≠ y₂` in block `j` with `L i₀ j x₀ y₁ = L i₀ j x₁ y₂ = l` (possible
+  because `y ↦ L i₀ j x₁ y` is injective on `Fin m`, hence onto).  Then the three edges
+  `x₀x₁`, `x₀y₁`, `x₁y₂` all carry the **same** colour, so `Definitions.colorsOn_card_le_four`
+  bounds that `K₄` by **four** colours while `Admissible` demands five.
+* §2* `fin_add_comm` (the cross labelling `x + y` is symmetric) and `fin_add_inj` (`x ↦ x + y` is
+  injective, via `Nat.ModEq.add_right_cancel` then `Nat.ModEq.eq_of_lt_of_lt`) — the canonical
+  labelling.
+
+### 3. §3 — the witness is fine; the blow-up is not
+
+* `fact6Col` / `fact6` — the 1-factorisation `01|23|45`, `02|14|35`, `03|15|24`, `04|13|25`,
+  `05|12|34`, as a colouring and as a factor map `Fin 6 → Fin 6 → Fin 5`;
+* **`admissible_fact6Col`** — it *is* admissible (`native_decide` over the `C(6,4) = 15` four-sets): a
+  second explicit admissible 5-colouring of `K₆`, independent of `Tables.sixCol`;
+* `fact6_symm`, **`fact6_cover`** — symmetry and the covering property (`native_decide`);
+* **`blowup_K6_not_admissible`** — **THE `K₆` WITNESS CANNOT BE AMPLIFIED**: for every `m ≥ 2` and
+  every family of internal colourings, the blow-up of `K₆` along the 1-factorisation with the cross
+  labelling `x + y` is not admissible.  `m ≥ 2` is used nowhere else, so the family starts at the
+  right place (`m = 1` is the known witness) and dies immediately;
+* **`EG_ge_five_mul_six`** — the blow-up palette `5m` is *exactly* the catalog counting bound
+  `5(n-1)/6`, rounded up: `5m ≤ f(6m,4,5)`; **`EG_eq_five_mul`** — so a single admissible
+  `5m`-colouring of `K_{6m}` would settle `f(6m,4,5) = 5m`, and §2 says the product family can never
+  supply one;
+* `blowup_K6_instance` — a `native_decide` certificate of one bad four-set `{0,1,3,4}` of `K₁₈` at
+  blow-up size `3`, independent of the general argument.
+
+### 4. What this costs the prize, stated honestly
+
+The prize hypothesis `Partial.FamGreedyFamily` (a near-perfect matching in the auxiliary hypergraph,
+a sparse leftover, the two four-set conditions, `6(k+2D+1) ≤ 5(m-1)+δm`) is **untouched**: it is a
+Rödl-nibble / random-triangle-removal existence theorem and Mathlib contains neither.  What round 47
+adds is a *negative* result with real content: **the cheapest way to obtain the upper bound — amplify
+the one extremal small witness — is impossible**, in full generality, and this is the first time the
+development has said anything about *asymptotic* construction families rather than about single
+values of `f`.  A non-product family must exist, and none is known.  `jsp_000140_main` was again
+**not** declared.  `pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`) and B5 (`EG 13 ∈ {10,11}`) —
+unchanged.
+
+### 5. Abandoned / not done this round
+
+* The **budget-level** generalisation of the obstruction (cross-index space `Fin r` with `r ≤ m`,
+  palette `Fin (q·r)`) is **not** proved; it is `policy.json.next_lemma`, and it is the statement that
+  would close the whole amplification route in one theorem (`q·r ≤ q·m ⟹ r ≤ m`, and an injective
+  `Fin m → Fin r` with `r ≤ m` is a bijection onto its image).
+* Non-product amplification families (merging blocks rather than colouring them independently) are
+  untouched.
+* Round 45's census obstruction stays cancelled (its margin is negative only at `(7,6)` and `(8,6)`,
+  both settled by search).
+* **Cost note for the next round**: `JSPProblem/Seven.lean` costs ≈ 50 minutes of `native_decide`; it
+  was **not** touched in round 47 and its `.olean` was reused — the whole incremental build took
+  31 s.  `Product.lean` itself costs ≈ 10 s of `native_decide` (the 15 four-sets of `K₆` and the 18
+  edges of `K₁₈`).  Keep new material in new files.
+
 ## Status (round 46)
 
 `lake build`: **OK** (3134 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
