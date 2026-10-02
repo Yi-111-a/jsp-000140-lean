@@ -35,3 +35,4 @@ import JSPProblem.Spoil
 import JSPProblem.Edge
 import JSPProblem.Surplus
 import JSPProblem.Census
+import JSPProblem.Seven

@@ -1,3 +1,85 @@
+## Status (round 46)
+
+`lake build`: **OK** (3134 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 46 CLOSES BLOCKER B2 OF ROUND 19 — THE LAST STATEMENT THAT ROUND LEFT OPEN — BY ACTUALLY
+RUNNING THE THIRD SEARCH OF THIS DEVELOPMENT AT `n = 7`.**  New file
+`lean/JSPProblem/Seven.lean` (11 declarations, zero placeholders, on the default build path).
+
+### 1. The two certificates
+
+`FastSearch.lean` (round 19) built a *third* exhaustive engine for `f(n,4,5)`: `searchAuxSg`,
+a depth-first search over the edge slots of `K_n` which prunes each branch as soon as one of the
+`K₄`s completed by the slot being filled fails the catalog condition, branches only over the
+colours **in order of first occurrence** (the colour-permutation symmetry reduction), and
+enumerates the `K₄`s of every slot **once** in the table `fourGroupsS`.  Its **completeness
+theorem** `searchAuxSg_iff` and its **lower-bound engine** `EG_ge_of_certG` were proved in round 19,
+but the only certificates ever discharged for it were `certG_six_four` (`K₆`, four colours) and
+`certG_five_three` (`K₅`, three colours) — the two statements the *first* search (`Search.lean`)
+had already settled.  The certificate that mattered, `hasAdmissibleSymG 7 5 = false`, was left as
+**blocker B2** for 27 rounds because it had never been run inside Lean.
+
+* **`certG_seven_five : hasAdmissibleSymG 7 5 = false`** — about **50 minutes** of
+  `native_decide` (≈ 1.3 · 10⁷ search nodes; the same statement takes seconds in optimised C and
+  about 10⁴ × that in the interpreted Python model `discovery/JSP-000140/eg3_symmetry_nodes2.py`).
+  Since the completeness of the program is the *proved* theorem `searchAuxSg_iff`, the `false`
+  answer means what it says.
+* **`certG_seven_seven : hasAdmissibleSymG 7 6 = true`** — about **80 seconds**; the same engine
+  *finds* an admissible seven-colouring (the round-robin colouring `c({a,b}) = a + b` after the
+  symmetry reduction has relabelled it).
+
+### 2. What follows, in the catalog language
+
+* **`no_admissible_six_of_seven : ¬ ∃ c : Col 7 6, Admissible c`** — no admissible six-colouring of
+  `K₇` exists, with no witness to read and no search in the proof;
+* **`no_admissible_at_most_six_of_seven`** — the strengthened form: `K₇` genuinely needs **all
+  seven** of its colours (`Search.admissible_liftCol`);
+* **`EG_seven_ge_g`**, **`EG_seven_le_g`**, **`EG_seven_g`** — `f(7,4,5) ≥ 7`, `≤ 7`, hence
+  `f(7,4,5) = 7`: the value is **decided by this single engine on both sides**, so
+  `searchAuxSg_iff` is exercised on a `true` *and* on a `false` answer at the same order;
+* **`EG_seven_by_g`** — the same value with **no search at all** on the upper-bound side
+  (`Construction.EG_le_sumCol 7`), so the two derivations are independent;
+* **`counting_bound_missed_by_two_at_seven`** — `⌈5(7-1)/6⌉ = 5` while `f(7,4,5) = 7`: at `n = 7`
+  the sharp constant `5/6` of the catalog answer misses by **two** colours, although it is attained
+  for every `n ≤ 6` (`Tables.EG_six`);
+* **`three_engines_agree_at_seven`**, **`EG_seven_decided`** — the three searches of this
+  development (`Search.lean`, `FastSearch.lean`, `VertexSearch.lean`) are three independent programs
+  with three independently proved completeness theorems, and all three certify `f(7,4,5) = 7`.
+
+### 3. Limits, stated honestly
+
+`EG 7 = 7` was **already** known in this development (`Main.EG_seven` from the vertex-addition
+search, `Main.EG_seven_leaffree` from the leaf-free search), so this round adds a third independent
+derivation rather than a new value of `f`; the substantive gain is the closure of B2 and the fact
+that `searchAuxSg_iff` is now validated at the hardest order.  `n = 8` is out of reach of this
+engine (`> 7.5 · 10⁷` nodes in 900 s of Python) and is settled instead by
+`VertexSearch.certC_eight_six`; `n = 9` needs the leaf-free engine (`Nine.certD_nine_six`,
+≈ 80 min, deliberately kept off the default build path).  **No new value of `f(n,4,5)` was found
+this round** and the prize hypothesis `Partial.FamGreedyFamily` is untouched.
+
+### 4. Abandoned this round (recorded so the next round does not repeat it)
+
+* **The census obstruction of round 45 was NOT ported to Lean**, and this was a deliberate
+  decision, not an accident.  Its full content is `|twoFourSets c i| = choose |E_i| 2 + (n-4) ·
+  (twoA c i).card`, which needs three `Finset.card_bij` bijections at the `Sym2` level (ordered
+  adjacent pairs ↔ twice the centres; ordered disjoint pairs ↔ twice the four-sets with a disjoint
+  doubled pair; `(path, extra vertex) ↔ four-sets with an adjacent doubled pair`), and the first of
+  them cannot be obtained without the identity `|tri c i| = |twoA c i|`.  The *arithmetic* half of
+  that identity is cheap (`|pathTrip c i| = ∑_v deg_i(v)·(deg_i(v)-1) = 2·|twoA c i|` follows from
+  `deg_i v ≤ 2` with no `Sym2` case analysis), and the Sym2 half is the expensive one.
+  **And the payoff would be nil**: re-reading `discovery/JSP-000140/census_feasibility.py`, the
+  obstruction's margin is negative only at `(n,k) = (7,6)` and `(8,6)` — both of which this
+  development already settles by search (`Main.EG_seven`, `Main.EG_eight`) — and positive for every
+  `n ≥ 9`.  It refutes nothing new.
+* Asymptotically the census obstruction is worthless anyway (`∑_i choose |E_i| 2 ≳ n⁴/(8k)` forces
+  only `k ≥ 3`), so it cannot move the prize.
+* **Cost note for the next round**: `JSPProblem/Seven.lean` now costs **≈ 50 minutes of
+  `native_decide`**; touching it (or any file that changes its import trace) repays that.  Do not
+  edit `Seven.lean` casually.
+
 ## Status (round 45)
 
 `lake build`: **OK** (3133 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
