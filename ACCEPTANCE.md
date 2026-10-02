@@ -41,6 +41,98 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 35)
+
+`lake build`: **OK** (3125 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 35 GOES AFTER THE *FIRST* STAGE — AND FINDS THAT THE ROUND-34 INTERFACE IS VACUOUS AND
+THAT THE DETERMINISTIC SECOND STAGE IS PROVABLY UNPAYABLE.**  New file
+`lean/JSPProblem/First.lean` (696 lines, 47 declarations, zero placeholders).
+
+### 1. The first stage is a linear triple system, and its density is a *per-vertex* condition
+
+`Tri3`/`Lin3`/`degTris`/`covTris`/`leftoverTris` abstract the first stage of arXiv:2208.12563 §4 —
+edge-disjoint triangles of `K_n`, one colour each, `(vertex, colour)` pairs of distinct triangles
+disjoint — to a **linear family of three-element vertex sets**:
+
+* `card_covTris` — the vertices covered at `v` number `2 · degTris v` (linearity is exactly what
+  makes the contributions disjoint);
+* `sum_degTris` — `∑_v degTris v = 3 · |Tris|`;
+* `deg_le` — `2 · degTris v ≤ n - 1`, the Steiner bound;
+* `card_leftover_le_of_SparseL` — the **total** form, `|L| ≤ nD`, the shape a first-moment argument
+  produces;
+
+* **`SparseL_iff_degTris` — THE FIRST-STAGE DENSITY LEMMA.**  The leftover graph of the triple
+  system has maximum degree at most `D`
+
+      `⟺  2 · degTris v ≥ n - 1 - D`  for every vertex `v`.
+
+  This is the exact, purely combinatorial form of "maximum degree `D = n^{1-δ}`" (JM §4 (IV) /
+  BCDP Claim 4): **the first stage must pass through every vertex at least `⌈(n-1-D)/2⌉` times.**
+
+### 2. **THE PRICE OF EVERY SECOND STAGE — the headline of this round**
+
+`FirstStageCounting` (`5(n-1) ≤ 6k + 5D`, the slot counting of JM §4) plus
+
+* **`budget_leftover` — THE ACCOUNTING IDENTITY.**  The catalog budget
+  `6(k + fresh) ≤ 5(n-1) + δn` leaves `6 · fresh ≤ 5D + δn` for the second stage.
+
+From that one identity:
+
+* **`proper_fits`** — the **published** second stage (round 31's greedy properness,
+  `fresh = 2D + 1`) fits whenever `7D + 6 ≤ δn`; for the published `D = n^{1-δ}` this holds for all
+  large `n`.  **The second stage of the papers is PAYABLE; the local lemma is not needed for it.**
+* **`deterministic_budget_strong` / `deterministic_budget`** — the deterministic second stage of
+  rounds 33/34, which also excludes `B₂ = B_D` and `B₃ = C_{D,i}` with no probability and costs
+  `fresh = 2D² + 2D + T + 1`, gives
+
+      `12 D² + 7D + 6T + 6 ≤ δn`,   in particular   **`12 D² ≤ δn`**,  i.e.  `D = O(√(δn)) = o(√n)`.
+
+  For `D = n^{1-δ}` and `δ < 1/2` this is **false for all large `n`**.
+* **`deterministic_imp_proper` / `deterministic_ne_proper`** — the two budgets are strictly ordered:
+  the round-33/34 budget implies the published one, not conversely.
+
+**This retires a whole attack family.**  The "honest price" of rounds 33/34 was prose; it is now
+`deterministic_budget`, a theorem.  **At the published parameters the symmetric local lemma (or
+something of its strength) is genuinely necessary for `B₂` and `B₃`** — and a first-moment argument
+is no help either, since it also needs `q ≫ D²` while the budget leaves only `fresh ≤ (5D + δn)/6`.
+
+### 3. The interface of round 34 is **vacuous**
+
+`CrossStageFamily` asserts `Covers c₀` — the **complete** covering of round 29 — together with
+`SparseL` and `CrossThin` on `leftover c₀`.  But `Covers c₀ ↔ leftover c₀ = ∅`
+(`covers_iff_leftover_eq_empty`), so with `D = T = 0` the fresh-colour cost is `1`, and
+
+* **`crossStageFamily_iff_triFamily` : `CrossStageFamily ↔ TriFamily`** (together with
+  `crossStageFamily_tri`, `crossStageFamily_of_tri`, `jsp_000140_main_of_cross_iff_tri`).
+
+**The whole second stage of rounds 33 and 34 is dead code with respect to the remaining
+hypothesis.**  `PartialStageFamily` is the corrected interface: the first stage may leave `o(n²)`
+edges uncovered, `Design` and `LeafClosed` are hypotheses (they are Phase-1 output, and
+`tile_of_tri`/`leafClosed_of_tri` need the *complete* covering), and `SparseL`/`CrossThin` are
+genuinely non-vacuous.  `crossStageFamily_partial` shows it is at least as general, and
+`leftover_card_le` records *why* a total bound is not enough: `AlmostCovers c (n·n)` holds for
+**every** colouring.
+
+### 4. NOT proved this round (blockers)
+
+* **the slot counting itself** — `First.count_lower`, `5(n-1-D) ≤ 6k` from `PairFree` alone.  It is
+  isolated as the hypothesis `FirstStageCounting`, and every verdict of §2 is proved *from* that
+  hypothesis, so none of them depends on its details.  The recipe (all four ingredients derived in
+  round 35 and recorded in `policy.json.next_lemma`): `centre_unique` — the centre of a first-stage
+  triangle is determined by its vertex set, the Steiner-system-with-a-centre-per-block structure of
+  rounds 13/24; `card_triPairs = 5`; the double count `∑_T ∑_v |colTris c T v| = 5·|Σ|`; and the
+  injectivity of `(T, v, i) ↦ (v, i)` from `PairFree`.  The obstacle is that a canonical labelling
+  of each triple cannot be a *total* function (`Fin 0` is `Empty`).
+* **the existence of the first stage** — an almost-complete linear triple system with uniform vertex
+  degree, `NoCrossFour`, `NoBadFour`, leaf closure, and a controlled crossing count: this is
+  `PartialStageFamily`, and it is the single remaining prize hypothesis.
+* `pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`, `f(11,4,5) ∈ {9,10}`); B5 (`K₁₃` with ten
+  colours) — unchanged.
+
 ## Status (round 34)
 
 `lake build`: **OK** (3124 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
