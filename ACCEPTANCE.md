@@ -1,3 +1,118 @@
+## Status (round 49)
+
+`lake build`: **OK** (3137 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 49 CHANGES ATTACK FAMILY FOR THE FIRST TIME SINCE ROUND 14: FROM THE *NECESSITY* SIDE OF
+THE SHARP CONSTANT TO THE *CONSTRUCTION* SIDE — AND IT WRITES DOWN, FOR THE FIRST TIME IN THIS
+DEVELOPMENT, AN ACTUAL STEINER TRIPLE SYSTEM.**  Rounds 19–48 all worked on what an extremal colouring
+*must* look like (`Rigidity.tight_pathFinset_is_STS`, `tight_mod6`, `Extremal.tight_ge_thirteen`,
+`Main.star_profile_at_thirteen`, `Classwise.tight_thirteen_profile`, …): the development knows that an
+extremal colouring of `K_n` decomposes `E(K_n)` into triangles and colours each with a `(a,a,b)`
+pattern, knows the complete per-colour and per-vertex profile, and knows the first admissible order is
+`n = 13` — **but it had never exhibited a single Steiner triple system, so there was nothing for a
+construction to start from and no way to attack `Main.extremal_at_thirteen_is_open`.**  New file
+`lean/JSPProblem/Block.lean` (325 lines, 18 declarations, zero placeholders, on the default build
+path).
+
+### 1. §1 — the census of a Steiner triple system (the family side)
+
+The double count of "pairs inside blocks", which `Rigidity.sum_card_filter_pairIn` performs for the
+two-edge paths of a *colouring*, performed here for the blocks alone:
+
+* **`card_edgeFinset_univ_eq_three_mul_card` — `|E(K_n)| = 3 * |B|`** for every `B` with `IsSTS B`;
+* **`six_mul_card_eq` — `6 * |B| = n * (n - 1)`**, i.e. a Steiner triple system of order `n` has
+  exactly `n(n-1)/6` blocks — the number `Cherry.three_mul_paths_le_edges` forces an extremal
+  colouring to reach *exactly* and which arXiv:2207.02920 builds up to `o(n²)` by random triangle
+  removal (`six_mul_card_eq_real` is the same over `ℝ`);
+* **`sts_three_dvd` — `3 ∣ n * (n - 1)`**, so no Steiner triple system exists for `n ≡ 2, 5 (mod 6)`.
+  With `Rigidity.tight_mod6` (extremality forces `n ≡ 1 (mod 6)`) this is the **construction-side
+  congruence obstruction**: the `(2,1)`-block construction reaches `5(n-1)/6` only on the residue
+  class on which that number is an integer at all.
+
+### 2. §2 — **THE FIRST EXPLICIT STEINER TRIPLE SYSTEM IN THIS DEVELOPMENT**
+
+`B13` is the **cyclic** Steiner triple system of order `13`: the two base blocks `{0,1,4}` and
+`{0,2,7}` developed by translation in `Z₁₃` (`fin13`, `sts13Block`, `B13`).
+
+* **`card_B13` — exactly `26 = 13 · 12 / 6` blocks** (`native_decide`);
+* **`card_filter_B13` — every one of the `78` pairs of `K₁₃` lies in EXACTLY ONE block**
+  (`native_decide`; this is the decidable form of `IsSTS`, there being no `Decidable` instance for
+  `∃!`);
+* **`card_block_B13`** (`native_decide`) and **`IsSTS_B13`** — so `B13` is a decomposition of the `78`
+  edges of `K₁₃` into `26` triangles: **exactly the object `Rigidity.tight_pathFinset_is_STS` demands
+  of an extremal colouring of `K₁₃`, now written down and machine-certified**;
+* `six_mul_card_B13`, `census_B13`, `first_instance_of_sharp_constant` (`6 · 10 = 5 · 12`, `|B13| = 26`)
+  — the first non-trivial instance of the sharp constant as a single numerical statement.
+
+### 3. §3 — **THE DECOMPOSITION FAMILY IS QUANTISED**
+
+For a colouring whose two-edge paths decompose `K_n` (i.e. whose paths are a Steiner triple system),
+`Surplus.global_identity` specialises to an exact price formula, and the price is quantised:
+
+* **`decomposition_eq` — `n * k = 5 * Paths c + Isolated c`**: the counting argument pays exactly five
+  colour-slots per triangle of the decomposition and nothing else.  This is the construction-side
+  price formula (`k = 5(n-1)/6 + Isolated c / n`), i.e. what arXiv:2207.02920 §12 pays for the
+  uncoloured leftover edges;
+* **`decomposition_isolated_dvd` — `Isolated c = n * t` when `n ≡ 1 (mod 6)`**: the missed
+  `(vertex, colour)` incidences come in **whole colours** — losing one costs a full colour's worth of
+  coverage;
+* **`decomposition_gap` — `6k = 5(n-1)` OR `5(n-1) + 6 ≤ 6k`**: **the `(2,1)`-block family has no
+  surplus in between**, it either attains the counting bound exactly or wastes at least one colour;
+* **`decomposition_gap_at_thirteen`** — the same at the first possible order: a decomposition
+  colouring of `K₁₃` uses **exactly `10` colours, or at least `11`**.
+
+### 4. The search that was run in parallel (`sts_search.c`, `sts_mc.c`, `sts_mc2.c`, `sts_polish.c`)
+
+An admissible 10-colouring of `K₁₃` must be a `(2,1)`-block colouring of **some** STS(13): that is
+`Rigidity.tight_pathFinset_is_STS` at `n = 13`.  So the finite question "does `K₁₃` admit an
+admissible 10-colouring?" reduces, within a fixed STS, to a `26 × 300` table (per block: which of the
+three vertices is the centre, and which two distinct colours).  Three engines were written
+(`discovery/JSP-000140/sts_{search,mc,mc2,polish}.c`: min-conflicts with simulated annealing, weighted
+min-conflicts, steepest descent, iterated local search on the exact objective "number of violated
+four-sets") and run for ≈ 40 CPU-minutes on the cyclic `B13`.
+
+* **No admissible `(2,1)`-block colouring was found.  The best state reached violates 16 of the 715
+  four-sets of `K₁₃`** (min-conflicts alone reaches `bad = 1` occasionally, i.e. a single violated
+  four-set, but never 0).  This is the **first quantitative statement about B5 in the shape the
+  rigidity theorem forces**; it is evidence, not a proof.
+* Only the **cyclic** STS(13) was searched; there are 10 isomorphism classes and the other 9 are
+  untouched.
+
+### 5. What this costs the prize, stated honestly
+
+The prize hypothesis `Partial.FamGreedyFamily` (a near-perfect matching in the auxiliary hypergraph, a
+sparse leftover, the two four-set conditions, `6(k+2D+1) ≤ 5(m-1)+δm`) is **untouched**: it is a
+Rödl-nibble / random-triangle-removal existence theorem and Mathlib contains neither.  What round 49
+changes is the *starting material* for the construction side: the combinatorial object the paper
+builds by random triangle removal — a decomposition of `E(K_n)` into `n(n-1)/6` triangles — now
+exists in the development as certified data (`B13`), its census is proved on the family side, and the
+`(2,1)`-block colouring built on such a decomposition is priced exactly and shown to be quantised.
+`jsp_000140_main` was again **not** declared; B5, `pairFree_of_admissible`, B4 (`f(10,4,5) ∈ {8,9}`)
+— unchanged.
+
+### 6. Abandoned / not done this round
+
+* **The `(2,1)`-block colouring is still not written down as Lean data.**  The theorem that would
+  make the census constructive — `Paths (blockCol B ctr pc qc) = |B|` for a `(2,1)`-block colouring
+  of a decomposition — was drafted and *not* proved: it needs `(nb c i v univ).card ≤ 2` from
+  `Admissible` (from `Definitions.classIn_card_le_two` + `Definitions.card_ge_three`) and then a
+  `Sym2`-level case analysis showing that the two colour-`i` edges at a centre lie in **one** block
+  (two different blocks would put three colour-`i` edges in one four-set).  Recorded in
+  `policy.json.next_round_plan` step 3, with the two ingredients in the order they must be done;
+* **only 1 of the 10 STS(13) isomorphism classes was searched**; the other 9 are the obvious next
+  attempt (`policy.json.next_round_plan` step 1), and a success would give `EG 13 = 10`, the first
+  attainment of the sharp constant `5/6` beyond `n = 6`, closing
+  `Main.extremal_at_thirteen_is_open`;
+* the STS census for `n` **odd** (`2 · |blocks through `v`| = n - 1`, hence `n ≡ 1, 3 (mod 6)`) was
+  drafted and cut — a second `Finset.sum_comm` at the `(pair, block)` level, not needed this round;
+* **cost note for the next round**: `Block.lean` compiles in ≈ 40 s (the `native_decide` calls over the
+  `715` four-sets' worth of pair arithmetic dominate); `Amplify.lean` still costs ≈ 150 s and
+  `Seven.lean` ≈ 50 min of `native_decide` — both were **not** touched, and the whole incremental
+  build was 21 s.  Keep new material in new files.
+
 ## Status (round 48)
 
 `lake build`: **OK** (3136 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
