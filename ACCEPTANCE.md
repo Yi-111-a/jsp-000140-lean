@@ -41,6 +41,68 @@ JSP140.Admissible c : Prop :=
 
 the catalog condition ("every four-vertex clique contains at least five colours").
 
+## Status (round 33)
+
+`lake build`: **OK** (3123 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 33 REMOVES ONE OF THE TWO BAD-EVENT FAMILIES OF THE PUBLISHED SECOND STAGE: `B_D` IS A
+GREEDY MATTER, NOT A PROBABILISTIC ONE.**  Round 32 reduced the required theorem to
+`StageFamily`, whose second-stage hypotheses are the properness (already deterministic, round 31)
+plus the two bad-event families `B_D` (arXiv:2208.12563 §4 = `B₂` of arXiv:2207.02920 §12) and
+`C_{D,i}` (`B₃`), both of which the two papers obtain from the symmetric **Lovász Local Lemma** —
+which Mathlib does not contain.
+
+New file `lean/JSPProblem/StarColour.lean` (576 lines, 13 public + 15 private declarations, zero
+placeholders) proves that `B_D` never needed the local lemma:
+
+* `Sep L e f` and `Sep.symm` — **two leftover edges separated by a third leftover edge**: the two
+  *outer* edges of a path of three leftover edges `a – b – p – q` on four distinct vertices
+  (`e = s(a,b)`, `f = s(p,q)`, and `s(b,p) ∈ L` or `s(q,a) ∈ L`).  In a 4-cycle of leftover edges
+  these are the two diagonals;
+* `StarProper c L` — a fresh colouring which is proper **and** injective on the separated pairs;
+* **`noAltCycle_of_starProper` — THE REDUCTION.**  Properness makes neighbouring cycle edges
+  differ, separation makes the diagonals differ, so **all four colours of a 4-cycle of leftover
+  edges are pairwise distinct** and the cycle spans at least three colours: the bad event `B_D`
+  cannot occur.  (Private helper `card_ge_four` does the counting; `cyc_ne` the distinctness of the
+  adjacent edges of the cycle.);
+* the counting: `NbL` (the leftover neighbours of a vertex, `card_NbL : (NbL L v).card = DegL L v`),
+  `wit` (the witnesses `(y,z)` with `s(y,v) ∈ L`, `y,z ∉ e`, `z ≠ y`, `s(z,y) ∈ L`, counted through
+  two nested images), `card_wit_le : |wit L e v| ≤ D²`, `sepF` (the leftover edges separated from
+  `e`), **`card_sepF_le : |sepF L e| ≤ 2D²`**, `mem_wit`, `mem_sepF` (every separated edge is
+  caught), plus `card_mem_e_le` (an edge has at most two endpoints);
+* **`star_greedy` — THE GREEDY STAR COLOURING.**  A leftover graph of maximum degree `D` has a
+  colouring with `2D² + 2D + 1` fresh colours which is proper and injective on the separated pairs.
+  Each new edge avoids the colours of the at most `2D` edges it meets (as in round 31) and of the
+  at most `2D²` edges separated from it;
+* **`second_stage_of_sparseL` / `second_stage_of_leftover` — THE DETERMINISTIC HALF OF THE SECOND
+  STAGE**: `Proper ∧ NoAltCycle` for `extendColDep` with `2Δ(L)² + 2Δ(L) + 1` fresh colours, no
+  probability anywhere;
+* **`admissible_of_star`**: a first-stage `Design` with leaf closure, extended properly on `L` and
+  respecting the separated pairs, and avoiding `C_{D,i}`, is `Admissible`;
+* `StarStageFamily`, `SlackFamily.of_star`, **`jsp_000140_main_of_star_stage_family`** — the
+  required theorem `jsp_000140_main` reduced to the published construction with `NoAltCycle`
+  **deleted from the hypotheses** (it follows from properness + the separated-pair condition by
+  `noAltCycle_of_starProper`) and with the fresh-colour budget `2D²+2D+1` made explicit.  Only two
+  probabilistic objects remain: the hypergraph matching of the first stage (JM Thm 4.2) and the
+  single bad-event family `C_{D,i}` / `B₃` (the local lemma).
+
+**THE HONEST PRICE.** `2D²` fresh colours rather than the `Θ(n^{1-δ})` of the papers, so the
+deterministic exclusion of `B_D` is affordable only for `D = o(√n)`; `C_{D,i}` constrains *disjoint*
+pairs of leftover edges and cannot be handled by any greedy rule, so the local lemma is still
+needed for it.  What this round establishes is the precise division of labour between determinism
+and probability inside phase 2 of arXiv:2208.12563 §4 = arXiv:2207.02920 §12.
+
+**Abandoned this round:** the symmetric Lovász Local Lemma itself.  It was the round-32 blocker,
+and the round-32 plan proposed it as the next target; the analysis of this round shows that half of
+its application (the events `B_1`, `B_2`) is *not* a local-lemma application at all — `B_1` is the
+greedy properness of round 31 and `B_2` is the greedy star colouring proved here — so the local
+lemma is needed only for `C_{D,i}`.  Formalising it as a probability theory (Lovász's entropy /
+Kolaitis–Miller counting proof) is a separate, much larger task and was not attempted; see
+`policy.json` for the exact remaining formulation.
+
 ## Status (round 31)
 
 `lake build`: **OK** (3121 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
