@@ -34,3 +34,4 @@ import JSPProblem.Hyper
 import JSPProblem.Spoil
 import JSPProblem.Edge
 import JSPProblem.Surplus
+import JSPProblem.Census

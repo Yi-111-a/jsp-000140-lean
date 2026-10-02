@@ -1,3 +1,103 @@
+## Status (round 45)
+
+`lake build`: **OK** (3133 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 45 CHANGES ATTACK FAMILY: THE `K₄` SIDE OF THE CATALOG CONDITION INSTEAD OF THE EDGE
+SIDE.**  Rounds 37–44 all looked at a colouring through its **edges** (the two-edge-path counting,
+the slot counting, the auxiliary hypergraph `H`, the exact surplus identity).  This round looks at
+it through its **four-vertex cliques**, and finds there an obstruction that the edge side cannot see.
+New file `lean/JSPProblem/Census.lean` (309 lines, 23 declarations, zero placeholders).
+
+### 1. §1 — **THE 5-OR-6 DICHOTOMY**
+
+`Definitions.classIn_card_le_two` (*no four vertices carry three edges of one colour*) has, until now,
+been used only locally.  Read globally, together with the fact that the colour classes partition
+`E(K_S)`, it says that the only admissible multiplicity patterns of the six edges of a `K₄` are
+`(2,1,1,1,1)` and `(1,1,1,1,1,1)`.  With `doubledIn c S` = the colours occurring **twice** on `S`:
+
+* **`card_colorsOn_add_doubledIn`** — the exact form, **for every four-element `S`**
+  `|colorsOn c S| + |doubledIn c S| = 6`;
+* **`card_doubledIn_le_one`** — **A `K₄` HAS AT MOST ONE DOUBLED COLOUR** (so the pattern
+  `(2,2,1,1)`, i.e. four colours, is impossible — this is where the whole `≥ 5` of the catalog
+  condition enters the census);
+* **`card_colorsOn_four_five_or_six`** — **EVERY FOUR-SET OF AN ADMISSIBLE COLOURING SPANS EXACTLY
+  FIVE OR SIX COLOURS**;
+* `card_colorsOn_four_eq_six_iff`, `card_colorsOn_four_eq_five_iff` (rainbow ↔ no doubled colour;
+  five colours ↔ exactly one doubled colour); `classIn_card_mem_colorsOn`,
+  `mem_colorsOn_of_card_pos`, `sum_card_classIn_colors`, `twoFourSets c i`, `fiveFourSets c`.
+
+### 2. §2 — the counting tools the census needs
+
+`edgePairs` / `mem_edgePairs` / **`card_edgePairs`** (the ordered pairs of distinct members of a
+finset) and **`two_mul_choose_two`** (`2 * choose m 2 = m * (m - 1)`), plus `sum_const_card_nat`.
+
+### 3. §3 — **A NEW OBSTRACTION, MACHINE-CHECKED: THE CENSUS OBSTRUSION** (not yet in Lean)
+
+Counting the `K₄`s in which a colour is doubled, in two ways, gives the **exact per-colour census**
+
+    `|twoFourSets c i|  =  choose |E_i| 2  +  (n - 4) * (twoA c i).card`
+
+(one for every unordered pair of colour-`i` edges — a *disjoint* pair determines its `K₄` uniquely,
+an *adjacent* pair, i.e. a two-edge path, lies in `n-3` of them), and therefore
+
+    **THE CENSUS OBSTRUSION**   `choose n 4  ≥  ∑_i choose |E_i| 2  +  (n - 4) * Paths c`,
+
+a new necessary condition on the colour-class profile.  It is *not* a consequence of
+`Surplus.surplus_identity`, which knows only `∑_i |E_i|`, `Paths c` and `Isolated c`.
+
+**Findings** (`discovery/JSP-000140/census_feasibility.py`, a DP over the colour-class profiles, exact):
+
+| `(n, k)` | margin `choose n 4 − (obstruction LHS)` | verdict |
+| --- | --- | --- |
+| `(6, 5)` | **0** | the known admissible `K₆`/5 witness **saturates** the obstruction |
+| `(7, 6)` | −1 | **refuted** |
+| `(8, 6)` | −14 | **refuted** |
+| `(9, 7)`, `(10, 8)` | +6, +45 | not refuted |
+| `(13, 10)` | +215 | not refuted — the obstruction does not touch B5 |
+
+The `(6,5)` row is the sanity check that the obstruction is correct: the explicit 5-colouring of `K₆`
+(`Tables.sixCol`, whose `Isolated = 0`, `Defect = 15`, `Paths = 0` are computed in round 44) has
+`∑_i choose 3 2 = 15 = choose 6 4` exactly.
+
+Combining with two per-colour arithmetic facts about the profile `(a,b,z) = (twoA, oneB, zeroA)`
+(both `native_decide`-able, `3a + 2b + z` replaced by `a + b + z = n` and `2|E_i| = 2a + b`):
+
+* `choose |E_i| 2 + 3 z ≥ 6` for every profile of `K₇`,
+* `choose |E_i| 2 + 4 a + 42 ≥ 12 |E_i|` for every profile of `K₈`,
+
+the obstruction **refutes an admissible six-colouring of `K₇` and of `K₈`**, hence (with
+`Construction.EG_le_sumCol` and `Main.EG_le_ghost_sub`)
+
+    **`EG 7 = 7`   and   `EG 8 = 7`**.
+
+This is the **first improvement of the catalog counting bound `f(n,4,5) ≥ 5(n-1)/6` obtained in this
+development**: at `n = 7` and `n = 8` the counting bound gives only `≥ 6`.  It is also a *finite*
+statement, i.e. unlike the first-stage existence it is closeable in Lean.
+
+### 4. NOT proved this round — the exact blocker
+
+**Section 3 of `Census.lean` is proved in Python but NOT yet in Lean.**  Four helper lemmas were
+drafted and all four failed to compile inside this round's budget, so they were cut out of the file
+to keep the build green: `exists_mk_of_mem` / `toFinset_inj` / `exists_common_centre` (turning a
+vertex of a `Sym2` into `s(v, a)`) and `card_fourSets_through_three` / `card_fourSets_through_four`
+(the number of `K₄`s through a three- resp. four-vertex set is `n-3` resp. `1`).  The root cause is the
+`Sym2` representation: `Sym2` has **no** coercion to `Finset` (`Sym2.toFinset` is a `def` through
+`Multiset`), `x ∈ z` for `z : Sym2` is *not* a `Membership` (only `Sym2.mem_toFinset` is, and it is
+an `Iff`), and `Finset.eq_empty_iff_forall_not_mem`, `Finset.card_pos_iff`, `Finset.Nonempty.some`,
+`Finset.card_le_antisymm`, `Nat.choose_succ` and `Nat.sub_mul` **do not exist** in this Mathlib/batteries
+version.  Every failing `rw`/`rcases` and the working substitutes are written out in
+`discovery/JSP-000140/policy.json.next_lemma`, in the order they must be done.
+
+The prize itself is unchanged: `FiveSixth EG` for all large `n` still needs the construction of
+arXiv:2207.02920 / arXiv:2208.12563, i.e. a Rödl-nibble / differential-equation / random-triangle-removal
+existence theorem, and Mathlib has none of them.  `jsp_000140_main` was again **not** declared.
+`pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`, which the round-14 notes already make a
+corollary of `EG_ge_ceil_five_sixth` + `Tables.EG_ten_le`) and B5 (`K₁₃` with ten colours) —
+unchanged.
+
 ## Status (round 44)
 
 `lake build`: **OK** (3132 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
