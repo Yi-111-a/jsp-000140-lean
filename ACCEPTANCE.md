@@ -1,3 +1,110 @@
+## Status (round 44)
+
+`lake build`: **OK** (3132 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
+`harness/score.py --strict-prize` (invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 44 REPLACES THE `5/6` COUNTING *INEQUALITY* BY AN EXACT *IDENTITY*, AND READS OFF THE
+DEFECT BUDGET THE MISSING CONSTRUCTION HAS TO PAY — AND, WITH IT, A NEW *CONSTRUCTION* FAMILY
+(1-FACTORISATION + MERGING) WHICH WAS TESTED AND IS REFUTED AT THE COUNTING BOUND.**
+New file `lean/JSPProblem/Surplus.lean` (542 lines, 37 declarations, zero placeholders).
+
+### 1. §1 — the two defects of a colouring
+
+* **`zeroA c i` / `Isolated c`** — DEFECT I: the number of `(vertex, colour)` incidences on which the
+  colour does not occur at all (neither a two-edge-path centre `Counting.twoA` nor a single-edge
+  vertex `Counting.oneB`);
+* **`Defect c = |E(K_n)| - 3 · Paths c`** — DEFECT II: the edges of `K_n` that **no two-edge path pays
+  for** (each path brings three edges with it and these triples are pairwise disjoint,
+  `Cherry.cherryEdges_disjoint`);
+* **`card_twoA_oneB_zeroA`** — THE THREE DEGREE CLASSES OF A COLOUR CLASS PARTITION THE VERTICES,
+  `|twoA| + |oneB| + |zeroA| = n`: the exact form of `Paths.twoA_oneB_card_le` (which recorded only
+  `≤ n`);
+* **`two_mul_classIn_eq`** — **THE EXACT PER-COLOUR COUNTING IDENTITY `2·|E_i| = n + p - z`**, where
+  `p` is the number of two-edge-path centres of the colour and `z` the number of vertices it misses:
+  the sharp form of `Paths.two_mul_classIn_le_add` (`2|E_i| ≤ n + p`), which kept the `+p` and
+  *discarded the `-z`*;
+* **`sum_classIn_add_isolated` / `global_identity`** — `2·|E(K_n)| + Isolated c = n·k + Paths c`, i.e.
+  `n(n-1) + Isolated c = n·k + Paths c`: `Paths.mul_n_sub_one_le` with the missed vertices added back.
+
+### 2. §2 — **THE EXACT SURPLUS IDENTITY** (`surplus_identity`)
+
+    `6 * (n * k) = 5 * n * (n - 1) + 6 * Isolated c + 2 * Defect c`
+
+for every admissible colouring and `n ≥ 4`.  **The number of colours exceeds `5(n-1)/6` by exactly
+`Isolated c / n + Defect c / (3n)`, in two integers, with no inequality anywhere**
+(`surplus_of_k`: `6·Isolated + 2·Defect = n·(6k - 5(n-1))`).  `Cherry.five_sixth_lower` is the
+*shadow* of this equality (`five_sixth_lower_of_surplus`).
+
+### 3. §3 — what it says about extremality, and about what a construction must do
+
+* **`clean_of_extremal` / `extremal_of_clean`** — a colouring is extremal (`6k = 5(n-1)`) **iff** it
+  has *no* missed `(vertex, colour)` incidence and *no* unpaid edge.  This is the **converse** to
+  `Rigidity.tight_pathFinset_is_STS` and `Main.extremal_no_isolated_vertex`: necessity was known, the
+  *sufficiency* — i.e. the certification a construction needs — now is too;
+* **`extremal_of_covered_cherries`** — **the design target in one statement**: an admissible colouring
+  in which every edge is paid for by a two-edge path and every colour reaches every vertex is
+  extremal;
+* **`defect_budget`** — **a colouring that pays `r` colours more than `5(n-1)/6` pays at most `r·n`
+  in defects**: with the published `6k ≤ 5(n-1) + δn` this is `6·Isolated + 2·Defect ≤ δn²`, i.e. the
+  first stage of arXiv:2208.12563 §4 / arXiv:2207.02920 §4 (which leaves `Θ(n^{2-δ})` edges over)
+  must leave `o(n²)` *defects*, in the exact currency of the catalog constant `5/6`
+  (`isolated_le_of_budget`, `defect_le_of_budget`);
+* **`defect_divisible` / `three_mul_isolated_defect_divisible`** — `n ∣ (6·Isolated + 2·Defect)`, and
+  for odd `n` also `n ∣ (3·Isolated + Defect)`: a cheap *necessary* condition on the output of any
+  construction, checkable before a single four-clique is looked at;
+* **`surplus_real` / `EG_surplus_real` / `EG_surplus_exists`** — over `ℝ`, at the optimum:
+  `f(n,4,5) = 5(n-1)/6 + (the defects of an optimal colouring)`, so the excess of `f(n,4,5)` over
+  `5n/6` *is* the defect price of a colouring witnessing it.
+
+### 4. §4 — the defects of the explicit colourings (`native_decide`)
+
+| witness | `n`, `k` | `Isolated` | `Defect` | `6I + 2D` | `n·(6k-5(n-1))` |
+| --- | --- | --- | --- | --- | --- |
+| `Tables.sixCol` | 6, 5 | **0** | **15** | 30 | 30 |
+| `Tables.nineCol` | 9, 8 | **4** | **24** | 72 | 72 |
+| `Tables.tenCol` | 10, 9 | **8** | **21** | 90 | 90 |
+| `Tables.elevenCol` | 11, 10 | **10** | **25** | 110 | 110 |
+
+with `tenCol_budget`, `tenCol_divisible`, `elevenCol_divisible` as the machine-checked statements.
+The `K_6` witness is *clean in defect I* (`Isolated = 0`, as `Main.extremal_no_isolated_vertex`
+forces at `n = 6`) and pays its whole surplus `6·5 - 5·5 = 5` colours in unpaid edges.
+
+### 5. §5 — **A NEW CONSTRUCTION FAMILY, TESTED AND REFUTED AT THE COUNTING BOUND**
+
+Rounds 40–43 all attacked the *matching* side, i.e. necessary conditions on the unknown witness of
+arXiv:2208.12563 §4.  Round 44 also tried a family on the **upper-bound** side, never attempted in
+this development: **merge pairs of one-factors of a 1-factorisation of `K_n` into single colours**
+(`discovery/JSP-000140/factormerge2.py`, plus the earlier min-conflicts solver `eg7_walk.c` and the
+incremental annealer `eg8_sa.c` for the raw constraint system).  A union of two one-factors is a
+disjoint union of even cycles, so the colour-degree bound of `Admissible` is automatic and the only
+condition to check is *"no four-set has two vertex-disjoint pairs of edges of one colour"*; with `m`
+merges one gets `k = (n-1) - m`, and at `m = (n+5)/6` exactly `5(n-1)/6`.  **Findings (all machine
+checked):**
+
+* `n = 6`, `m = 0`: **0 violations** — the family reproduces the known admissible 5-colouring of
+  `K_6`, so the criterion is correct;
+* `n = 10`: the round-robin 1-factorisation with `m = 0` has 3 violated four-sets and **every one of
+  the 36 single merges has at least 6** (`m = 2,3,4` worse still);
+* `n = 10`, `k = 8` (= the counting bound ⌈5(n-1)/6⌉, i.e. **B4**): 40 000 000 moves of min-conflicts
+  from seven seeds never reached 0; the best assignment found still violates **6** of the 210
+  four-sets.  **This is evidence, not a proof** — but it is the first quantitative statement about
+  B4 that this development has produced.
+
+### 6. NOT proved this round
+
+The existence of the matching itself, i.e. `Partial.FamGreedyFamily`: for every `δ > 0` and all large
+`m ≡ 1 (mod 6)` a *near-perfect* matching in `H` with a sparse leftover, no bad and no crossing
+four-set, and `6(k+2D+1) ≤ 5(m-1) + δm`.  `defect_budget` now says *exactly* what such a matching has
+to achieve — a first stage whose `3·Isolated + Defect ≤ δn²/2` — but producing one needs a Rödl
+nibble / differential-equation method / random triangle removal, and Mathlib contains none of them.
+The 1-factorisation-merging family of §5 is refuted only *at the counting bound* and for the
+round-robin factorisations; a general 1-factorisation with more merges is not excluded (though
+`Hyper.witness_size`/`Cherry.three_mul_paths_le_edges` bound what it could achieve).
+`pairFree_of_admissible`; B4 (`f(10,4,5) ∈ {8,9}`, `f(11,4,5) ∈ {9,10}`); B5 (`K₁₃` with ten colours)
+— unchanged, with the new quantitative evidence of §5 recorded for B4.
+
 ## Status (round 43)
 
 `lake build`: **OK** (3131 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

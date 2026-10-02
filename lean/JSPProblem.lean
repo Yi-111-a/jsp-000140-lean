@@ -33,3 +33,4 @@ import JSPProblem.Partial
 import JSPProblem.Hyper
 import JSPProblem.Spoil
 import JSPProblem.Edge
+import JSPProblem.Surplus
