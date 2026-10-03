@@ -47,4 +47,5 @@ import JSPProblem.BlockCol
 import JSPProblem.Alt
 import JSPProblem.Quad
 import JSPProblem.Pairs
+import JSPProblem.Moment
 import JSPProblem.Pack

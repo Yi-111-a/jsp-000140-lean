@@ -64,24 +64,39 @@ theorem; the statements are kept as the specification of what `Pairs.lean` prove
   a consequence of `Surplus.surplus_identity`, which knows only `∑_i |E_i|`, `Paths c` and
   `Isolated c`: it uses the **pair** census of the colour classes.
 
-## §3 — two new exact values of `f(n,4,5)`
+## §3 — what the census gives for `f(n,4,5)` (CORRECTED in round 63)
 
-The obstruction **beats the counting bound `5(n-1) ≤ 6k`** at small `n`, by a finite argument
-about the colour-class profile `(twoA, oneB, zeroA)`:
+**The three bullets this section used to advertise (`profile_cost_seven`, `profile_cost_eight`,
+`no_six_of_seven`, `no_six_of_eight`) were never proved** — the names appear nowhere in the
+development.  The exact values `EG 7 = 7` and `EG 8 = 7` are theorems of this repository, but they
+rest on **search certificates** (`VertexSearch.certC_eight_six`, `EG_ge_of_certC`) and on the
+ghost/sum colourings, not on the census.  Round 63 replaces this section with what is actually
+proved.
 
-* `profile_cost_seven` — machine-checked: for every colour-class profile of `K_7`
-  (`2 |E_i| = 2a + b`, `a + b + z = 7`),  `choose |E_i| 2 + 3 z ≥ 6`;
-* `profile_cost_eight` — for every profile of `K_8` (`a + b + z = 8`),
-  `choose |E_i| 2 + 4 a + 42 ≥ 12 |E_i|`;
-* **`no_six_of_seven`** — **NO ADMISSIBLE SIX-COLOURING OF `K_7` EXISTS**; with
-  `Construction.EG_le_sumCol` (`EG 7 ≤ 7`) this gives the exact value **`EG 7 = 7`**;
-* **`no_six_of_eight`** — **NO ADMISSIBLE SIX-COLOURING OF `K_8` EXISTS**; with the ghost colouring
-  (`Main.EG_le_ghost_sub`, `EG 8 ≤ 7`) this gives the exact value **`EG 8 = 7`**.
+* **`Moment.pairs_lower`** (`Moment.lean` §1) — the *lower* second moment of the profile,
+  `2k ∑_i choose |E_i| 2 + k|E| ≥ |E|²`, from Cauchy–Schwarz; the mirror image of `Pairs.sum_sq_le`;
+* **`Moment.moment_obstruction`** (`Moment.lean` §4) — combining the census (upper bound on `Paths`)
+  with the exact surplus identity (lower bound on `Paths`) gives a **quadratic** necessary
+  condition on `(n,k)` alone, where `Cherry.five_sixth_lower` is linear:
 
-  Together with `Tables.EG_six : EG 6 = 5` these are the first three exact values of the
-  Erdős–Gyárfás function established in this development, and they are the **first improvement
-  over the catalog counting bound** `f(n,4,5) ≥ 5(n-1)/6`: at `n = 7` and `n = 8` that bound only
-  gives `≥ 6`, while the census obstruction gives `≥ 7`.
+      `6n(n-1)k(n-4) + 3 C(n,2)² ≤ 6nk²(n-4) + 6k C(n,4) + 3k C(n,2)`;
+
+* **`Moment.no_six_of_eight` — `f(8,4,5) ≥ 7`, ANALYTICALLY.**  The classical counting bound gives
+  only `⌈35/6⌉ = 6` at `n = 8` (`Moment.classical_misses_eight`), and the census obstruction
+  excludes the six-colouring **without any search certificate**.  This is the `no_six_of_eight`
+  the old version of this section advertised; it is now a theorem;
+* `Moment.no_four_of_four`, `Moment.no_four_of_five`, `Moment.no_five_of_seven` — the same argument
+  at `n = 4, 5, 7`, where the counting bound gives `3, 4, 5`;
+* **`no_six_of_seven` is NOT a consequence of the census** and remains unproved by any
+  census argument: `Moment.momentOK 7 6` holds, so the obstruction is silent at `(7,6)`.  The value
+  `EG 7 = 7` therefore still rests on the search certificate;
+* `Moment.census_at_least_five_sixth_below_eleven` and `Moment.census_weaker_at_eleven`
+  (`native_decide`, all `n < 21`, `k < 20`) state exactly where the census is stronger than the
+  counting bound (`n ≤ 8`), where it agrees (`n = 9, 10`) and where it is **weaker** (`n ≥ 11`) —
+  the census left-hand side is `Θ(n³)` at `k = Θ(n)` against a right-hand side of `Θ(n⁴)`.
+
+So the census **is** the first improvement over the catalog counting bound `f(n,4,5) ≥ 5(n-1)/6`,
+but only at the `O(1)` level and only at `n ∈ {4, 5, 7, 8}`.
 -/
 
 set_option maxHeartbeats 1000000

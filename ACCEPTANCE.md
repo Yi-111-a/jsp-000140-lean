@@ -1,3 +1,103 @@
+## Status (round 63)
+
+`lake build`: **OK** (3151 jobs; the new file `lean/JSPProblem/Moment.lean` — 460 lines, 38
+declarations, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 63 TURNS THE EXACT FOUR-SET CENSUS OF ROUND 62 INTO A QUADRATIC NECESSARY CONDITION ON
+`(n, k)`, AND DECIDES `f(8,4,5) ≥ 7` ANALYTICALLY.**  `Pairs.lean` left the census as an identity
+in the profile `(|E_i|)` and in `Paths c`; nothing yet said what that identity *rules out*.
+
+### 1. The pincer on `Paths c`
+
+| new theorem | statement |
+|---|---|
+| **`card_fourSets`** (§0) | `|fourSets n| = C(n,4)` — the census gets a numerical form |
+| **`card_edges`** (§0) | `|E(K_n)| = C(n,2)`, division-free, from `card_edgeFinset_univ_two` + `Pairs.choose_two_mul` |
+| **`sum_sq_card_mul_ge`**, **`sum_sq_classF`** (§1) | Cauchy–Schwarz: `k * ∑_i |E_i|² ≥ |E(K_n)|²` |
+| **`pairs_lower`** (§1) | **`2k * ∑_i choose |E_i| 2 + k * |E| ≥ |E|²`** — the *lower* second moment, mirror image of `Pairs.sum_sq_le` |
+| **`paths_le_of_census`** (§2) | `2k(n-4)Paths c + |E|² ≤ 2k C(n,4) + k|E|` — the census as an **upper** bound on `Paths c` |
+| **`paths_ge_of_surplus`** (§3) | `6n(n-1) ≤ 6nk + 6 Paths c` — the exact surplus identity as a **lower** bound on `Paths c` |
+
+### 2. The theorem
+
+**`Moment.moment_obstruction`** — every admissible `k`-colouring of `K_n` (`n ≥ 4`) satisfies
+
+    `6n(n-1)k(n-4) + 3·C(n,2)² ≤ 6nk²(n-4) + 6k·C(n,4) + 3k·C(n,2)`,
+
+i.e. `3|E|² ≤ k · (6n(n-4)(k - (n-1)) + 6C(n,4) + 3|E|)`.  `Cherry.five_sixth_lower :
+5(n-1) ≤ 6k` is **linear** in `k`; this is **quadratic**, and for fixed `n` it excludes every `k`
+below a root exceeding `5(n-1)/6` exactly when `5n² - 63n + 158 < 0`, i.e. for `n ≤ 9`.
+`Moment.EG_moment` states it for `EG n` itself.
+
+### 3. What it decides (§6)
+
+* **`no_six_of_eight` — `f(8,4,5) ≥ 7`, WITH NO SEARCH CERTIFICATE.**  The classical counting
+  bound gives only `⌈35/6⌉ = 6` there (`Moment.classical_misses_eight` makes the gap explicit);
+  `Main.EG_eight : EG 8 = 7` had been obtained from the *search certificate* `certC_eight_six`
+  plus the ghost colouring.  Round 63 proves the lower half of `EG 8 = 7` by counting.  This is the
+  `no_six_of_eight` that `Census.lean`'s §3 has advertised since round ~37 **without existing**;
+* `no_four_of_four`, `no_four_of_five`, `no_five_of_seven` — `f(4,4,5) ≥ 5`, `f(5,4,5) ≥ 5`,
+  `f(7,4,5) ≥ 6`, where the counting bound gives `3, 4, 5`;
+* `no_four_of_six`, `no_six_of_nine`, `no_seven_of_ten` — the same argument at `n = 6, 9, 10`;
+* `EG_five_ge_five_census` … `EG_ten_ge_eight_census` — the `EG`-form of each.
+
+### 4. What it does *not* decide, stated honestly (§5, machine-checked)
+
+* **`no_six_of_seven` is NOT a consequence of the census.**  `Moment.momentOK 7 6` holds, so the
+  obstruction is silent at `(7,6)`, and `EG 7 = 7` still rests on the search certificate.  The
+  `profile_cost_seven` / `profile_cost_eight` bullets of `Census.lean`'s §3 have never existed; §3
+  of that header is **corrected** this round and now points at `Moment.lean`;
+* **`census_at_least_five_sixth_below_eleven`** (`native_decide`, all `n < 11`, `k < 20`): below
+  `n = 11` the census obstruction is at least as strong as the counting bound;
+* **`census_weaker_at_eleven`**: at `(11, 8)` the situation is *reversed* — `momentOK 11 8` holds
+  while `50 ≤ 48` fails.  The two instruments are genuinely incomparable from `n = 11` on, because
+  the census left-hand side is `Θ(n³)` at `k = Θ(n)` against a right-hand side of `Θ(n⁴)`.  **So the
+  published lower bound `f(n,4,5) ≥ 5n/6 - o(n)` is untouched; only the `O(1)` at four small orders
+  improves, analytically.**
+
+### 5. Non-vacuity (§7)
+
+`moment_sixCol`, `moment_nineCol`, `moment_tenCol`, `moment_elevenCol` — the obstruction is
+satisfied by **all four** verified constructions of `Tables.lean` (`K₆, K₉, K₁₀, K₁₁`), so §2 does
+not contradict the witnesses the searches of rounds 45–46 produced.
+
+### 6. What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` is **untouched** and remains the
+sole content of `jsp_000140_main`.  `jsp_000140_main` was again **not** declared: declaring it with
+`AdmissibleUpper` as a hypothesis would falsify the prize, and a *lower*-bound instrument cannot
+supply the existence theorem.  B4 (`f(10,4,5) ∈ {8,9}`) and `EG 12, EG 14, …, EG 19` — unchanged.
+
+### 7. Lean 4.34.0 pitfalls recorded this round
+
+* **`Decidable` does NOT see through a plain `def`**: `native_decide` on `¬ momentOK 8 6` reports
+  *"failed to synthesize `Decidable (momentOK 8 6)`"* until the predicate is marked
+  `@[reducible]` — typeclass resolution never delta-unfolds an ordinary definition;
+* `Multiset.sq_sum_le_card_mul_sum_sq` (`Mathlib/Algebra/Order/Chebyshev.lean`) quantifies over the
+  **multiset element type** (the semiring is `α` itself), *not* over a scalar; for `f : Fin k → ℕ`
+  use the `Finset` version `sq_sum_le_card_mul_sum_sq`, whose `simpa` normalisation
+  `∑ i ∈ univ, f i ↦ ∑ i : Fin k, f i` is exactly what is needed;
+* `Finset.powersetCard` takes the size **first**: `(Finset.univ : Finset (Finset α)).powersetCard 4`
+  silently has type `Finset (Finset (Finset α))`, and `Finset.card_powersetCard` then yields
+  `choose (Fintype.card (Finset α))`, not `choose (Fintype.card α)`;
+* `norm_num` does **not** evaluate `Nat.choose` (`Nat.choose 8 4 = 70` is left open) while `decide`
+  and `native_decide` do — for small arguments;
+* `Nat.choose_two_mul` does **not** exist in this Mathlib; the available pair arithmetic is
+  `Nat.choose_two_right`, and the round's own `Pairs.choose_two_mul` is what turns
+  `2 * |E| = n * (n-1)` into `|E| = C(n,2)` by `omega`;
+* `Nat.mul_add` has only its **last** argument explicit (`{m n} (k)`) while `Nat.mul_le_mul_left`
+  has only its **multiplier** explicit — the two families read alike and are written in opposite
+  orders; `Nat.add_le_add` takes **two** inequalities;
+* `omega` does **not** normalise `5 * n * (n-1)` into `5 * (n * (n-1))`, so a hypothesis and a goal
+  writing the same product with different parentheses are *unrelated atoms*: hand it the `by ring`
+  equalities first.  The same holds for `k * (n-4) * Paths c`, which is why
+  `moment_obstruction_raw` generalises all six terms and then calls `omega` **once**;
+* **editing a header comment of an early file invalidates the whole downstream import chain**:
+  the round-63 edit of `Census.lean`'s §3 header forced a full rebuild in which `Seven.lean`
+  alone takes **19 minutes**.  Header-only edits are *not* cheap here.
+
 ## Status (round 62)
 
 `lake build`: **OK** (3146 jobs; `lean/JSPProblem/Pairs.lean` grew from 770 to **1736 lines**,
