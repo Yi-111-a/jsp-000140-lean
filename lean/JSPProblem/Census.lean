@@ -32,7 +32,16 @@ colour classes.  Hence
 * `two_mul_choose_two` — `2 * choose m 2 = m * (m - 1)`, the arithmetic of pairs that the
   per-colour census will use.
 
-## §2* — the census (STILL TO BE PROVED; see `policy.json.next_lemma`)
+## §2* — the census (PROVED in `Quad.lean` and `Pairs.lean`, round 62 — §2* IS NOW CLOSED)
+
+`Quad.lean` proves `sum_twoFourSets` and the inequality half of the per-colour census;
+`Pairs.lean` (round 62) proves the **exact** per-colour census `card_twoFourSets_census`, the global
+form `fiveFourSets_census`, `census_obstruction`, and the ordered version `card_adjEdgePairs_eq`
+(`|adjEdgePairs c i| = 2 * |twoA c i|`, `sum_card_adjEdgePairs : ∑_i |adjEdgePairs c i| =
+2 * Paths c`) — together with `card_pathFourSets_eq`, `card_meetingFourSets`, the bijection
+`disjPairs c i ≃ nonMeetingFourSets c i`, and the **second moment**
+`sum_sq_le : ∑_i |E_i|² ≤ 2 * |fourSets n| + |E(K_n)|`.  Every bullet of §2* below is now a
+theorem; the statements are kept as the specification of what `Pairs.lean` proves.
 
 * **`card_adjPairs`** — **THE NUMBER OF ADJACENT ORDERED PAIRS OF EQUALLY COLOURED EDGES IS TWICE
   THE NUMBER OF TWO-EDGE PATHS**:  `|{(e,f) : e ≠ f ∈ E_i, |e ∪ f| = 3}| = 2 * (twoA c i).card`.

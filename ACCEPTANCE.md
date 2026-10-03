@@ -1,3 +1,129 @@
+## Status (round 62)
+
+`lake build`: **OK** (3146 jobs; `lean/JSPProblem/Pairs.lean` grew from 770 to **1736 lines**,
+from 33 to **117 declarations**, 0 placeholders, on the default build path).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 62 CLOSES THE OPEN LEMMA OF ROUNDS 40, 58, 60 AND 61: THE EXACT FOUR-SET CENSUS.**  The
+identity `Census.lean` §2* has named as missing since round ~40 —
+
+    `|twoFourSets c i| = choose |E_i| 2 + (n - 4) * (twoA c i).card`
+    `|fiveFourSets c|    = ∑_i choose |E_i| 2 + (n - 4) * Paths c`
+    `∑_i choose |E_i| 2 + (n-4) * Paths c ≤ |fourSets n|`  (`census_obstruction`)
+
+— is now **proved**.  The tight four-sets of an admissible colouring are counted *exactly* by the
+pairs of same-coloured edges, and hence by the sizes of the colour classes alone.
+
+### 1. The three ingredients the previous round named as missing
+
+| new theorem | statement |
+|---|---|
+| **`meeting_of_triangle`** | two edges of one colour inside a **three**-element vertex set **meet** (the pigeonhole consequence of `sum_nb_card_eq_two_mul_classIn_card`: `∑_{v ∈ T} |nb c i v T| = 2·2 = 4` over three vertices, each `≤ 1` under the negation) |
+| **`endsF`, `card_endsF`, `span_endsF_eq`** | the vertex set of an edge, and **the unique four-set containing two disjoint edges** — the union of their four endpoints |
+| **`meeting_of_ne_classIn`** | two four-sets carrying the same two colour-`i` edges are **equal** unless those two edges meet, in which case both carry the two-edge path at the **unique** common vertex |
+
+### 2. The bijection, and then the census
+
+* **`nonMeetingFourSets`** — the four-sets doubled in colour `i` which carry **no** two-edge path;
+* **`exists_nonMeeting_of_mem_disjPairs`** — every disjoint pair of colour-`i` edges spans
+  **exactly one** four-set, namely `endsF e ∪ endsF f`, whose colour-`i` class is the pair;
+* **`classIn_mem_disjPairs`** — conversely, the colour-`i` class of a four-set with no path is a
+  disjoint pair (`meet_or_disj` + `pathFourSets_of_mem_common`);
+* **`card_nonMeetingFourSets`** — the two maps are inverse, so
+  `|nonMeetingFourSets c i| = |disjPairs c i|` exactly (`Finset.card_bij`, no `Classical.choose`);
+* **`card_pathFourSets_eq` / `card_meetingFourSets`** — the path half, exactly: each two-edge path
+  lies in exactly `n-3` tight four-sets (`pathFourSets = containing (pathVerts c i v)`), so
+  `|meetingFourSets c i| = |twoA c i| * (n-3)`;
+* **`card_twoFourSets_census`**, **`fiveFourSets_census`**, **`census_obstruction`** — the three
+  statements above.
+
+### 3. What the census gives that the development did not have
+
+* **`sum_choose_two_le_fiveFourSets`** — the number of pairs of same-coloured edges is at most the
+  number of tight four-sets;
+* **`sum_card_classF`** — `∑_i |E_i| = |E(K_n)|`;
+* **`sum_sq_le`** — **THE SECOND MOMENT**: `∑_i |E_i|² ≤ 2·C(n,4) + |E(K_n)|`.  This is a necessary
+  condition on the colour-class profile which `Surplus.surplus_identity` **cannot see**: that
+  identity knows only `∑_i |E_i|`, `Paths c` and `Isolated c`, while the census uses the *pair*
+  census.  Together with `Census.census_obstruction` (the linear form) the two bound the profile
+  `(|E_i|)` from both ends.
+
+
+### 3b. The last bullet of `Census.lean` §2*: `card_adjPairs`
+
+`Pairs.lean` §13 adds the **ordered** version of the same count:
+
+* `eq_common` — **two distinct edges have at most one common endpoint**;
+* `adjEdgePairs` — the ordered pairs of distinct colour-`i` edges with a common endpoint;
+* `card_fiber_meetOrders` — the number of such pairs through a fixed vertex is
+  `|nb c i v| * (|nb c i v| - 1)`, i.e. the ordered pairs of distinct members of `nb c i v`;
+* **`card_adjEdgePairs_eq`** — **`|adjEdgePairs c i| = 2 * |twoA c i|`**: the number of *ordered*
+  pairs of equally coloured edges sharing a vertex is **twice** the number of two-edge paths, and
+  **`sum_card_adjEdgePairs : ∑_i |adjEdgePairs c i| = 2 * Paths c`** globally.  Four more
+  `native_decide` instances (`K₆, K₉, K₁₀, K₁₁`).
+
+**With this, every bullet of `Census.lean` §2\* is a theorem**: `sum_twoFourSets` (`Quad.lean`),
+`card_twoFourSets` → `Pairs.card_twoFourSets_census`, `card_adjPairs` → `Pairs.card_adjEdgePairs_eq`,
+`census_obstruction` → `Pairs.census_obstruction`.  (The theorem names differ because the statements
+are phrased on `classF c i` and `adjEdgePairs c i`; the content is the one written down in §2\*.)
+
+### 4. Machine-checked instances (§12)
+
+The **per-colour** census and the **global** census are `native_decide`-verified on all four
+constructions of `Tables.lean`: `card_twoFourSets_census_{six,nine,ten,eleven}Col` and
+`fiveFourSets_census_{six,nine,ten,eleven}Col`.
+
+### 5. Housekeeping
+
+`Pairs.lean`'s sections were renumbered (`§7` the two kinds of pairs, `§8` endpoints and the
+triangle pigeonhole, `§9` the key lemma and the bijection, `§10` the path half, `§11` the census
+identity, `§12` the instances), and the file header now describes the sections that actually exist.
+
+### 6. What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` is **untouched** and remains the
+sole content of `jsp_000140_main`.  `jsp_000140_main` was again **not** declared: declaring it with
+`AdmissibleUpper` as a hypothesis would falsify the prize, and the four-set census — however sharp a
+*necessary* condition it gives — is not the existence theorem.  B4 (`f(10,4,5) ∈ {8,9}`) and
+`EG 12, EG 14, …, EG 19` — unchanged.
+
+### 7. Lean 4.34.0 pitfalls recorded this round
+
+* **`mem_foo.mpr` does NOT work for a theorem whose `(i)`-like argument is explicit**: `mem_meetingFourSets.mpr`
+  reports *Unknown constant*; write `(mem_meetingFourSets i).mpr`.  Any dot-notation on a
+  partially-instantiated iff must be parenthesised;
+* **`Sym2.Mem` has no `DecidableEq`-instance search, and `Finset.filter` on it needs the local
+  instance in scope** — including inside a `noncomputable def`, and the instance must be declared
+  in the *same* section;
+* **`h ▸ t` replaces the LEFT side of `h` by the right side** (not the other way round), and it
+  silently picks the other direction when the expected type demands it — use it only where the
+  expected type is known;
+* **`congrArg` and `rw` both FAIL when the rewritten variable occurs in the type of another local
+  hypothesis** (e.g. rewriting the edge `e` in `e ∈ edgeFinset (endsF e)`): "motive is not type
+  correct".  The painless fix is to define `endsF e` as a `filter` (proof-irrelevant) instead of
+  `insert e.out.1 (insert e.out.2 ∅)`, so no `Sym2.out` is needed at all;
+* **`Finset.eq_of_subset_of_card_le (h : s ⊆ t) (h₂ : #t ≤ #s) : s = t`** — the card bound is on
+  the *superset*; getting the direction wrong silently reinterprets the subset;
+* **`Finset.card_bij (i : ∀ a ∈ s, β) (hi) (i_inj) (i_surj) : #s = #t`** — the dependent-function
+  form (`fun a _ => …`), and `i_surj` returns `∃ a ha, i a ha = b` (an `And`, not `p`-`p`);
+* **`Finset.card_eq_sum_card_fiberwise (H : (s : Set ι).MapsTo f t)`** is the *fiber* version, not the
+  image version: the side goal is `∀ a ∈ s, f a ∈ t`, and the summand is
+  `((s.filter fun a => f a = b) : Finset _).card`, which is `classF c i` up to `rfl`;
+* **`Finset.sdiff` / `Nat.add_sub_of_le`** — `omega` cannot derive `t.card = s.card + (t \ s).card`
+  from `(t \ s).card = t.card - s.card` (truncating subtraction); go through
+  `Nat.add_sub_of_le` explicitly;
+* **`Finset.mem_sym2_iff : m ∈ s.sym2 ↔ ∀ a ∈ m, a ∈ s`** is the painless way to prove
+  `e ∈ edgeFinset (A ∪ B)` from `e ∈ edgeFinset A` (`mem_edgeFinset.mpr ⟨…, hd⟩`);
+* `Nat.le_trans`, `Nat.mul_sub_one : m * n - m = m * (n-1)` (so `m*(m-1) + m = m*m` is
+  `mul_sub_add`), `Finset.Subset.symm`, `Finset.Subset.antisymm`, `and_true`, `Finset.not_mem_empty`
+  — the first two of these behave as documented, the last three **do not exist** in this version;
+* chained projections `h.1.2` are **not** allowed (`Unexpected term`); bind `have h3 := h2.1` first;
+* `rcases` tries `subst` on an `Eq` inside an `∃`, and the substitution can fail on
+  filter-defined finsets ("Dependent elimination failed"): package the step in a lemma that
+  returns `∃ v, …` instead of destructuring inline.
+
 ## Status (round 61)
 
 `lake build`: **OK** (3146 jobs; the new file `lean/JSPProblem/Pairs.lean` builds in 8.1 s).
