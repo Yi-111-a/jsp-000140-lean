@@ -1,3 +1,135 @@
+## Status (round 56)
+
+`lake build`: **OK** (3142 jobs; the new file `lean/JSPProblem/BlockCol.lean` builds in 5.5 s).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+*(As in the rest of this file, theorem names are written with the file prefix; the declarations live
+in `namespace JSP140`, e.g. `JSP140.TwoOne.labTri` in `lean/JSPProblem/BlockCol.lean`.)*
+
+**ROUND 56 CHANGES ATTACK FAMILY AGAIN — TO THE CONSTRUCTION SIDE, AND WRITES DOWN THE
+CONSTRUCTION ITSELF.**  Rounds 49, 50 and 55 all recorded the same gap in `policy.json`: *the
+`(2,1)`-block colouring was never written down as Lean data*.  `Block.decomposition_eq` prices a
+"decomposition colouring" abstractly, `Rigidity.tight_pathFinset_is_STS` extracts a Steiner triple
+system from an extremal colouring, but there was no *function* from a triangle decomposition plus a
+centre and two colours per block into an edge colouring of `K_n` — so the family could not be
+searched in the form the papers build, and the two design conditions that round 55's exhaustive
+search (`discovery/JSP-000140/fano_s1s2.py`) had to impose *by hand* were never proved to follow
+from admissibility.  New file `lean/JSPProblem/BlockCol.lean` (545 lines, 28 declarations,
+17 public theorems, zero placeholders, on the default build path).
+
+### 1. §1 — the colouring
+
+* `TwoOne` — the data: `bl : Fin m → Finset (Verts n)` a triangle decomposition (`cover`, `uniq`,
+  `card_three`), a centre `ctr i` per block, and two **distinct** colours `pc i ≠ qc i`;
+* **`TwoOne.col` — the colouring**: the edge of a block that touches the centre gets `pc i`, the
+  opposite edge gets `qc i`.  It is written as a sum over the blocks and lifted to `Sym2` through
+  `Sym2.lift`, so it is total on loops as well;
+* `TwoOne.col_touch` / `TwoOne.col_notouch` / `TwoOne.col_ctr_leaf` — the three cases,
+  *unconditionally*.
+
+### 2. §2 — **every block is a labelled triangle of the colouring**
+
+* **`TwoOne.labTri` — `LabTri (TwoOne.col C) (ctr i) a b`**: the block is a labelled triangle with
+  `pc i` on the two edges at the apex and `qc i` on the opposite edge — the `(a, a, b)` pattern of
+  arXiv:2208.12563 §4, and the bridge between `Block.lean` (the decomposition as data) and
+  `Triangles.lean` / `Cover.lean` (the construction interface);
+* `TwoOne.triVerts_eq` — the three vertices of that labelled triangle are the block.
+
+### 3. §3 — **the two search conditions are theorems, not hypotheses**
+
+| new theorem | statement |
+|---|---|
+| **`TwoOne.apex_zero`** | `Admissible (col C) → ctr i ∈ zeroA (col C) (qc i)` — **apex-avoidance is free** |
+| **`TwoOne.leaf_isolated`** | `nb (col C) (qc i) a univ = {b}` and `= {a}` at the other leaf, and `qc i ≠ pc i` |
+| `TwoOne.centre_twoA` | `ctr i ∈ twoA (col C) (pc i)` — the block is a two-edge path of the colouring |
+
+They hold for **every** `(2,1)`-block colouring because they hold for every labelled triangle of an
+admissible colouring (`Strict.apex_zeroA`, `Cherry.nb_eq_singleton_of_cherry`).  So the two
+conditions `fano_s1s2.py` had to impose are **consequences of the catalog condition**, and the
+`(2,1)`-block CSP can be searched with them as *derived* facts.
+
+### 4. §4 — the price: **the construction cannot beat `5/6`**
+
+* **`TwoOne.paths_neq`** — two blocks never share both their centre and their "twice" colour: the
+  centre would carry four edges of one colour (the two blocks share at most one vertex, and it is
+  their common centre), against `Counting.nb_card_le_two`;
+* **`TwoOne.paths_ge` — `Paths (col C) ≥ m`**, hence **`TwoOne.price` — `5 * m ≤ n * k`** (five
+  slots per block, `n * k` slots in the palette) — with `6 * m = n * (n-1)` this is the sharp
+  constant;
+* **`TwoOne.paths_eq_of_sts` / `TwoOne.price_exact` — `n * k = 5 * m + Isolated (col C)`**, i.e.
+  `k = 5(n-1)/6 + Isolated/n`: `Block.decomposition_eq` for the *explicit* colouring;
+* **`TwoOne.recipe` — `Isolated (col C) = n → 6 * k = 5 * (n-1) + 6`**, and `TwoOne.recipe_eg`
+  the same for `EG n`: **what a search for the sharp constant has to find** — an admissible
+  `(2,1)`-block colouring of some Steiner triple system with exactly `n` missed slots;
+* **`TwoOne.thirteen` — `Admissible (col C) ∧ Isolated (col C) = 13 → EG 13 = 11`**: the whole of
+  B5 at `n = 13` is now *one finite question about 26 blocks*, each choosing a centre and two of
+  eleven colours — `f(13,4,5) = 11` would be the first order at which `f(n,4,5) = 5n/6 + 1/6`;
+* `TwoOne.decomposition_gap` — the family never attains `6k = 5(n-1)`.
+
+### 5. Search evidence collected in parallel (all NEGATIVE, recorded so it is not repeated)
+
+* **The `(2,1)`-block family at `t = 1` has never been searched before** — rounds 49–52 attacked
+  `t = 0` (10 colours), a target `Strict.no_admissible_ten_of_thirteen` refutes.  At `t = 1` the
+  family is a CSP in **26 variables** (`sts212b.c`, backtracking with the three hard constraints,
+  *complete*, so a negative result is decisive for that decomposition): 4 seeds × 2200 s and
+  1.3 · 10⁸ nodes each on the cyclic `STS(13)` with 11 colours — **no solution**.  An earlier
+  min-conflicts engine over the same table (`sts212.c`, 5.9 · 10⁶ iterations) stalls at
+  52 violated four-sets of 715 with 214 slot clashes.  So the family is *not* competitive at
+  `n = 13` either — consistent with `TwoOne.recipe`: the `t = 1` price is real but apparently hard
+  to pay;
+* the **free-form complete DFS with the structural propagations** of round 24 (`eg6_struct.c`,
+  4 seeds × 1200 s, 8.2 · 10⁷ nodes per seed) does **not** find an admissible 11-colouring of `K₁₃`
+  or `K₁₄` either (`eg6r`, `r13k11_s*.out`, `r14k11_s*.out`);
+* a probe of the "six slots per cherry" mechanism (`slot_six_probe.py`) shows the four certified
+  colourings all satisfy `6 · Paths ≤ n · k`, **but for the wrong reason**: in `nineCol`,
+  `tenCol`, `elevenCol` one has `Paths > |apexFinset|` (4 > 3, 8 > 6, 10 > 6), i.e. distinct
+  cherries *do* share an `(apex, leaf colour)` slot.  **`Apex.apexBound`'s pigeonhole is therefore
+  the only correct form of that argument**, and the sharp constant comes from `3 · Paths ≤ |E|`
+  (each cherry brings three fresh edges), not from six slots per cherry.  Recorded so that the
+  "six slots" reading is not re-derived.
+
+### 6. What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence
+theorem of arXiv:2207.02920 §4/§12 and arXiv:2208.12563 §4 — is **untouched** and remains the sole
+content of `jsp_000140_main`.  What round 56 adds is the *construction object* itself, its exact
+price, and the reduction of the whole `n = 13` instance to a single finite CSP with two derived (not
+assumed) constraints.  `jsp_000140_main` was again **not** declared.  B4 (`f(10,4,5) ∈ {8,9}`,
+closed by `Strict.strict_EG_ten_ge_eight` + `Tables.EG_ten_le`) and `EG 12, EG 14, …, EG 19` —
+unchanged.
+
+### 7. Lean 4.34.0 pitfalls recorded this round
+
+* `Finset.mem_insert_self` takes **`(a) (s)`**, not `(s) (a)`; `Finset.card_eq_two s h` hands back
+  `∃ x y, x ≠ y ∧ s = {x, y}`, which is *definitionally* `insert x (insert y ∅)` — so write the
+  `insert` form in every statement and the rewrites go through;
+* **`Sym2.rec`'s swap obligation is `h ▸ f a b = f c d`, and `▸` will not accept a `Sym2.Rel`
+  proof.**  The painless route is `Sym2.lift ⟨f, fun a b => f a b = f b a⟩`, which is
+  `def`-symmetric by construction and reduces on `s(a, b)` by `rfl`;
+* `Finset.sum` over `Fin m` with values in `Fin k` needs `[NeZero k]`; carrying the instance as a
+  *field* of the data structure (`hk : NeZero k`) and `letI := C.hk` at each use site is the only
+  version that survives `unfold`;
+* `Finset.card_le_card_of_injOn` has parameter names `s`, `t`, `f` (not `s₁`, `s₂`) and takes the
+  `Set.MapsTo` proof *before* the `Set.InjOn` one;
+* `Function.Injective f` has `a`, `b` **implicit**, so `hinj hab` is the whole proof;
+  `Function.Injective f` is *not* `f`-valued `Eq`-first as one might expect from the printed type;
+* `mem_nb : a ≠ v ∧ a ∈ S ∧ c s(v,a) = i` — the distinctness is `a ≠ v`, so a hypothesis
+  `h : a ≠ C.ctr i` fits directly and `Ne.symm h` is *wrong* there;
+* **`have hq' : a ≠ b' := …` silently shadows the destructured `hab' : a' ≠ b'`** and then reports
+  "The argument `hab'` has type `a ≠ b'`" — this cost 20 minutes of the round; rename derived
+  hypotheses (`hne_aa`, `hne_ab`, …);
+* `omega` will not prove `0 < n * (n - 1)` from `4 ≤ n` (a product of two unknowns), and will not
+  prove `5 * P ≤ a - P` from `6 * P ≤ a` if `P` only occurs inside `Paths c`; supply
+  `Nat.mul_pos` / `Nat.pos_of_mul_pos_left` / `Nat.mul_div_le` and hand omega linear facts about the
+  *atoms* only;
+* `show` and `change` do **not** make `exact` see through a notation (`{a, b}` vs
+  `insert a (insert b ∅)`); the goal must be stated in the same form as the hypotheses, or converted
+  with `have key : … := rfl` plus `rw [← key]`;
+* an *uninitialised* `int seen[512];` on the stack (`sts212b.c`) read as a duplicate pair and
+  reported "not a decomposition" — always `= {0}`.
+
 ## Status (round 55)
 
 `lake build`: **OK** (3141 jobs; the new file `lean/JSPProblem/Apex.lean` builds in 7.8 s and emits
