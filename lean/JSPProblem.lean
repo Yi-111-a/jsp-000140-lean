@@ -50,3 +50,4 @@ import JSPProblem.Pairs
 import JSPProblem.Moment
 import JSPProblem.Pack
 import JSPProblem.Profile
+import JSPProblem.Vacant

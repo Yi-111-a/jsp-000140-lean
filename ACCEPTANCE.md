@@ -1,7 +1,145 @@
+## Status (round 65)
+
+`lake build`: **OK** (3153 jobs; the new file `lean/JSPProblem/Vacant.lean` — 395 lines, 34 public
+theorems + the `extremal_at_thirteen_shape` instance of §4, 0 placeholders — is on the default build
+path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 65 LEAVES THE CENSUS FAMILY ENTIRELY AND IMPROVES THE PUBLISHED LOWER BOUND:
+`f(n,4,5) ≥ ⌈(5n+1)/6⌉ = ⌈5(n-1)/6⌉ + 1` FOR EVERY `n ≥ 7` — AND CLOSES BENCHMARK B4.**
+Rounds 63–64 established that the four-set census family is exhausted: every one of its instruments
+(Cauchy–Schwarz on the colour-class profile, the per-class charge, the sharp balanced profile) reads
+only the profile `(|E_i|)` and `Paths c`, and is silent at `(9,7)`.  This round uses the *one* input
+the profile cannot see — a **per-vertex** one.
+
+### 1. The new input: the leaf colour is VACANT at the centre of a two-edge path
+
+| new theorem | statement |
+|---|---|
+| **`twoA_zeroA`** | if `v` is the centre of a two-edge path `a - v - b` of colour `i`, then `v ∈ zeroA c (c s(a,b))`: **the colour of the leaf edge occurs on no edge at `v`** |
+| **`exists_zeroA_of_card_nb_eq_two`** | `|nb c i v| = 2 ⇒ ∃ j, v ∈ zeroA c j` |
+| **`card_centres_le_isolated`** | the number of distinct two-edge-path centres is at most `Isolated c` |
+| **`exists_twoA_of_le`** | `k + 2 ≤ n ⇒` **every** vertex is a two-edge-path centre (`Star.sum_nb_star` pigeonhole) |
+| **`isolated_ge_n`** | **`n ≤ Isolated c` whenever `n ≥ 4` and `k ≤ n - 2`** |
+
+The first row is `Strict.apex_zeroA` (round 53, stated for a labelled triangle of a `(2,1)`-block
+colouring) read for an arbitrary two-edge path: `j = c s(a,b) ≠ i`, and if some edge at `v` had
+colour `j` the `K₄` on `{v,a,b,x}` would carry `i,i,j,j` plus two edges — **at most four** colours.
+Every later row is pigeonhole plus `Finset.card_biUnion_le`; nothing here is a four-set census.
+
+### 2. The refined counting bound (§3)
+
+| new theorem | statement |
+|---|---|
+| **`five_n_add_one_le_six_k`** | admissible `k`-colouring of `K_n`, `n ≥ 4`, `k ≤ n-2` ⟹ **`5n + 1 ≤ 6k`** |
+| **`five_n_add_one_le_six_k_of_seven`** | **`5n + 1 ≤ 6k` for every `n ≥ 7`, unconditionally** |
+| **`EG_ge_ceil_five_sixth_plus_one`** | **`⌈(5n+1)/6⌉ ≤ f(n,4,5)`**, the integral form |
+| **`no_colouring_of_refined`** | `6k < 5n + 1 ⇒ ¬ ∃ c : Col n k, Admissible c` |
+| **`refined_half_eps`** | `5n/6 + 1/6 ≤ f(n,4,5)`, the real form in the shape of the headline |
+| **`refined_dominates_eg_strict`** | the round-53 bound `Strict.eg_strict` (`6k ≥ 5(n-1)+1`) is implied |
+
+`Surplus.surplus_identity` prices the unused slots at six units each, so `Isolated c ≥ n` buys
+**six** units of `6k` where round 53's `Isolated c ≥ 1` bought **one**: `6k ≥ 5(n-1) + 6 = 5n + 1`.
+Since `⌈(5n+1)/6⌉ - 1 = ⌊5n/6⌋ ≤ ⌈5(n-1)/6⌉`, the refinement is **exactly one colour** above the
+catalog bound at every `n ≥ 7` (`ceil_five_sixth_le_refined`).
+
+### 3. The instances (§4) — **B4 IS CLOSED**
+
+| new theorem | statement |
+|---|---|
+| **`no_seven_of_nine`** | **`f(9,4,5) ≥ 8`** — no admissible 7-colouring of `K₉`, **no search** |
+| **`no_eight_of_ten`** | **`f(10,4,5) ≥ 9`** |
+| **`no_nine_of_eleven`**, **`no_ten_of_twelve`** | `f(11,4,5) ≥ 10`, `f(12,4,5) ≥ 11` |
+| **`EG_nine`, `EG_ten`, `EG_eleven`** | **`f(9,4,5) = 8`, `f(10,4,5) = 9`, `f(11,4,5) = 10`** (with `Tables.nineCol/tenCol/elevenCol`) |
+| `EG_twelve_ge_eleven`, `EG_thirteen_ge_eleven'` | `f(12,4,5) ≥ 11`, `f(13,4,5) ≥ 11` |
+
+Three consequences worth recording:
+
+* **the 80-minute search certificate `Nine.certD_nine_six` is redundant.**  `Nine.lean` is kept off
+  the default build path *because* of it, so `EG 9 = 8` was not on the default build path; it now
+  is, from counting alone (`Vacant.EG_nine`).  The certificate and this argument agree exactly —
+  an independent confirmation of the new bound at `(9,7)`;
+* **benchmark B4 (`f(10,4,5) ∈ {8,9}`) is closed: `f(10,4,5) = 9`.**  Rounds 45–46 could not separate
+  8 from 9; the bound `6k ≥ 5n+1` excludes `k = 8` outright;
+* **`f(11,4,5) = 10`** is likewise new.
+
+### 4. The shape at the refined bound (§5) and non-vacuity (§6)
+
+* **`isolated_eq_n_defect_eq_zero`** — at `6k = 5n + 1` with `k ≤ n-2` every slot but one is used:
+  `Isolated c = n` (each vertex missed by exactly one colour) **and** `Defect c = 0` (every edge
+  paid for by a two-edge path).  This is what a construction must achieve to attain the new bound;
+* **`extremal_at_thirteen_shape`** — **benchmark B5**: `n = 13, k = 11` is the first order at which
+  the refined bound can be *attained* (`6 · 11 = 5 · 13 + 1`), so an admissible 11-colouring of
+  `K₁₃` — if one exists — must have `Isolated c = 13` (every vertex missed by exactly one colour) and
+  `Defect c = 0` (every edge paid for).  Together with `Strict.no_admissible_ten_of_thirteen` this is
+  the whole of `Main.extremal_at_thirteen_is_open` in the currency of the defects;
+* **`leafVacant_sixCol`, `leafVacant_nineCol`, `leafVacant_tenCol`, `leafVacant_elevenCol`** —
+  `native_decide` verification of the leaf-colour lemma on all four verified constructions
+  (`K₆, K₉, K₁₀, K₁₁`), so the instrument does not contradict any witness this development has;
+* **`isolated_sixCol = 0`, `isolated_nineCol = 4`, `isolated_tenCol = 8`, `isolated_elevenCol = 10`** —
+  every verified construction uses `k = n - 1` colours, i.e. **exactly** the number of edges at a
+  vertex, so `isolated_ge_n` (which needs `k ≤ n-2`) does not apply to them and the new instrument is
+  consistent with all of them.  It bites exactly in the regime **no** construction of the development
+  reaches: a colouring with two wasted slots at every vertex.
+
+### 5. What it costs the prize, stated honestly
+
+* **`Main.AdmissibleUpper ε` (`0 < ε < 1/6`) is UNCHANGED** and remains the sole content of
+  `jsp_000140_main`: the probabilistic existence theorem of arXiv:2207.02920 §4 / arXiv:2208.12563
+  §4.  It was again **not** declared — declaring it with the hypothesis as an assumption would falsify
+  the prize, and a *lower*-bound instrument cannot supply an existence theorem.  The published
+  statement `f(n,4,5) = 5n/6 + o(n)` is untouched; only the `O(1)` at every order improves, by
+  **one whole colour**;
+* `EG 12 … EG 19` upper bounds, and `EG 12 = 11` — **not** proved: that needs an admissible
+  11-colouring of `K₁₂`, which no search of rounds 45–46/60 produced (the searches were run for
+  `⌈5(n-1)/6⌉` colours, i.e. **one below** the new bound, and must now be re-run one colour higher);
+* `EG 13 = 11` (`Strict.EG_thirteen_ge_eleven` + a construction) and the `(2,1)`-block price of
+  `BlockCol.lean` remain open as before.
+
+### 6. Abandoned in this round
+
+* the Python brute-force confirmation (`discovery/JSP-000140/r65_brute.py`) reached its node cap at
+  `n = 7` and confirmed only `(6,4)`; it is recorded as inconclusive rather than as evidence.  The
+  real confirmation is the agreement with the independent 80-minute certificate
+  `Nine.certD_nine_six` at `(9,7)` and the `native_decide` checks of §6;
+* the sharper `Isolated c ≥ n + #{v : c_v ≥ 2}`-type refinements and the census-style refinement of
+  `Defect c`: not attempted (the equality case `isolated_eq_n_defect_eq_zero` already forces
+  `Defect c = 0` there).
+
+### 7. Lean 4.34.0 pitfalls recorded this round
+
+* **file names are not namespaces**: every declaration of `Counting/Cherry/Surplus/Strict/Rigidity/
+  Star/Tables/Triangles` lives directly in `namespace JSP140`, so write `apex_zeroA`, `surplus_of_k`,
+  `eg_strict`, `sum_nb_star`, `nb_card_le_two`, `cherry_leaf_pair`, `EG_nine_le` — **not**
+  `Strict.apex_zeroA` (only `Moment`, `Profile`, `Pairs`, `Quad`, `Pack`, `BlockCol` declare nested
+  namespaces);
+* `Star.lean` and `Rigidity.lean` are **not** in `JSPProblem.lean`'s import list; `sum_nb_star` and
+  `cherry_leaf_pair` need an explicit `import JSPProblem.Star` / `JSPProblem.Rigidity`;
+* `Counting.nb_card_le_two` takes the vertex set `S` as a **last explicit argument** — leaving it a
+  metavariable puts `card ≤ 2` about a *different atom* and `omega` then fails at the pigeonhole step;
+* `Finset.card_biUnion_le` has `s` and `t` **implicit** and concludes with the two-binder notation
+  `∑ a ∈ s, #(t a)`; to feed it to `omega` write that notation verbatim (`∑ _i ∈ (Finset.univ :
+  Finset (Fin k)), (zeroA c _i).card`) and close the goal with `rfl` — `∑ i : Fin k, …` is defeq but
+  `simpa` does not bridge the two;
+* `Pairs.mul_sub_add : m * (m-1) + m = m * m` needs the *same* `m` twice, so it does not apply to
+  `5 * n * (n-1) + 5 * n`; write a private `mul_sub_one_add (a b) (hb : 1 ≤ b)` (and note it is
+  **false** for `b = 0`);
+* `Surplus.surplus_identity` is stated as `6 * (n * k) = 5 * n * (n-1) + …` but `Nat.mul_assoc` turns
+  its LHS's `5 * n * (n - 1)` into `5 * (n * (n - 1))`, which `omega` and `exact` treat as a
+  *different atom* than your own `5 * n * (n - 1)`: bridge the two with `ac_rfl` (as
+  `Pairs.lean`'s own header records for `omega`);
+* `Nat.le_of_mul_le_mul_left` takes the **inequality first** and the positivity second
+  (`Nat.le_of_mul_le_mul_left h (by omega)`), and `Nat.succ_mul` is the right lemma for
+  `a * (m + 1) = a * m + a` (`Nat.mul_add` gives it in the other direction);
+* `ring` does **not** prove `5 * n + 1 = 5 * (n - 1) + 6` — it cannot handle `n - 1` over `ℕ`; use
+  `omega` with a `1 ≤ n` hypothesis.
+
 ## Status (round 64)
 
 `lake build`: **OK** (3152 jobs; the new file `lean/JSPProblem/Profile.lean` — 429 lines, 29 public
-theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+theorems + the `extremal_at_thirteen_shape` instance of §4, 0 placeholders — is on the default build
+path).  `sorry`/`admit`: **0**.
 `harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
 `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
 
