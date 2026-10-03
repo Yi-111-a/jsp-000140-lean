@@ -41,3 +41,4 @@ import JSPProblem.Amplify
 import JSPProblem.Block
 import JSPProblem.Cover
 import JSPProblem.Sharp
+import JSPProblem.Strict

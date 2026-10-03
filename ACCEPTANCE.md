@@ -1,3 +1,121 @@
+## Status (round 53)
+
+`lake build`: **OK** (3140 jobs; the new file `lean/JSPProblem/Strict.lean` builds in 6 s and emits
+no warnings).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 53 IS THE FIRST ROUND THAT IMPROVES THE SHARP LOWER BOUND: THE COUNTING BOUND
+`6k = 5(n-1)` IS NEVER ATTAINED.**  New file `lean/JSPProblem/Strict.lean` (≈ 380 lines, 21
+declarations, zero placeholders, on the default build path).
+
+### 1. `Strict.apex_zeroA` — the whole obstruction is one `K₄`
+
+Let `(u; p, q)` be a labelled triangle of an admissible `c`: `λ = c s(u,p) = c s(u,q)` on the two
+edges at the **apex** `u`, `μ = c s(p,q) ≠ λ` on the opposite edge.  Then
+
+> **the apex `u` has no edge of colour `μ` at all**, i.e. `u ∈ zeroA c μ`.
+
+One line: if `c s(u,x) = μ` for some `x ≠ u`, then `x ∉ {u,p,q}` (both triangle edges at `u` carry
+`λ`) and the `K₄` on `{u,p,q,x}` spans `λ, λ, μ, μ, c s(p,x), c s(q,x)` — **at most four**
+colours, against the five the catalog condition demands.  So the four-set `{u,p,q,x}` is a bad
+`K₄`, exactly the witness `Cover.not_admissible_*` exhibits for the other shapes.
+
+### 2. `Strict.isolated_pos` — a two-edge path costs a `(vertex, colour)` slot
+
+`Strict.isolated_pos_of_mem` (`v ∈ zeroA c i ⟹ 0 < Isolated c`) plus `Strict.isolated_pos`
+(`0 < Paths c ⟹ 0 < Isolated c`: a centre `v ∈ twoA c i` gives the two neighbours `a, b`, hence
+`LabTri c v a b` by `Cherry.nb_eq_singleton_of_cherry`, hence a missed slot).  So:
+
+> **the two extremality conditions of `Surplus.surplus_identity` are incompatible.**
+
+### 3. `Strict.not_sharp` — THE HEADLINE LOWER BOUND IS STRICT
+
+```lean
+theorem Strict.not_sharp {n k : ℕ} {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n) :
+    ¬ (6 * k = 5 * (n - 1))
+```
+
+`Surplus.clean_of_extremal` turns `6k = 5(n-1)` into `Isolated c = 0 ∧ Defect c = 0`; `Defect c = 0`
+says every edge is paid for by a two-edge path, so `Paths c > 0`, and §2 says `Isolated c ≥ 1`.
+
+| new theorem | statement |
+|---|---|
+| `Strict.apex_zeroA` | `LabTri c u p q ⟹ u ∈ zeroA c (c s(p,q))` |
+| `Strict.isolated_pos_of_mem` | `v ∈ zeroA c i ⟹ 0 < Isolated c` |
+| `Strict.isolated_pos` | `0 < Paths c ⟹ 0 < Isolated c` |
+| **`Strict.not_sharp`** | **`Admissible c → ¬(6k = 5(n-1))`** |
+| `Strict.eg_never_sharp` | `¬(6·EG n = 5(n-1))` |
+| **`Strict.eg_strict`** | **`5(n-1) + 1 ≤ 6·EG n` for every `n ≥ 4`** |
+| `Strict.eg_ge_one_mod_six` | `m ≡ 1 (mod 6), m ≥ 7 ⟹ EG m ≥ m/6 + 1` (a whole extra colour) |
+| `Strict.eg_strict_scaled` / `eg_strict_real` | `6·(EG n - 5n/6) ≥ -4`, i.e. `EG n ≥ 5n/6 - 2/3` |
+| **`Strict.no_admissible_ten_of_thirteen`** | **`¬ ∃ c : Col 13 10, Admissible c`** |
+| `Strict.EG_thirteen_ge_eleven` | `11 ≤ EG 13` |
+| `Strict.EG_nineteen_ge_sixteen`, `EG_twentyfive_ge_twentyone`, `EG_thirtyone_ge_twentyfive` | `EG 19 ≥ 16`, `EG 25 ≥ 21`, `EG 31 ≥ 26` |
+| **`Strict.no_extremal_colouring`** | **`¬ ∃ n k c, Admissible c ∧ 6k = 5(n-1)`** |
+| `Strict.strict_is_finite` | the new lower bound is compatible with `FiveSixthLower EG 1` |
+
+### 4. What it settles
+
+* **`Main.extremal_at_thirteen_is_open` is decided**: `K₁₃` admits **no** admissible 10-colouring.
+  `n = 13` is the first order at which the counting bound is an integer (`Rigidity.tight_mod6`
+  forces extremality to `n ≡ 1 (mod 6)`), so the "first attainment of the sharp constant `5/6`
+  beyond `n = 6`" that B5 and rounds 49–52 hunted for **does not exist**, and `Strict.no_extremal_
+  colouring` says it does not exist at any order.
+* **The ~1.5 CPU-hours of `(2,1)`-block searches of rounds 49–52 (`discovery/JSP-000140/sts_*.c`,
+  `sts13_*.out`) were provably futile.**  `Strict.no_admissible_ten_of_thirteen` refutes the target
+  of all of them.  The "best bad = 1 of 715 four-sets" evidence was measuring a family that cannot
+  contain a solution.  (Independently, the free-form engine written this round,
+  `discovery/JSP-000140/eg13_sa.c`, cannot even *find the known* admissible 5-colouring of `K₆`
+  with 5 colours reliably — see §6.)
+* **The lower half of the prize is strictly better than `Cherry.five_sixth_lower`**:
+  `f(n,4,5) ≥ 5(n-1)/6 + 1/6`, and `≥ 5(n-1)/6 + 1` on `n ≡ 1 (mod 6)`.  This is still
+  `5n/6 - O(1)`, so **the published statement `f(n,4,5) = 5n/6 + o(n)` is untouched** — it is not
+  refuted, only sharpened at the `O(1)` level (`Strict.strict_is_finite`).
+* **Every extremal-structure theorem of this development is now a theorem about the empty class**:
+  `Rigidity.tight_*`, `Extremal.tight_*`, `Star.tight_*`, `Local.tight_*`, `Classwise.tight_*`,
+  `Block.decomposition_eq`, `Surplus.extremal_of_covered_cherries`, `Sharp.jsp_000140_main_of_sharp`
+  all assume `6k = 5(n-1)`, i.e. `Rigidity.tight_mod6` (`n ≡ 1 (mod 6)`), `tight_pathFinset_is_STS`
+  (a Steiner triple system of two-edge paths) and the per-vertex profile
+  `Main.star_centre_is_one_third` — none of which can occur.
+
+### 5. Cost of the search engines, recorded so the next round does not repeat it
+
+`discovery/JSP-000140/eg13_sa.c` (this round; incremental SA with breakout weights, bitmask
+evaluation, time check inside the annealing loop, best-state printout) and `eg13free.c` (Breakout +
+tabu + min-conflicts) were both written from scratch this round:
+
+* `eg13_sa 8 7 20 5` — best **8 violated four-sets out of 70**, although `EG 8 = 7` is *proved* in
+  this development (`Main.EG_eight`, from `VertexSearch.certC_eight_six`);
+* `eg13_sa 13 13 15 1` — best 15 of 715, although the round-robin colouring is admissible;
+* `eg13_sa 12 10 85 11` — best 83 of 495; `12 11` — 63; `13 11` — 111.
+
+So the **free-form single-edge neighbourhood is not competitive with the existing engines**, and the
+"no 10-colouring of `K₁₃`" question never had search evidence behind it.  Both programs are kept
+(`eg13_sa` has the time check and the best-state printout that `eg8_sa` lacks) but neither is worth
+CPU time in the next round.  The real finite targets left are `EG 12` and the non-extremal values,
+and the only engine that ever worked (`FastSearch.hasAdmissibleSymG`, symmetry-reduced
+depth-first, completeness proved) is out of reach beyond `n = 7`.
+
+### 6. Lean 4.34.0 pitfalls recorded this round
+
+* `Finset.card_eq_zero : s.card = 0 ↔ s = ∅` — the `mpr` direction wants `s = ∅`, so wrap the
+  "no member" argument in `Finset.eq_empty_iff_forall_notMem.mpr` (it exists; `not_mem_empty`
+  does not).
+* `Finset.single_le_sum_of_canonicallyOrdered (Finset.mem_univ i)` gives `f i ≤ ∑ j, f j` for
+  `f : Fin k → ℕ`; with the argument `f` left as a metavariable the instance search **fails**, so
+  write the helper as `private theorem sum_ge_of_mem (f : Fin k → ℕ) (i : Fin k)`.  `omega` cannot
+  relate a specific summand to the sum — chain with `lt_of_lt_of_le` instead.
+* A `have h : T := bigTerm` is **opaque**, so neither `rw [h]` nor `show …` sees through it; define
+  local sets as a `private def` (here `Strict.fourColours`) instead of a `have`.
+* `Finset.mem_insert_self _ _` + `mem_in_insert` chains: the number of `mem_in_insert` wrappers is
+  *not* the nesting depth minus one — Lean peels one level while elaborating `exact`, so an
+  over-long chain reports "type mismatch" on the innermost `mem_insert_self`.
+* `exact_mod_cast` **fails** on a statement containing a truncated `n - 1`; restate as
+  `5 * n - 4 ≤ 6 * k` (pure `omega`) and then cast.
+* `Nat.mul_pos` needs two explicit positivity goals, and `omega` will not derive `0 < n * (n-1)`
+  from `4 ≤ n` (the `/2` in `n*(n-1)/2`); supply `Nat.mul_pos` and `Nat.div_pos` by hand.
+
 ## Status (round 52)
 
 `lake build`: **OK** (3139 jobs; the new file `lean/JSPProblem/Sharp.lean` builds in 6.5 s).
