@@ -1,3 +1,68 @@
+## Status (round 52)
+
+`lake build`: **OK** (3139 jobs; the new file `lean/JSPProblem/Sharp.lean` builds in 6.5 s).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 52 PROVES THAT THE COVERING CLAUSE OF THE PUBLISHED STATEMENT IS A THEOREM.**
+New file `lean/JSPProblem/Sharp.lean` (468 lines, 18 declarations, zero placeholders, on the
+default build path).  Rounds 29–51 asked for a colouring that is (i) *admissible*, (ii) *covered by
+labelled triangles* (`Triangles.Covers`), and (iii) *cheap* (`6k ≤ 5(m-1) + δm`).  Round 52 shows
+that (ii) is **not an extra requirement**.
+
+| new theorem | statement |
+|---|---|
+| `Sharp.covered_iff_cherry` | `Covered c e ↔ ∃ i v, v ∈ twoA c i ∧ e ∈ cherryEdges c i v` |
+| `Sharp.card_sdiff_leftover` | `|E(K_n) \ leftover c| = 3 * Paths c` |
+| `Sharp.card_leftover_le` | `6k ≤ 5(n-1) + d ⟹ |leftover c| ≤ n*d/2` |
+| `Sharp.card_leftover_of_eps` | `k ≤ 5n/6 + εn ⟹ |leftover c| ≤ 3εn² + 6n` |
+| `Sharp.card_leftover_of_one` | `6k ≤ 5(n-1)+1 ⟹ |leftover c| ≤ n/2` |
+| `Sharp.covers_of_extremal` | `Admissible c ∧ 6k = 5(n-1) ⟹ Covers c` |
+| `Sharp.not_covers_ge` | `¬Covers c ⟹ 5(n-1)+1 ≤ 6k` |
+| `Sharp.two_mul_leftover_add` | `2*|leftover c| + 5n(n-1) ≤ 6nk` (**refined sharp lower bound**) |
+| `Sharp.triFamily_of_extremal` | `Admissible c ∧ 6k = 5(m-1) ⟹ Covers ∧ PairFree ∧ NoCrossFour ∧ NoBadFour` |
+| `Sharp.TriFamilyAdmissible.slack` | `TriFamilyAdmissible ⟹ SlackFamily` (the `Covers` conjunct is free) |
+| `Sharp.jsp_000140_main_of_admissibleUpper` | `AdmissibleUpper 1 ⟹ jsp_000140_target` |
+| `Sharp.leftover_of_admissibleUpper` | the `o(n²)` leftover clause comes with the colouring |
+| `Sharp.jsp_000140_main_of_sharp` | `6*EG m = 5(m-1)` on `m ≡ 1 (mod 6)` for large `m` ⟹ `jsp_000140_target` |
+
+### Why this matters
+
+A labelled triangle `(u; p, q)` of `c` is **exactly** a two-edge path `p - u - q` together with its
+leaf edge `s(p,q)` (`covered_iff_cherry`), so the triangle covering of arXiv:2208.12563 §4 and the
+`K₄` counting of `Cherry.lean` are the *same object*.  Hence the number of edges the covering misses
+is `|E| - 3·Paths`, which is bounded by `n·d/2` as soon as `6k ≤ 5(n-1) + d`.  In particular
+
+* at the extremal point `6k = 5(n-1)` the covering is **complete** — so an extremal admissible
+  colouring *is* the published construction, and the "hypergraph matching" clause is forced by
+  sharpness, not assumed;
+* the "up to `o(n²)` edges" clause is **free** — every asymptotically optimal colouring covers all
+  but `3εn² + 6n` edges;
+* the sharp bound `5(n-1) ≤ 6k` is the `|leftover| = 0` case of the refined bound
+  `2|leftover| + 5n(n-1) ≤ 6nk`: **uncovered edges cost colours**.
+
+### What this leaves
+
+`AdmissibleUpper 1` — for every `ε > 0` and all large `n`, an admissible `k`-colouring of `K_n` with
+`k ≤ 5n/6 + εn` — is now **proved minimal**: every structural clause of every interface of rounds
+29–51 (covering, matching, four-sets, leftover) is a theorem of `Admissible` plus the budget.  The
+remaining content is the probabilistic existence theorem of arXiv:2207.02920 §12 / arXiv:2208.12563
+§4 (`Partial.FamGreedyFamily`), which Mathlib cannot supply (no Rödl nibble, no local lemma).
+
+### Lean 4.34.0 pitfalls recorded this round
+
+* `Iff.mp` goes left → right; `.mpr` goes right → left.  Getting this backwards produces a very
+  confusing "argument has type X but expected Y" error.
+* `have h := f x (by omega)` **shadows** an outer hypothesis named `h`, and the tactic then cannot
+  see the outer one.  Rename the inner binding whenever its name coincides.
+* `omega` over two *truncating* `Nat.sub`s can lose a constraint (it over-approximates the model);
+  restate the arithmetic as equalities (`L + 3*Paths = |E|`, `2*|E| = n*(n-1)`) plus a `calc`.
+* `Nat.cast_div` followed by `push_cast` leaves the side goals `2 ∣ n*d` and `↑2 ≠ 0`; prefer the
+  doubled form `2 * L ≤ n * d`.
+* `Finset.filter_subset _ _` needs a `DecidablePred` instance for the filter of a `noncomputable def`
+  (`leftover`); supply the subset proof as `fun e he => (mem_leftover.mp he).1` instead.
+
 ## Status (round 51)
 
 `lake build`: **OK** (3138 jobs, 14 s incremental).  `sorry`/`admit`: **0**.
