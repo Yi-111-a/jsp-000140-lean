@@ -1,3 +1,101 @@
+## Status (round 61)
+
+`lake build`: **OK** (3146 jobs; the new file `lean/JSPProblem/Pairs.lean` builds in 8.1 s).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 61 ATTACKS THE EXACT PAIR CENSUS OF THE TIGHT FOUR-SETS — THE "DISJOINT-PAIR HALF" THAT
+ROUNDS 58/60 NAME AS THE OPEN LEMMA OF THE DEVELOPMENT.**
+
+### 0. Housekeeping: `Quad.lean` is now on the build path
+
+Round 60 wrote `lean/JSPProblem/Quad.lean` but **never added `import JSPProblem.Quad`** to
+`JSPProblem.lean`, so the file was never compiled by `lake build` and never appeared in any build
+log.  `JSPProblem.lean` now imports `Quad` and `Pairs`.  `Quad.lean` closes the *counted-once* half of
+the four-set census (`sum_twoFourSets`, `∑_i |twoFourSets c i| = |fiveFourSets c|`, the step
+`Census.lean` §2* names) and its *inequality* half (`card_twoFourSets_ge_paths_mul`,
+`(twoA c i).card * (n-3) ≤ |twoFourSets c i|`), with four `native_decide` instances.
+
+### 1. What is missing, in one formula
+
+A tight `K₄` (five colours, one of them doubled) is counted by **a pair of same-coloured edges**.
+There are exactly two kinds of pair:
+
+* **path pairs** — the two edges meet at a path centre `v ∈ twoA c i`; such a pair lies in exactly
+  `n-3` four-sets (the three vertices of the path plus one more vertex);
+* **disjoint pairs** — the two edges are vertex-disjoint; such a pair spans all four vertices, so it
+  lies in **exactly one** four-set.
+
+Hence the exact census is
+
+    `|twoFourSets c i| = (n-3) * |twoA c i| + (choose |classF c i| 2 - |twoA c i|) = choose |classF c i| 2 + (n-4) * |twoA c i|`,
+
+and, summing over the colours (`Paths c = ∑_i |twoA c i|`),
+
+    `|fiveFourSets c| = ∑_i choose |classF c i| 2 + (n-4) * Paths c`.
+
+### 2. New file `lean/JSPProblem/Pairs.lean` — the whole counting apparatus
+
+| new | statement |
+|---|---|
+| **`sum_nb_card_eq_two_mul_classIn_card`** | **the handshaking lemma for a colour class**: `∑_{v ∈ S} |nb c i v S| = 2 * |classIn c i S|` — the pigeonhole engine that will decide "two edges of one colour inside a triangle meet" |
+| `card_containing` | a **three-element** vertex set lies in **exactly `n-3`** four-sets |
+| `pairsOf`, **`card_pairsOf`** | the two-element subsets of a finset: `T` has exactly `choose |T| 2` pairs (and `choose_two_mul`, `mul_sub_add` for the division-free form) |
+| `classF`, `pairOf`, `spanFourSets`, **`card_pairOf`** | the colour class as a finset of edges, its pairs (`choose |classF c i| 2` of them) and the four-sets a pair spans |
+| **`exists_fourSet_of_pair`** | **two distinct edges of `K_n` lie in a common four-set** (`n ≥ 4`): the only place endpoints of a `Sym2` value are needed |
+| `iEdgesAt`, **`card_meetPairs`** | the colour-`i` edges at a vertex; **injectivity of `v ↦ iEdgesAt c i v` on `twoA c i`** (from `Sym2.eq_of_ne_mem`: two distinct edges have at most one common endpoint), so `|meetPairs c i| = |twoA c i|` |
+| **`card_disjPairs`** | **`|disjPairs c i| = choose |classF c i| 2 - |twoA c i|`**: every two-element subset of a colour class is either the pair of edges of a two-edge path or a disjoint pair |
+| `meetingFourSets`, **`mem_meetingFourSets_iff`** | the four-sets carrying a path: `S.card = 4 ∧ |classIn c i S| = 2 ∧ ∃ v ∈ S, |nb c i v S| = 2` |
+| **`sum_card_meet_disj`** | `|meetPairs c i| + |disjPairs c i| = choose |classF c i| 2`, `native_decide`-verified on **all four** `Tables` constructions (`sum_card_meet_disj_sixCol`, `…nineCol`, `…tenCol`, `…elevenCol`) |
+
+### 3. What is NOT finished, stated exactly
+
+The census identity itself is **not** proved.  The single remaining mathematical ingredient is
+
+* **`meeting_of_triangle`** — two edges of one colour inside a **three-element** vertex set must
+  meet.  It is a pigeonhole consequence of `sum_nb_card_eq_two_mul_classIn_card`
+  (`∑_{v ∈ T} |nb c i v T| = 2 |classIn c i T| ≥ 4` over three vertices, each `≤ 1` under the
+  negation),
+
+after which the rest is bookkeeping: `meeting_of_ne_classIn` (a vertex of `S \ S'` is on no `i`-edge,
+so both `i`-edges of `S` lie in the triangle `S \ {x}`), the uniqueness of the four-set spanned by a
+disjoint pair, and the two injective maps between the non-meeting four-sets and `disjPairs`.
+`card_pathFourSets_eq` / `card_meetingFourSets` (each path lies in exactly `n-3` four-sets) were
+drafted and cut for budget; `Quad.card_pathFourSets_ge` remains the only proved form.
+
+### 4. What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` is **untouched** and remains the sole
+content of `jsp_000140_main`.  `jsp_000140_main` was again **not** declared.  B4
+(`f(10,4,5) ∈ {8,9}`) and `EG 12, EG 14, …, EG 19` — unchanged.
+
+### 5. Lean 4.34.0 pitfalls recorded this round
+
+* `Decidable (Sym2.Mem v e)` is **not** instance-searchable in this Mathlib: every finset filter on
+  it needs a local instance (`local instance (n) (e) : DecidablePred (fun v => Sym2.Mem v e) := fun _ =>
+  Classical.propDecidable _`) inside a `noncomputable section`;
+* the `{x, y} : Finset α` notation **needs `[DecidableEq α]`**, so general-type lemmas must carry it;
+* `Finset.mem_empty`, `Finset.not_mem_empty`, `Finset.mem_diff_singleton_eq`,
+  `Finset.inter_subset_right` (it is a *Set* lemma), `Finset.exists_mem_not_mem_of_ne`,
+  `Nat.mul_sub_left`, `Function.InjectiveOn` / `Set.InjOn`'s alias, `Nat.choose_zero` **do not exist**
+  in this version — use `Finset.eq_empty_iff_forall_notMem`, `simp`,
+  `fun v hv => (Finset.mem_inter.mp hv).2`, `Finset.sdiff_nonempty.mpr` with `¬ s ⊆ t`,
+  `Finset.Subset.antisymm (Finset.subset_univ _) h`, `Nat.sub_mul`, `Nat.choose_one_right`;
+* `Sym2.mem_iff` **cannot** used with `rw` (`Sym2.Mem` is a reducible `def`): `rw [h]` then
+  `exact Sym2.mem_iff'`.  `Sym2.exists` has the shape `(∃ x, f x) ↔ ∃ x y, f s(x,y)`, so endpoints come
+  from `Sym2.exists.mp (show ∃ z : Sym2 α, e = z from ⟨e, rfl⟩)`; there is no `Sym2.destructure`, but
+  `e.out.1`, `e.out.2`, `Sym2.out_fst_mem`, `out_snd_mem` work;
+* `Finset.mem_image.mp` produces `s(x,a) = e`, so rewriting the goal needs `rw [← heq]`;
+* `Finset.card_image_of_injective` needs **global** injectivity; for a map injective only on a finset
+  use `Finset.card_bij` with explicit arguments — and `Set.InjOn` / `Function.InjectiveOn` do not exist
+  here, which silently breaks elaborations;
+* `Nat.le_trans` infers its implicit arguments from the **first** argument, so `Nat.le_trans hle (by omega)`
+  fails when the goal has them in the other order;
+* `by_contra` / `intro` on `¬ (x ∈ univ \ T)` and `¬ (e ∈ loops S)` unfold the membership and bind
+  **vertices** instead of the membership proof — go through `Finset.mem_sdiff`, `mem_loops`,
+  `Finset.sdiff_nonempty.mpr` instead.
+
 ## Status (round 58)
 
 `lake build`: **OK** (3144 jobs; the new file `lean/JSPProblem/Pack.lean` builds in ~9 s).

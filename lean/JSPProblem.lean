@@ -45,4 +45,6 @@ import JSPProblem.Strict
 import JSPProblem.Apex
 import JSPProblem.BlockCol
 import JSPProblem.Alt
+import JSPProblem.Quad
+import JSPProblem.Pairs
 import JSPProblem.Pack
