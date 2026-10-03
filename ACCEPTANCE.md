@@ -1,3 +1,106 @@
+## Status (round 64)
+
+`lake build`: **OK** (3152 jobs; the new file `lean/JSPProblem/Profile.lean` — 429 lines, 29 public
+theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 64 CLOSES THE LAST MEMBER OF THE CENSUS FAMILY — `no_six_of_seven` — AND PROVES
+`f(7,4,5) ≥ 7` ANALYTICALLY, i.e. WITHOUT THE 38 654-NODE SEARCH.**  Round 63 recorded
+`no_six_of_seven` as the one instance the census could not reach (`Moment.momentOK 7 6` holds: the
+Cauchy–Schwarz relaxation of the profile does not see it).  The missing input is a **per-class**
+one, and it is the one input all three counting arguments discard.
+
+### 1. The per-class charge (`lean/JSPProblem/Profile.lean`, §0–§2)
+
+The census of `Pairs.lean` charges colour `i` with `choose |E_i| 2 + (n-4) * |A_i|` four-sets, and
+`Paths.two_mul_classIn_le_add` (round 4) says **per class**
+
+      `2 * |E_i| ≤ n + |A_i|`,      i.e.      `|A_i| ≥ 2|E_i| - n`,
+
+so a colour class with more than `n/2` edges *must* pay for itself in two-edge paths.  Deleting
+the forced part of that term leaves the **relaxed census**
+
+| new theorem | statement |
+|---|---|
+| **`card_classF_le`** | `|E_i| ≤ n` for every colour class (max degree `2`) |
+| **`profileCost`** | `choose |E_i| 2 + (n-4) * (2|E_i| - n)` — the relaxed charge of one class |
+| **`profileCost_le_census_term`**, **`sum_profileCost_le_fourSets`** | **`∑_i [ choose |E_i| 2 + (n-4) * (2|E_i| - n) ] ≤ C(n,4)`** |
+
+Cauchy–Schwarz only sees `∑_i |E_i| = C(n,2)`; this sees the **shape** of the profile.
+
+### 2. The parity device (§1) — a genuinely new arithmetic observation
+
+If `n` is odd and `∑_i 2|E_i| = n·k`, then
+
+      `k ≤ 2 * ∑_i (2|E_i| - n)`.
+
+Two ingredients, both proved: **`sum_sub_eq_sum_sub_rev`** (the two truncated sums `∑ (2|E_i| - n)`
+and `∑ (n - 2|E_i|)` coincide whenever the untruncated sums agree — the identity `a - b = max a b - b`
+summed) and **`sub_add_sub_ge_one`** (each pair `(2|E_i| - n) + (n - 2|E_i|) = |2|E_i| - n|` is at
+least `1`, because `n` odd forbids `2|E_i| = n` — `two_ne_odd`).  The colour classes of an
+admissible colouring satisfy the hypothesis exactly at `k = n - 1`, since
+`2C(n,2) = n(n-1) = n·k`: **`surplus_ge_odd`**.
+
+### 3. The charge obstruction, and the two instances
+
+| new theorem | statement |
+|---|---|
+| **`charge_census`** | `∑_i choose |E_i| 2 + (n-4) * ((n-1)/2) ≤ C(n,4)` for odd `n`, `k = n-1` |
+| **`chargeOK`** (predicate on the order alone), **`charge_obstruction`** | every admissible `(n-1)`-colouring of an odd `K_n` satisfies `C(n,2)² - (n-1)C(n,2) + (n-4)(n-1)² ≤ 2(n-1)C(n,4)` |
+| **`not_chargeOK_seven`** | `¬ chargeOK 7`: `423 > 420` |
+| **`no_six_of_seven`** | **`¬ (∃ c : Col 7 6, Admissible c)`** — no admissible six-colouring of `K_7`, *no search* |
+| **`not_chargeOK_five`**, **`charge_no_four_of_five`** | the second instance (`76 > 40`) |
+| **`EG_seven_ge_seven`**, **`EG_seven_lower_half`** | **`7 ≤ EG 7`** — the lower half of `Main.EG_seven : EG 7 = 7` with no certificate |
+
+Together with round 63's `Moment.EG_seven_ge_six_census` (which rules out `k ≤ 5`) the analytic
+route to `f(7,4,5) ≥ 7` is complete; `VertexSearch.certC_seven` is now **redundant** for that value.
+
+### 4. §4–§5: the profile-alone form, and the margin
+
+`sum_choose_two_seven` (`∑_i choose |E_i| 2 ≥ 27` — Cauchy–Schwarz gives `26.25` and the
+integrality of the pair count rounds it up; the first load-bearing use of that integrality in this
+development), `sum_surplus_seven` (`∑_i (2|E_i| - 7) ≥ 3`) and **`sum_profileCost_seven_six`**
+(`∑_i profileCost 7 c i ≥ 36` for **every** profile of six classes summing to `21`, with no
+hypothesis of admissibility) give §3 directly from the six integers `|E_1| …, |E_6|`.  Both bounds
+are attained by the balanced profile `(4,4,4,3,3,3)` (`cost_four`, `cost_three`,
+`balanced_cost_is_36`), and the exclusion misses by **one four-set** (`margin_is_one`:
+`C(7,4) + 1 = 36`).
+
+### 5. NOT proved this round
+
+* **`Main.AdmissibleUpper ε` (`0 < ε < 1/6`) is UNCHANGED** and remains the sole content of
+  `jsp_000140_main`: the probabilistic existence theorem of arXiv:2207.02920 §4 / arXiv:2208.12563
+  §4.  It was again **not** declared — declaring it with the hypothesis as an assumption would
+  falsify the prize.
+* **The charge is vacuous from `n = 9` on** (`chargeOK_nine`, `chargeOK_eleven` — machine-checked).
+  `EG 9 = 8` therefore still rests on the search certificate `Nine.certD_nine_six`, and `EG 12`,
+  `EG 13`, … are unchanged (no admissible colouring at or near the counting bound was found for
+  `n = 9..17` in round 60's campaign).
+* **The census family is now exhausted at large `n`.**  With the *exact* balanced profile the
+  relaxed cost at `(9,7)` is `120 ≤ C(9,4) = 126`, so even the sharp profile (the convexity lemma
+  still missing, see `policy.json.next_lemma`) adds nothing beyond `Moment.moment_obstruction`
+  except at `n = 5` and `n = 7`.  A *new* instrument is needed for `f(9,4,5) ≥ 8` analytically.
+
+### 6. Abandoned in this round
+
+A second file, `lean/JSPProblem/SharpProfile.lean`, was drafted for the **exact balanced-profile
+minimum** `∑_i choose f_i 2 ≥ (k-r) choose q 2 + r choose (q+1) 2` (the item policy.json had named as
+`next_lemma`).  Its *mathematics* is verified and needs neither smoothing nor a second
+Cauchy–Schwarz — over `ℤ`, with `x_i = f_i - q` one has `∑ x_i = r`, `x² ≥ max x 0 ≥ x` and
+`f_i² = x_i² + 2q x_i + q²`, hence `∑ f_i² ≥ kq² + 2qr + r` — and the recipe is recorded in
+`policy.json`.  It did **not** compile within the round budget (the only obstruction was the
+Lean-side lifting of a truncated `Nat` subtraction through `Int`, `Int.ofNat_sub` rewriting to the
+commuted form `↑(a*b)*2` so that the matching rewrite fails), and since the sharp profile was
+checked numerically to add **no** bound beyond `Moment.moment_obstruction` for `n ≥ 9`, the file was
+deleted rather than left half-finished; the default build is `3152` jobs, `0` placeholders.
+
+### 7. Non-vacuity
+
+`charge_nineCol` and `charge_elevenCol` check `charge_obstruction` on the verified constructions
+`nineCol` (8 colours on `K_9`) and `elevenCol` (10 colours on `K_{11}`): the instrument agrees with
+the witnesses the searches of rounds 45–46 produced.
+
 ## Status (round 63)
 
 `lake build`: **OK** (3151 jobs; the new file `lean/JSPProblem/Moment.lean` — 460 lines, 38
