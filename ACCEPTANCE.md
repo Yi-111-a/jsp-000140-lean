@@ -1,3 +1,143 @@
+## Status (round 55)
+
+`lake build`: **OK** (3141 jobs; the new file `lean/JSPProblem/Apex.lean` builds in 7.8 s and emits
+no warnings).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+*(As in the rest of this file, theorem names are written with the file prefix; the declarations live
+in `namespace JSP140`, e.g. `JSP140.apexBound` in `lean/JSPProblem/Apex.lean`.)*
+
+**ROUND 55 CHANGES ATTACK FAMILY AGAIN — TO THE *SECOND ORDER* OF THE NECESSITY SIDE — AND PROVES
+AN INTERPOLATING FAMILY OF LOWER BOUNDS.**  Round 53 proved that the sharp counting bound
+`6k = 5(n-1)` is never attained, using the local fact `Strict.apex_zeroA` (the apex of a labelled
+triangle has *no* edge of the leaf-colour).  This round turns that local fact into a **global
+price list**: every two-edge path must be paid for in `Isolated c` units *at its apex*, so the
+sharper a colouring gets against `5n/6`, the more the leaf-colours of its paths must repeat at
+their apexes.  New file `lean/JSPProblem/Apex.lean` (383 lines, 22 declarations, 16 public theorems,
+zero placeholders, on the default build path).
+
+### 1. `Apex.apexBound` — THE INTERPOLATING LOWER BOUND
+
+```lean
+theorem Apex.apexBound {M : ℕ} (hc : Admissible c) (hn : 4 ≤ n) (hM : 1 ≤ M)
+    (hmul : ∀ y : Fin k × Verts n, (fibre of `apexPair` at y).card ≤ M) :
+    (n - 1) * (5 * M + 1) ≤ 6 * M * k
+```
+
+Equivalently `5(n-1) + (n-1)/M ≤ 6k`, i.e. over `ℝ` (`Apex.apexBound_real`)
+
+    `f(n,4,5) ≥ 5(n-1)/6 + (n-1)/(6M)`   when no `(leaf colour, apex)` pair carries more than `M`
+    two-edge paths.
+
+`M` interpolates between the two constants the development knows:
+
+* **`M = 1`** (`Apex.k_ge_of_unique_apexPair`): the leaf-colours of the paths at each apex are all
+  distinct, so nothing can be saved below `n-1` — **`k ≥ n-1`**.  This is the regime of the
+  round-robin and ghost constructions, and it says why they cannot be improved below `n-1` by any
+  rearrangement that keeps the apex leaf-colours distinct;
+* **`M → ∞`**: the sharp counting bound `5(n-1) ≤ 6k` of `Cherry.five_sixth_lower`, i.e. the
+  catalog constant `5/6` is the *large-multiplicity end of the same one-parameter family*.
+
+`Apex.deficit_le` is the same statement in the currency of "colours saved":
+
+    `6 * M * (n - 1 - k) ≤ (M - 1) * (n - 1)`
+
+so **saving `d` colours below `n-1` forces a `(leaf colour, apex)` pair to carry at least
+`(n-1)/(6d) - 1` two-edge paths** (`Apex.exists_fibre_gt_of_deficit` gives the existential form).
+Since BCDP22 attain `5n/6 + o(n)`, this says their first-stage triangle packing must have apex
+leaf-colours of unbounded multiplicity — a **necessary condition on the output of arXiv:2207.02920
+§4 that is not implied by anything in rounds 1–54**.
+
+### 2. The price list, itemised
+
+* **`Apex.LabTri_cherryPair`** — every two-edge path of an admissible colouring is a labelled
+  triangle: the two edges at the centre share a colour, the leaf edge has a different one
+  (`Rigidity.cherry_leaf_pair`).  This is the bridge between `Cherry.lean` and `Triangles.lean`, and
+  it is what lets round 53's `apex_zeroA` be applied to *all* paths of `c`;
+* **`Apex.apexPair` / `Apex.apexFinset`** — the `(colour of the leaf edge, apex)` pairs realised by
+  the paths, a finset of `Fin k × Verts n` whose cardinality is the number of `Isolated c` units the
+  paths cost;
+* **`Apex.mem_apexFinset_zeroA`** — every such pair is a missing-colour slot (`p.2 ∈ zeroA c p.1`);
+* **`Apex.card_apexFinset_le_isolated`** — **the distinct `(leaf colour, apex)` pairs are at most
+  `Isolated c`** (`|apexFinset c| ≤ Isolated c`);
+* **`Apex.card_cherryFinset_le_mul_apexFinset`** (pigeonhole over the fibres of `apexPair`) and
+  **`Apex.paths_le_mul_isolated`** — **`Paths c ≤ M · Isolated c`**: paths are paid for in `Isolated`
+  units at the rate of at least one unit per `M` paths;
+* **`Apex.k_ge_of_no_path`** — `Paths c = 0 ⟹ k ≥ n-1`, directly from `Surplus.global_identity`.
+
+### 3. Search evidence collected in parallel (all NEGATIVE, recorded so it is not repeated)
+
+* **Merging colours of the round-robin colouring never preserves admissibility.**  For `n = 9, 11,
+  13` and *every* merged group of 2, 3 or 4 colours, the merged colouring violates `Admissible`
+  (`discovery/JSP-000140/rrmerge_probe.py`; the four-set colour-count profile of the round-robin
+  colouring is `{5: 195, 6: 520}` at `n = 13`, so *every* pair of colours is blocked).  So the one
+  explicit construction of this development is merge-minimal — consistent with `Apex.apexBound`
+  (`M = 1` ⟹ `k ≥ n-1`).
+* **A general min-conflicts engine cannot find admissible colourings at the counting bound.**
+  `discovery/JSP-000140/wsat_eg.c` (WalkSAT over "every `K₄` spans ≥ 5 colours", 4 seeds × 60 s per
+  target) stalls at 24–128 violated four-sets out of 330/495/715/3876 for
+  `(n,k) = (11,9), (12,10), (13,11), (14,11), (15,12), (16,13), (17,14), (18,15), (19,16),
+  (19,17)`.  Round 53's conclusion (free-form single-edge search is not competitive) is confirmed
+  with an independent engine; no new finite value of `f` was obtained.
+* **The `(2,1)`-block family of `Block.lean` is empty below 7 colours at `n = 7`.**  Exhaustive
+  enumeration over all centre/colour assignments to the 7 Fano blocks
+  (`discovery/JSP-000140/fano_s1s2.py`) finds **no** assignment satisfying both *slot-freeness*
+  (the 5 `(vertex, colour)` pairs per block are globally distinct) and *apex-avoidance* (the apex
+  has no edge of the leaf-colour) for `k = 5` or `k = 6`.  This is exactly the pair of design
+  conditions that `Apex.apexBound` says any construction must pay for, and it is the first
+  *decidable* statement about that family.
+* A dedicated `(2,1)`-block search on the cyclic STS(13)
+  (`discovery/JSP-000140/sts_block.c`, blocks in `sts13_cyclic_blocks.txt`) with 11 or 12 colours
+  stays at 455–492 violated four-sets of 715; the `(2,1)` family is not competitive with the
+  generic engine either.  (This is the same target that rounds 49–52 attacked for 10 colours and
+  that `Strict.no_admissible_ten_of_thirteen` has since refuted.)
+
+### 4. What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence
+theorem of arXiv:2207.02920 §4/§12 and arXiv:2208.12563 §4 — is **untouched** and remains the
+sole content of `jsp_000140_main`.  What round 55 adds is a *necessary* condition on any
+construction that comes close to `5n/6`: the two-edge paths must share leaf-colours at their
+apexes, at a rate that grows as the colouring approaches the counting bound.  `jsp_000140_main`
+was again **not** declared.  B4 (`f(10,4,5) ∈ {8,9}`, closed by `Strict.strict_EG_ten_ge_eight` +
+`Tables.EG_ten_le`) and `EG 12, EG 14, …, EG 19` — unchanged.
+
+### 5. Lean 4.34.0 pitfalls recorded this round
+
+* `Finset.card_le_card_of_injOn (f := …) ?_ ?_` leaves `s` and `t` **unresolved** unless they are
+  given explicitly: `(s := …) (t := …)`.  Without them the `MapsTo` goal is stated against
+  `Finset.univ` and every proof attempt fails with a type mismatch that names the *witness* type.
+* In the `MapsTo` goal the witness of `Finset.mem_image.mpr` is the **domain** element, not the
+  image: for `t := s.image (fun v : Verts n => (i, v))` the witness is `y.2`, for
+  `t := s.image (fun y => (i, y.2))` it is `y`.  Getting this backwards is the single most
+  confusing error of the round.
+* `congrArg Prod.fst h` with `h : f y = f w` elaborates the *conclusion* first and then demands
+  `h : y = w`; to get `y.1 = w.1` from `h` you must annotate the function
+  (`congrArg (fun q : Fin k × Verts n => q.1) h`) — and even then `f = fun y => (i, y.2)` is *not*
+  injective on pairs, so the `y.1 = w.1` half must come from the `y.1 = i` side condition.
+* `Finset.card_eq_two : s.card = 2 ↔ ∃ x y, x ≠ y ∧ s = {x, y}` is an **`Exists`**, not a `Sigma`,
+  so it cannot be used as a type; the two witnesses must be read as `h.choose` and
+  `h.choose_spec.choose`, and the `show`/`rw` must unfold the definition that wraps them (a
+  `noncomputable def` with the two `choose`s inlined, *not* a `let`, or `show` will not see it).
+* `Prod.ext_iff` / `Prod.mk.inj` disagree about which direction `mpr` goes; `Prod.mk.inj h` with
+  `h : (i, y.2) = (i, w.2)` gives `i = i ∧ y.2 = w.2` and is the only painless route.
+* `le_of_mul_le_mul_left` needs an explicit `[PosMulReflectLE α]` instance; over `ℕ` and `ℤ` it is
+  available, and it is the clean way to cancel a factor `n ≥ 1` after a cast.
+* `ring` fails on a goal containing `Nat.sub` (`(M-1) * X + (5M+1) * X = 6M * X`): `Nat.sub` is not
+  a ring term.  `rw [← Nat.mul_add]` (with the arguments written out) plus `Nat.sub_add_cancel`
+  does it; after `obtain ⟨M', rfl⟩` from `Nat.exists_eq_add_of_le` the goal is a genuine ring
+  identity and `ring` works.
+* `omega` normalises products into atoms but does **not** identify `(n-1) * (5M+1)` with
+  `(5M+1) * (n-1)`, nor `6 * (1 + M') * k` with `6 * (M' + 1) * k`: every hypothesis written by
+  hand must use **exactly** the parenthesisation of the goal it is fed to, or `omega` silently
+  treats the two as unrelated atoms (this cost about 40 minutes of the round).
+* `mul_le_mul_of_nonneg_left/right` infer the multiplier from the second argument's type; passing
+  the multiplier positionally (`(6 : ℤ)`) makes Lean guess `k`, so write `(a := (6 : ℤ))`.
+* `rw` closes a goal that becomes *syntactically* a hypothesis; a trailing `linarith` after such a
+  `rw` reports "no goals to be solved".  In a `calc` step this shows up as a spurious error one
+  line later.
+
 ## Status (round 53)
 
 `lake build`: **OK** (3140 jobs; the new file `lean/JSPProblem/Strict.lean` builds in 6 s and emits
