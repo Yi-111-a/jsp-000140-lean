@@ -1,3 +1,109 @@
+## Status (round 66)
+
+`lake build`: **OK** (3154 jobs; the new file `lean/JSPProblem/Window.lean` — 26 declarations,
+17 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 66 CLOSES ROUND 65'S OWN CHEAPEST BLOCKER: `f(12,4,5) = 11`, THE NINTH EXACT VALUE (TWICE —
+once from the ghost colouring, once from a witness found by this round's new search and certified by
+`native_decide`); IT READS THE PER-VERTEX VACANCY OF ROUND 65 AS AN EXACT STRUCTURE THEOREM; AND IT
+TURNS BENCHMARK B5 INTO A STEINER TRIPLE SYSTEM.**
+
+### 1. The premise of blocker B2 was false: `EG 12 = 11`
+
+Round 65 recorded as the cheapest open item of the whole development
+
+> `EG 12 = 11` is NOT proved: … but **no admissible 11-colouring of `K₁₂` is known**.  EVERY search
+> of rounds 45-46 / 60 was run at `⌈5(n-1)/6⌉` colours, i.e. ONE BELOW the new bound.
+
+`n = 12` is **even** with `3 ∤ (n-1)`, i.e. exactly the regime of `Ghost.lean`: the ghost colouring
+`Ghost.ghostCol 11` is a 1-factorisation of `K₁₂` with `11` colours and is admissible by
+`Ghost.admissible_ghost`.  So `Main.EG_le_ghost_sub 12` gives the upper half and
+`Vacant.EG_twelve_ge_eleven` the lower one:
+
+| new theorem | statement |
+|---|---|
+| **`window_even`** | `⌈(5n+1)/6⌉ ≤ f(n,4,5) ≤ n-1` for every **even** `n ≥ 7` with `3 ∤ (n-1)` (`n ≡ 0, 2 mod 6`) |
+| **`EG_twelve`** | **`f(12,4,5) = 11`** |
+| **`window_collapse`** | for even `7 ≤ n ≤ 12` with `3 ∤ (n-1)`: `f(n,4,5) = ⌈(5n+1)/6⌉` — the window is a singleton **exactly** at `n = 8, 12` |
+| **`window_separated`** | for `n ≥ 13`: `⌈(5n+1)/6⌉ < n-1`, so the two ends differ by ≥ 1 colour and no exact value follows |
+| **`first_nine_exact`** | `f(4..12,4,5) = 5, 5, 5, 7, 7, 8, 9, 10, 11` |
+| **`next_three_open`** | `f(13,4,5) ∈ {11,12,13}`, `f(14,4,5) ∈ {12,13}`, `f(15,4,5) ∈ {13,14,15}` |
+
+The first exact value obtained in this development by **combining** a construction (`Ghost.lean`)
+with a lower bound (`Vacant.lean`): the ghost colouring attains round 65's refined bound.
+
+### 2. Round 65's pigeonhole as an exact per-vertex identity (new)
+
+`Surplus.global_identity` says `n(n-1) + Isolated c = nk + Paths c`, so at a fixed order the two
+defects are pinned by `Paths c`.  Read per vertex — `n-1` edges at `v`, at most two per colour, and
+twice exactly for the colours of the two-edge paths centred at `v` — one gets an exact count:
+
+| new theorem | statement |
+|---|---|
+| `missing_at` | **`#{i : v ∈ zeroA c i} + (n-1) = k + #{i : v ∈ twoA c i}`** — the colours missing at `v` are `k-(n-1)` plus one per two-edge path centred at `v` |
+| `centre_of_paths` | **`k = n-2 ⇒` every vertex is the centre of a two-edge path** (`Vacant.exists_twoA_of_le`, isolated as a theorem) |
+| **`paths_ge_n`** | **`k = n-2 ⇒ n ≤ Paths c`** |
+| `isolated_eq_paths` | `k = n-1 ⇒ Isolated c = Paths c` — **the two defects coincide** at the order of every verified construction here |
+| `isolated_add_n_eq_paths` | `k = n-2 ⇒ Isolated c + n = Paths c` |
+
+The two private counting tools behind them (`three_way`: `zeroA`/`oneB`/`twoA` partition the palette
+as seen from `v`; `handshake`: `2·(twice) + (once) = n-1`) are the per-vertex analogues of
+`Pairs.sum_nb_card_eq_two_mul_classIn_card`.
+
+### 3. Benchmark B5 (`(13,11)`) reduces to a Steiner triple system
+
+`Vacant.extremal_at_thirteen_shape` gives `Isolated c = 13`, `Defect c = 0`; with §2 this pins the
+paths:
+
+| new theorem | statement |
+|---|---|
+| `thirteen_shape` | an admissible 11-colouring of `K₁₃` has `Paths c = 26 = n(n-1)/6`, `Isolated c = 13`, `Defect c = 0`, `(pathFinset c).card = 26` — i.e. **`Cherry.three_mul_paths_le_edges` is an EQUALITY** |
+| **`extremal_at_thirteen_is_STS`** | **its two-edge paths form an `STS(13)`** (`Rigidity.IsSTS`) |
+
+So the exhaustive `(2,1)`-block searches of rounds 49–56 (`discovery/JSP-000140/sts212b.c`, 4 seeds ×
+2200 s on the cyclic `STS(13)`) were searching exactly this space; their negative outcome is
+evidence that `f(13,4,5) = 12`, but no upper bound above `11` is proved.
+
+### 4. A new search instrument, and a witness certified in Lean
+
+New solvers `discovery/JSP-000140/r66_walk.c` (incremental-mask WalkSAT: `mask[t]` is the colour
+bitmask of a four-set, a move's delta is evaluated **exactly** over the `C(n-2,2)` four-sets
+containing the edge, best move over the six edges of a random violated four-set, 4 % noise),
+`r66_ils.c` (the same plus iterated local search) and `r66_2opt.c` / `r66_3opt.c` (exhaustive 2-opt
+and restricted 3-opt repair around the best state).  They are **an order of magnitude better than the
+round-57 min-conflicts code**: `r66_walk` finds the `(9,8)` witness in **915 steps**, where the old
+code stalled at 63–111 violated four-sets out of 495 at the *easier* `(12,11)`.
+
+* **`r66_walk` FOUND an admissible 11-colouring of `K₁₂`** (seed 57, 20 392 921 steps,
+  `r66_w_12_11_57.out`), re-checked independently in Python (11 colours, 0 of 495 four-sets
+  violated), and it is now a Lean theorem: **`Window.admissible_r66Col`** (`native_decide` over all
+  `C(12,4) = 495` four-sets), hence **`Window.EG_le_r66Col : EG 12 ≤ 11`** and
+  **`Window.EG_twelve_by_witness : EG 12 = 11`** — the second, independent derivation of §1 (the
+  first uses the 1-factorisation of `Ghost.lean`).  This is the round's search converted into a
+  certificate exactly as `Tables.lean` prescribes.
+* **No witness at `(13,12)`, `(14,12)`, `(15,13)`, `(16,14)`** (see `r66_search_log.txt`): five
+  runs at `(13,12)` reach **one** violated four-set of 715 and stay there, and both the exhaustive
+  2-opt and the restricted 3-opt fail from there.  So `(13,12)` is either unattainable or needs a
+  deeper repair; the residual is very likely a genuine obstruction, and `f(13,4,5) = 12` is the
+  expected value.
+
+### 5. NOT proved this round
+
+The prize hypothesis `Main.AdmissibleUpper ε` (`0 < ε < 1/6`), the probabilistic existence theorem
+of arXiv:2207.02920 §4, is untouched, so `jsp_000140_main` was again NOT declared: declaring it with
+the hypothesis as an assumption would falsify the prize.
+
+Lean 4.34.0 pitfalls recorded this round: `rw [mem_twoA]` FAILS when the goal contains
+`if v ∈ twoA c i then …` (the `Decidable` instance depends on the rewritten term) — build the
+positive/negative forms by hand from `hcases` instead; `Finset.sum_filter` is stated *filter-side =
+if-side*, so indicator sums need `rw [(Finset.sum_filter p _).symm, Finset.card_eq_sum_ones]`; a
+`∑` over `Fin k` is NOT an atom for `omega` when the summand involves `n % 2` or `3 ∣` hypotheses
+in the context (supply `Finset.sum_nonneg` explicitly); `∑ i ∈ s, f i` may not span several lines
+inside a `calc` step; `absurd h h'` needs `h' : ¬ p` when `h : ¬ p` is the *first* argument
+(`exact (h (by norm_num : p)).elim` is the robust form).
+
 ## Status (round 65)
 
 `lake build`: **OK** (3153 jobs; the new file `lean/JSPProblem/Vacant.lean` — 395 lines, 34 public
