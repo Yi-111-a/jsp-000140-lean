@@ -1,3 +1,92 @@
+## Status (round 51)
+
+`lake build`: **OK** (3138 jobs, 14 s incremental).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize`: `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 51 CLOSES THE MATCHING-CONDITION BLOCKER `pairFree_of_admissible`, CARRIED OPEN SINCE ROUND
+29 AND LEFT WITH ~40 TACTIC LINES OF BOOKKEEPING IN ROUND 50.**  `lean/JSPProblem/Cover.lean`
+grew from 485 to **733 lines** and from 24 to **40 declarations**; nine of them are new public
+theorems, zero placeholders, on the default build path.
+
+### 1. `Cover.PairFree_of_admissible` — the matching condition is a THEOREM
+
+`PairFree` was the one hypothesis of `Triangles.TriFamily` that had never been discharged from the
+catalog condition.  It is now:
+
+```lean
+theorem PairFree_of_admissible {n k : ℕ} {c : Col n k} (hc : Admissible c) : PairFree c
+```
+
+proved via the round-50 role semantics in a nine-case analysis
+(`Cover.triVerts_eq_of_mem_triPairs`, §2 of the file), with these three new private lemmas:
+
+* **`role_norm`** — the role of `v` in a labelled triangle `(u; p, q)`, in normal form: either the
+  *labelled* role (`v = u`, `j = c s(u,p)`), or a *path-leaf* role (after naming the other leaf
+  `w`: `LabTri c u v w`, `c s(u,v) = j`, `triVerts u v w = triVerts u p q`), or an *opposite-leaf*
+  role (`LabTri c u v w`, `c s(v,w) = j`, same vertex-set identity);
+* **`lab_unify`, `path_unify`, `opp_unify`** — the three cases in which the two triangles coincide:
+  both labelled (the two `j`-neighbour sets are `{p,q}` and `{p',q'}`), both path leaves (the unique
+  `j`-neighbour of `v` is the labelled vertex of both, so `u = u'`, then `{v,w₁} = {v,w₂}`), and both
+  opposite leaves (`w₁ = w₂`, then either `u = u'` or `obstruction_two`);
+* **`lab_leaf_false`** — a labelled role and a leaf role at the same `(v, j)` force `(Nbrs c j v).card`
+  to be both `2` and `1`.
+
+The remaining four cases are ruled out by the round-50 obstructions: path/opposite and
+opposite/path by `Cover.obstruction_one`, opposite/opposite with `u ≠ u'` by
+`Cover.obstruction_two`.  **The whole matching condition is therefore a consequence of the catalog
+condition**, and `Triangles.TriFamily` is no stronger than the statement "there is an admissible
+colouring covered by labelled triangles with the right budget".
+
+### 2. The price of a triangle family: where `5/6` comes from
+
+* **`card_triPairs_five` — `(triPairs c u p q).card = 5`**: the five pairs
+  `(u,λ), (p,λ), (q,λ), (p,μ), (q,μ)` are pairwise distinct.
+* **`five_mul_card_le` — `5 * |T| ≤ n * k`** for a family `T` of labelled triangles of an
+  admissible colouring with pairwise distinct vertex sets (the disjointness is now `PairFree`,
+  proved above; counted with `Finset.card_disjiUnion`).
+* **`five_mul_card_le_decomposition` — `5(n-1) ≤ 6k`**: a triangle *decomposition* of `K_n`
+  (`6·|T| = n(n-1)`) therefore satisfies the catalog lower bound with the sharp constant `5/6` —
+  read off the construction encoding (`n(n-1)/6` triangles, five pairs each) rather than by
+  counting colour classes as in `Cherry.three_mul_paths_le_edges`.  This is the first formal
+  appearance of the *reason* for `5/6` inside the construction interface.
+
+### 3. The packing statements, now free
+
+* **`triVerts_eq_of_mem_triEdges_admissible`** — two labelled triangles of an admissible colouring
+  never share an edge (arXiv:2208.12563 §4: the triangles form a *matching*);
+* **`exists_labTri_of_mem_of_admissible`** — all the colour-`i` edges at a vertex lie in one single
+  labelled triangle;
+* both are `Triangles.triVerts_eq_of_mem_triEdges` / `exists_labTri_of_mem` with `PairFree`
+  discharged by §1.
+
+### 4. The prize hypothesis, restated in the catalog language
+
+* **`Cover.TriFamilyAdmissible`** — `Triangles.TriFamily` with `PairFree c` replaced by
+  `Admissible c` (everything else unchanged: `Covers`, `NoCrossFour`, `NoBadFour`, the budget
+  `6k ≤ 5(m-1) + δm`);
+* **`TriFamily.of_admissible`** — the two forms are equivalent, i.e. the second phase of
+  arXiv:2207.02920 §12 does **not** need a separate matching verification;
+* **`jsp_000140_main_of_tri_family_admissible`** — the required statement follows from it.
+
+**What is still missing is unchanged: the existence of the labelled-triangle system itself**
+(`Partial.FamGreedyFamily`, a Rödler–nibble / random-triangle-removal existence theorem).  Both
+papers constructing it are probabilistic, so there is no explicit colouring to formalise.
+
+### Implementation notes for the next round
+
+* This Lean version (4.34.0) **cannot parse a multi-line `by` block inside a `calc` step** when
+  further steps follow — the parser reports `unexpected identifier; expected ':='`.  Restructure
+  such `calc`s into `have`s plus `exact a.trans (b.trans c)`.
+* `choose ... using h` abstracts over *every* free variable of `h`, including a `hU : U ∈ S`
+  argument; use the `h ∨ ¬h` trick to keep the chosen function on `U` alone, or pass the triples
+  themselves as the data (as `five_mul_card_le` does, which avoids `Classical.choose` entirely).
+* `Finset.disjoint_left.mpr` is the way to build `Disjoint s t` for finsets (`Disjoint` is a class,
+  `Disjoint.intro` does not exist), and `Finset.card_disjiUnion` / `Finset.sum_const_nat` are the
+  two counting lemmas needed for the pigeonhole.
+* `lean/JSPProblem/Cover.lean` compiles in **7 s** (no `native_decide`); `Seven.lean` (~50 min)
+  and `Amplify.lean` (~150 s) were not touched, their oleans were replayed.
+
 ## Status (round 50)
 
 `lake build`: **OK** (3138 jobs, 18 s incremental).  `sorry`/`admit`: **0**.
