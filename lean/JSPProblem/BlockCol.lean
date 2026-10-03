@@ -87,11 +87,18 @@ variable {n k : ℕ}
 
 /-- **THE DATA OF A `(2,1)`-BLOCK COLOURING OF `K_n`.**
 
-`bl : Fin m → Finset (Verts n)` is a triangle decomposition of `K_n` (`cover`: every edge lies in
-some block, `uniq`: in exactly one, `card_three`: every block has three vertices), and each block
+`bl : Fin m → Finset (Verts n)` is a **triangle packing** — a set of edge-disjoint triangles
+(`uniq`: in at most one, `card_three`: every block has three vertices) — and each block
 `bl i` carries a **centre** `ctr i` and two **distinct** colours `pc i ≠ qc i`: the two edges of the
 block that meet at the centre get `pc i` and the opposite edge gets `qc i`.  This is the pattern
-`(a, a, b)`, `a ≠ b`, of arXiv:2208.12563 §4 — the `(2,1)`-block colouring of `Block.lean`. -/
+`(a, a, b)`, `a ≠ b`, of arXiv:2208.12563 §4 — the `(2,1)`-block colouring of `Block.lean`.
+
+*(Round 58: this structure used to carry the extra hypothesis `cover` — every edge lies in some
+block — which no proof of this file used.  It has been **removed**, so `TwoOne` is now the object
+the published construction actually builds: a *partial* triangle packing.  The Steiner triple
+systems of `Block.lean` are the instances with `6 * m = n * (n-1)`, and `Pack.lean` treats the
+general packing, whose leftover graph is sparse rather than empty — the shape of arXiv:2207.02920
+§4, whose hypergraph matching covers `1 - n^{-δ}` of the edges.)* -/
 structure TwoOne (n k m : ℕ) where
   /-- the palette is nonempty, so that `Fin k` can be summed over -/
   hk : NeZero k
@@ -99,8 +106,6 @@ structure TwoOne (n k m : ℕ) where
   bl : Fin m → Finset (Verts n)
   /-- every block is a triangle -/
   card_three : ∀ i, (bl i).card = 3
-  /-- the blocks cover every edge -/
-  cover : ∀ e : Sym2 (Verts n), OffDiag e → ∃ i, e ∈ edgeFinset (bl i)
   /-- the blocks are edge-disjoint -/
   uniq : ∀ (e : Sym2 (Verts n)) (i j : Fin m), e ∈ edgeFinset (bl i) → e ∈ edgeFinset (bl j) →
     i = j

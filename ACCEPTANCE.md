@@ -1,3 +1,135 @@
+## Status (round 58)
+
+`lake build`: **OK** (3144 jobs; the new file `lean/JSPProblem/Pack.lean` builds in ~9 s).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 58 CHANGES ATTACK FAMILY AGAIN — TO THE *PARTIAL* FIRST STAGE, WHICH IS WHAT THE PAPERS
+ACTUALLY BUILD.**  Rounds 49–56 attacked the `(2,1)`-block colouring of a **triangle decomposition**
+of `K_n` (a Steiner triple system), because that is the only shape in which the object was written
+down.  But arXiv:2207.02920 §4 ("the first phase stops at `i_max = (1/6) n²(1 - n^{-δ})`, so the
+hypergraph matching covers `1 - n^{-δ}` of the edges") and arXiv:2208.12563 Thm 4.2 (IV) ("the
+graph `L = K_n - E(F)` has maximum degree at most `n^{1-δ}`") build a **partial** triangle packing whose
+leftover graph is *sparse but nonempty*, and arXiv:2207.02920 Claim 4 measures it ("at the end of
+Phase 1 each vertex is incident with `O(n^{1-δ})` uncolored edges").  This development had **no
+object for that**: `TwoOne` carried an unused hypothesis `cover` (every edge in some block), which
+made a leftover graph inexpressible.
+
+### 0. `TwoOne` is now the published first stage
+
+`lean/JSPProblem/BlockCol.lean`: the field `cover` of the structure `TwoOne` — **which no proof of
+`BlockCol.lean` ever used** — has been **deleted**, so `TwoOne n k m` is now a **packing of
+edge-disjoint triangles** with a centre and two distinct colours each (`uniq`, `card_three`), i.e.
+exactly the output of the hypergraph matching of arXiv:2208.12563 §4.  The Steiner triple systems of
+rounds 49–56 are the instances with `6 * m = n * (n-1)`, and nothing below changes for them.
+
+New file `lean/JSPProblem/Pack.lean` (592 lines, 28 declarations, **20 public theorems**, zero
+placeholders, on the default build path).
+
+### §1 — the leftover graph of a packing
+
+| new | statement |
+|---|---|
+| `PackL C` | the edges of `K_n` in **no** block: the leftover graph of the hypergraph matching |
+| `TwoOne.not_mem_PackL` | every block edge is covered — `PackL C` is the complement of the packing |
+| `PackL.offDiag`, `PackL.subset_univ` | leftover edges are edges |
+
+### §2 — the census of a partial packing
+
+| new | statement |
+|---|---|
+| `TwoOne.card_blEdge`, `Pack.blocks_card` | the `m` edge-disjoint blocks span exactly `3 * m` edges |
+| **`Pack.census`** | **`6 * m + 2 * |PackL C| = n * (n - 1)`** — the blocks and their leftover partition `E(K_n)` |
+| `TwoOne.decomposition_empty` | `6 * m = n * (n-1) ⇒ PackL C = ∅`: the rounds 49–56 shape is the `PackL = ∅` case |
+| `Pack.card_two_mul_le` | `SparseL (PackL C) D ⇒ 2 * |PackL C| ≤ n * D` (the handshaking lemma `Slot.handshake_le`) |
+| `Pack.blocks_ge` | `n * (n-1) ≤ 6 * m + n * D`: with `D = n^{1-δ}` the packing covers `1 - n^{-δ}` of `E(K_n)` |
+| **`Pack.price`** | **`6 * k + 5 * D ≥ 5 * (n - 1)`**, i.e. `k ≥ 5(n-1)/6 - 5D/6` — the *partial* price |
+
+`Pack.price` is the round-49–56 price `5 * m ≤ n * k` (`TwoOne.price`: five colour-slots per block)
+combined with the census: `D = 0` gives the sharp constant `5(n-1)/6 ≤ 6k`, and the published
+`D = n^{1-δ}` gives `6k ≥ 5(n-1) - 5n^{1-δ}`, i.e. `k = 5n/6 - o(n)` — the catalog answer with
+the rate the papers achieve.
+
+### §3 — the second stage of a *partial* first stage, with no admissibility assumption
+
+* **`FirstOk c₀ L` — THE FIRST-STAGE LOCAL CONDITION (P0).**  For every four-set, the colours of the
+  **covered** edges together with `⌈|edgeFinset S ∩ L| / 2⌉` reach five.  A partial packing **cannot**
+  satisfy `Admissible c₀`: its colouring carries arbitrary values on the leftover edges.
+  `FirstOk` is the correct replacement, and `FirstOk.of_decomposition` shows that for a Steiner
+  triple system (P0) *is* `Admissible`.
+* `Pack.fresh_colours` — the counting statement the condition is built on: under `Proper c L`, the `t`
+  leftover edges of a four-set receive `⌈t/2⌉` **distinct** fresh colours (pigeonhole over the
+  fibres, each fibre bounded by 2 because a colour class is a matching and three vertex-disjoint edges
+  of `K₄` would need six vertices — the private lemma `disjoint_card_le_two`).
+* **`Pack.second_stage`** — `FirstOk (C.col) (PackL C)` + `SparseL (PackL C) D` ⇒ **an admissible
+  `k + 2 * D + 1` colouring of `K_n`**, and `Pack.eg_le` — `EG n ≤ k + 2 * D + 1`.  The fresh colours are
+  the greedy ones of `proper_of_sparseL` (the bad events `A_{e,f,i}` = `B₁` are excluded greedily,
+  with `O(n^{1-δ})` extra colours).
+
+### §4 — **THE PRIZE HYPOTHESIS IN DESIGN LANGUAGE ONLY**
+
+* **`PackFamily`** — for every `ε' > 0` there is `N` such that every `n ≥ N` carries a packing of
+  edge-disjoint triangles with a centre and two colours each, a leftover of maximum degree `D`
+  (constant in `n`), the local condition `FirstOk`, and the price `6 * (k₁ + 2D + 1) ≤ 5 * (n-1) + ε' * n`.
+* **`Pack.target_of_packFamily` — `PackFamily → jsp_000140_target`** (via
+  `Pack.fiveSixthUpper_of_packFamily` and `Main.fiveSixthLower_eg`).
+
+This is weaker than round 33's `CrossStageFamily` in every respect that matters: **no admissible
+colouring appears among the hypotheses** — not `Admissible c₀`, not `Covers`, not `PairFree`, not
+`NoCrossFour`, not `NoBadFour`, not `Tile`, not `Packed`, not `LeafClosed`, and no second stage at all.
+All of those are consequences of the local condition and the second stage is built in §3.  **What is
+left is the hypergraph matching of arXiv:2208.12563 §4 together with the bound `D = O(n^{1-δ})`
+on its own output** — a Rödl-nibble / random-triangle-removal existence theorem, which Mathlib does
+not contain.
+
+### What it costs the prize, stated honestly
+
+The prize hypothesis `Main.AdmissibleUpper ε` for `0 < ε < 1/6` is **untouched** and remains the sole
+content of `jsp_000140_main`.  What round 58 changes is the *statement of the hypothesis*: the prize is
+now reduced to the **pure design existence theorem of the published construction** — a near-perfect
+triangle packing with a centre-and-colour assignment — with no colouring, no admissibility and no
+budget clause left in it.  `jsp_000140_main` was again **not** declared.  B4
+(`f(10,4,5) ∈ {8,9}`, closed by `Strict.strict_EG_ten_ge_eight` + `Tables.EG_ten_le`) and
+`EG 12, EG 14, …, EG 19` — unchanged.
+
+### Lean 4.34.0 pitfalls recorded this round
+
+* `Finset.Disjoint s t` is `fun a, a ∈ s → a ∉ t`, so `intro e he1 he2` in a `Disjoint` goal binds `he2` to a
+  **negation** (`Finset.mem_biUnion.mp he2` is then a type error), and `Finset.not_mem_biUnion`
+  does not exist — use `by_contra` + `rw [Finset.mem_biUnion] at ⊥` or `exact he2 (...)`;
+* `Finset.card_biUnion` needs `Set.PairwiseDisjoint` (a `Finset.Disjoint` argument — awkward); the
+  clean route is a private `card_biUnion_eq` proved by `Finset.induction_on` plus
+  `Finset.card_union_add_card_inter`;
+* **`Finset.card_union_le` and `Finset.card_biUnion_le` are *proofs*, not iffs: they can be used with
+  `exact` but not with `rw`** (`rw` demands an equality/iff/definition);
+* `Finset.card_eq_sum_card_image` lives in `namespace Finset` (`Nat.` prefix fails) and
+  `Finset.card_image_iff : (s.image f).card = (s.image g).card ↔ Set.InjOn f s` with `g` defaulting to
+  `id`, so `.mpr` gives `(s.image f).card = s.card`; `Finset.Pigeonhole.*` is *not* in the default
+  import closure of `Mathlib.Tactic` (it needs
+  `import Mathlib.Algebra.Order.BigOperators.Group.Finset`, which `Pack.lean` now adds);
+* `Nat.le_of_mul_le_mul_left` takes `c * a ≤ c * b` (c on the **left**), `Nat.le_of_mul_le_mul_right`
+  the other way round; `Nat.div_mul_le_self a b : a / b * b ≤ a` is the safe way to turn
+  `a ≤ 2 * q` into `a / 2 ≤ q` (`Nat.le_div_iff_mul_le` has arg names `(k x y)` and leaves `k` a
+  metavariable, so `(by omega)` for the positivity cannot be elaborated);
+* `Finset.sum_const`, `Finset.card_univ`, `Fintype.card_fin` leave an `nsmul` (`n • 3`), which `ring` does
+  **not** normalise: use `Nat.nsmul_eq_mul` (the plain `Nat.smul_eq_mul` does not exist) or `norm_num`;
+* `liftCol` has two implicit lengths `{k' k}` and Lean will happily unify both with the same `k`;
+  write `liftCol (k' := k) (k := k + K) c h` whenever the result type is not already known.  Comparing
+  the cards of `image (liftCol c h)` and `image c` is **not** possible with `Finset.card_le_card`
+  (different `Finset` types): go through the intermediate equality
+  `(A.image (liftCol c h)) = (A.image c).image (fun j => ⟨j.val, _⟩)`;
+* `Finset.mem_erase : a ∈ s.erase b ↔ a ≠ b ∧ a ∈ s`, so `.mp` returns an `And` (`.1`/`.2`, not
+  `.left`/`.right`);
+* `Finset.not_nonempty_iff_eq_empty : ¬s.Nonempty ↔ s = ∅` gives an **`Eq`**, which must be turned into a
+  card fact with `Finset.card_eq_zero.mpr` (using `.mp` the other way round is a type error), and
+  `Finset.exists_mem_of_ne_nil` does not exist;
+* `Finset.card_le_card (s := …) (t := …)` needs `s` and `t` given explicitly **and** of the same finset
+  type; `Forall` with two binders before `∈` (`∀ e e' ∈ T, …`) is a **parse error** — write the memberships as
+  separate `→`s;
+* `Nat.pos_of_ne_zero` needs `a ≠ 0`, not a `NeZero` instance; use `letI : NeZero k := C.hk` before
+  writing `(0 : Fin k)`.
+
 ## Status (round 56)
 
 `lake build`: **OK** (3142 jobs; the new file `lean/JSPProblem/BlockCol.lean` builds in 5.5 s).
