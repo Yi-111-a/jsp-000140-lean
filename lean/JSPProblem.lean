@@ -39,3 +39,4 @@ import JSPProblem.Seven
 import JSPProblem.Product
 import JSPProblem.Amplify
 import JSPProblem.Block
+import JSPProblem.Cover

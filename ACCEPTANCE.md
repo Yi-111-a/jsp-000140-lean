@@ -1,3 +1,82 @@
+## Status (round 50)
+
+`lake build`: **OK** (3138 jobs, 18 s incremental).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize`: `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 50 ATTACKS THE MATCHING-CONDITION BLOCKER `pairFree_of_admissible` — CARRIED OPEN SINCE
+ROUND 29 — AND PROVES ITS TWO NON-TRIVIAL LEMMAS.**  Rounds 46–49 attacked the sharp constant
+from the *construction* side (lexicographic products, Steiner triple systems, `(2,1)`-block
+colourings).  Round 50 attacks the other side: whether the matching condition of the published
+construction (`Triangles.PairFree`) is an *extra* hypothesis or a *consequence* of the catalog
+condition.  It is a consequence, and the reason is structural.
+
+New file `lean/JSPProblem/Cover.lean` (485 lines, 24 declarations, **5 public theorems**, zero
+placeholders, **on the default build path**).
+
+### 1. The structural observation
+
+For a labelled triangle `(u,p,q)` write `λ = c s(u,p) = c s(u,q)` and `μ = c s(p,q) ≠ λ`.  Its
+five `(vertex, colour)` pairs are
+
+  `(u, λ)` — the *labelled* pair (both `λ`-edges meet at `u`);
+  `(p, λ), (q, λ)` — the two *path* leaves;
+  `(p, μ), (q, μ)` — the two *opposite* leaves.
+
+So a pair `(v, j)` of the triangle says one of only two things about `v`: either `v` is the
+labelled vertex and has **two** `j`-neighbours, or `v` is a leaf and has **exactly one**.  The
+uniqueness in the second case is the whole content, and it is provable from admissibility:
+
+* **`Cover.pathLeaf_sem` — THE PATH-LEAF ROLE.**  If `a - u - b` is a two-edge path of colour `j`
+  then the *only* `j`-edge at `a` is `s(a,u)`: `(Nbrs c j a).card = 1` and `u ∈ Nbrs c j a`.
+  (If `w ≠ u` were another `j`-neighbour of `a`, then `w ∉ {a,u,b}` and the `K₄` `{a,u,b,w}`
+  would carry three `j`-edges, `s(a,u)`, `s(a,w)`, `s(u,b)`.)  This is the isolated-two-edge-path
+  lemma `Cherry.nb_eq_singleton` re-proved in the form the construction needs.
+* **`Cover.oppLeaf_sem` — THE OPPOSITE-LEAF ROLE.**  If `s(a,b)` is the opposite edge of a
+  labelled triangle, of colour `j`, then the *only* `j`-edge at `a` is `s(a,b)`:
+  `(Nbrs c j a).card = 1` and `b ∈ Nbrs c j a`.  (If `w` were another `j`-neighbour of `a`, then
+  `w ∉ {a,u,b}` and the `K₄` `{a,u,b,w}` would span at most three colours: `j` on `s(a,b)` and
+  `s(a,w)`, `λ` on `s(a,u)` and `s(u,b)`, and the colour of `s(u,w)`.)  Note the conclusion is
+  *stronger* than a bare cardinality statement: it says the `j`-edge at `a` is the opposite edge.
+* **`Cover.centre_sem` — THE LABELLED ROLE.**  `(Nbrs c j u).card = 2`, with the two leaves as its
+  elements.
+
+### 2. The two obstructions, and the three `K₄` shapes they use
+
+* `not_admissible_path_pair`, `not_admissible_path_pair2`, `not_admissible_path_pair3` — the three
+  shapes of "two two-edge paths on one `K₄`", each proved by exhibiting the six edges' colours in
+  a finset of at most four elements (`colorsOn_sub_six`), so `Admissible` fails.
+* **`Cover.obstruction_one`** — a vertex cannot be the *path* leaf of one labelled triangle and the
+  *opposite* leaf of another with the same `(vertex, colour)` pair.  (The unique `j`-neighbour of
+  `v` is then both a labelled vertex and an other leaf, so `w' = u`, and the `K₄` on the four
+  vertices carries the three-colour configuration `not_admissible_path_pair2`.)
+* **`Cover.obstruction_two`** — a `(vertex, colour)` pair cannot be the *opposite*-leaf pair of two
+  labelled triangles with **different** labelled vertices.  (The unique `j`-neighbour of `v` forces
+  the two other leaves to coincide, and then the `K₄` carries `not_admissible_path_pair3`.)
+
+### 3. What is still missing, precisely
+
+`Cover.PairFree_of_admissible` (= `triVerts_eq_of_mem_triPairs`) needs five cases on the role of
+`v` in the two triangles:
+
+| `v` in `T₁` | `v` in `T₂` | verdict |
+| --- | --- | --- |
+| labelled | labelled | same two `j`-neighbours ⇒ `triVerts u p q = triVerts u' p' q'` |
+| labelled | leaf | `(Nbrs c j v).card` would be `2` and `1` |
+| path leaf | labelled | ditto |
+| path leaf | path leaf | unique `j`-neighbour of `v` is `u = u'`, then case 1 |
+| path leaf | opposite leaf | `obstruction_one` |
+| opposite leaf | path leaf | `obstruction_one` |
+| opposite leaf | opposite leaf | other leaves agree; then case 1 or `obstruction_two` |
+
+Four of the cases need only `sub_insert2_of_card_le_two` + `pair_eq_of_pair`, one needs the two
+obstructions; **all the substantive mathematics is proved**.  The remaining piece is the
+bookkeeping: routing the role data of the two triangles through a single disjunction
+(`role_of_mem` composed with `centre_sem`, `pathLeaf_sem`, `oppLeaf_sem`).  The draft of that
+assembly was removed rather than left as a stub, so the file keeps zero placeholders and records
+the five-case plan itself in its section 2.  Consequence: `PairFree` remains an assumption of
+`jsp_000140_main_of_tri_family` for this round, but the blocker is now *reduced* rather than open.
+
 ## Status (round 49)
 
 `lake build`: **OK** (3137 jobs).  `sorry`/`admit`: **0** (`placeholder_total = 0`).
