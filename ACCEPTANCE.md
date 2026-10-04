@@ -1,3 +1,69 @@
+## Status (round 69)
+
+`lake build`: **OK** (3157 jobs; the new file `lean/JSPProblem/Pad.lean` — 654 lines, 37
+declarations, 30 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`:
+**0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`,
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 69 SUPPLIES THE MISSING DESCRIPTION OF THE SIX-STEP: GROWTH IS A PADDING PROBLEM, AND
+PADDING HAS AN EXACT LOCAL CRITERION.**  Round 68 showed that the prize is a function of one
+local lemma (`Grow6`) but did not say *what the six new vertices must look like*; without that,
+neither `Grow6` nor any six-step construction can be written down or checked.  `Pad.lean` gives the
+complete criterion, the fibre bound it forces on every padding map, and a falsifiable acceptance
+test for the five new colours of round 68.
+
+### 1. The criterion
+
+The vertices of `K_{n+1}` are written `Option (Verts n)`: the new vertex is `none`, the old ones
+are `some a`.  For a colouring `d : Sym2 (Option (Verts n)) → Fin j` and its induced star map
+`g : Option (Verts n) → Fin j` (`StarAt0 d g`: `d s(none, a) = g a` for every old `a`):
+
+```lean
+def OldOk d : Prop :=      -- the restriction to the old vertices is admissible
+  ∀ S : Finset (Option (Verts n)), none ∉ S → S.card = 4 → 5 ≤ (colsOn d S).card
+
+def PadOk d g : Prop :=    -- every old triple + its three star colours spans five colours
+  ∀ T : Finset (Option (Verts n)), none ∉ T → T.card = 3 →
+    5 ≤ ((colsOn d T) ∪ T.image g).card
+```
+
+* **`Pad.admissible_iff_padOk`** — `AdmOn d ↔ (OldOk d ∧ PadOk d g)`: `AdmOn` is the catalog
+  condition on an arbitrary vertex type (`Pad.AdmOn_iff` shows it is literally `Admissible` for
+  `α = Verts n`), `PadOk` is a condition on the `n` values of `g` alone, and
+  `Pad.padOk_decidable` makes it a **finite, machine-checkable certificate** for a growth map;
+* `Pad.padOk_of_admissible` (necessity) and `Pad.admissible_of_padOk` (sufficiency);
+* `Pad.colsOn_insert_none` — the six edges of the new four-set are the three edges of the old
+  triple and the three star edges, so no colour of the padded four-set escapes `PadOk`;
+* `Pad.oldOk_of_restrict` — `OldOk` is exactly the admissibility of the restriction (so an
+  extension of a given admissible colouring has `OldOk` for free).
+
+### 2. What every padding map must look like
+
+| new theorem | statement |
+|---|---|
+| **`Pad.padOk_fibre_le_two`** | every colour occurs **at most twice** in the star map over the old vertices (a monochromatic triple spans at most four colours) |
+| **`Pad.padOk_image_card`** | `n ≤ 2 * |g[oldVerts]|`: the star of a new vertex sees **at least `⌈n/2⌉` colours** |
+| **`Pad.padOk_three_colours`** | for `n ≥ 5` the star map takes at least three values: **padding one vertex with a two-colour star is impossible for every `n ≥ 5`** |
+| **`Pad.padOk_fresh_half`** | if the star map only takes values in a palette `P`, then `|P| ≥ ⌈n/2⌉`: **fresh colours cannot pad** |
+
+### 3. The acceptance test for the six-step of round 68
+
+* `Pad.starAt_fibre_le_two` — in an admissible colouring a colour occurs at most twice in the star
+  of any vertex (the general form of `Counting.nb_card_le_two`, on an arbitrary vertex type);
+* **`Pad.starAt_fresh_le`** — at most `2 * |P|` edges at a vertex carry colours from a palette `P`;
+* `Pad.starAt_out_le` — at least `|S| - 2|P|` edges at the vertex do **not**;
+* **`Pad.fresh_star_le`, `Pad.cross_old_ge`, `Pad.six_step_test`** — the `Col`-language form:
+  **in a growth map on `K_{m+6}` whose new palette `P` has five colours, every new vertex has at
+  most ten cross edges into the old `m` vertices carrying new colours, so at least `m - 10` of
+  them must reuse the old palette**.  At the `K₁₂` anchor of round 68 (`m = 12`) that is **at least
+  two** — the five new colours can never do the job alone, and this is checkable before any
+  construction is attempted.
+
+**STILL MISSING (unchanged):** the six-step extension lemma `Grow6` itself, or equivalently an
+admissible 11-colouring of `K₁₃` (benchmark B5).  What is new this round is that both are now
+*statements about a single map `g : Option (Verts n) → Fin j` subject to `PadOk`*, i.e. finite
+search problems with a decidable certificate, instead of constructions on `K_{m+6}`.
+
 ## Status (round 68)
 
 `lake build`: **OK** (3156 jobs; the new file `lean/JSPProblem/Grow.lean` — 374 lines,
