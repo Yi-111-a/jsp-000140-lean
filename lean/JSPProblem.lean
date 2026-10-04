@@ -67,3 +67,4 @@ import JSPProblem.Disj
 import JSPProblem.Diff
 import JSPProblem.One
 import JSPProblem.PadSet
+import JSPProblem.Fusion

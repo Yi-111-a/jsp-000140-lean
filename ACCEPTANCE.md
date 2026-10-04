@@ -1,3 +1,84 @@
+## Status (round 84)
+
+`lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 84 REPAIRS THE FUSION CRITERION AND PUTS IT ON THE BUILD PATH.**  `lean/JSPProblem/Fusion.lean`
+(drafted in round 82, 69 errors, never compiled) now builds: 896 lines, 48 declarations, 0
+placeholders.  This is the *only* attack family in the project that ever **improved** `f(n,4,5)`
+from an explicit colouring, and it is now a proved object instead of a plan.
+
+### 1. The criterion, and two false statements that are corrected
+
+| new theorem | statement |
+|---|---|
+| **`Fusion.fuseCol_admissible_iff`** | **THE FUSION CRITERION**: for `i ≠ j`, `Admissible (fuseCol c i j)` iff no tight four-set (five colours) meets **both** `i` and `j` |
+| `Fusion.fuseCol_admissible_iff'` | the same in the census language: iff `Disjoint (Tight c i) (Tight c j)` |
+| **`Fusion.not_five_le_of_fuseCol`** | the *local* form: a fusion breaks a `K₄` **iff** that `K₄` spans exactly five colours and meets both colour classes |
+| `Fusion.colorsOn_fuseCol`, `colorsOn_fuseCol'`, `colorsOn_fuseCol_unused`, `card_colorsOn_fuseCol'` | the exact effect of a fusion on one vertex set; `card = |C| - [j ∈ C] + [i ∉ C ∧ j ∈ C]` |
+| **`Fusion.sum_card_Tight`** | `Σᵢ |Tight c i| = 5 · |fiveFourSets c|` — the census of rounds 60–80 split by colour |
+
+**Two round-82 statements were false and are corrected here.**  (i) `colorsOn_fuseCol` was stated
+without hypotheses: a fusion *introduces* the colour `i` on `S` whenever `i` is used elsewhere and
+`j` is used on `S`; the correct form needs `i ∈ colorsOn c S` (and `i ≠ j` for the cardinality
+form).  (ii) `colorsOn_fuseSetCol` sent the colours of a set `I` to `I.min' I`, which **drops**
+that colour whenever `I.min' I` is a colour of `I` unused on `S`; the object must take an explicit
+representative `r ∈ I`.
+
+### 2. The saving, and its converse
+
+* `Fusion.EG_le_used` — **the palette reduction lemma**: an admissible colouring certifies
+  `f(n,4,5) ≤` the number of colours it *actually uses* (whatever palette it is written in);
+* **`Fusion.EG_le_of_fuseCol`** — a legal fusion therefore proves `f(n,4,5) ≤ k - 1`: the first
+  *general* decrease of `f` obtained from an explicit colouring in this development;
+* **`Fusion.optimal_fusion_blocked`** — in an `EG`-**optimal** colouring **every** pair of colours
+  is blocked (there is a tight four-set meeting both), so the tight four-sets of an optimal
+  colouring form a blocking family for the complete graph on the palette: **no two colours of an
+  optimal colouring can ever be merged**;
+* `Fusion.card_Tight_ge_k_sub_one`, `card_fiveFourSets_ge_k_sq_div_twenty` — the price of
+  optimality: `k - 1 ≤ 4·|Tight c i|` for every colour, hence `|fiveFourSets c| ≥ k(k-1)/20`.
+
+### 3. Every colouring verified here is fusion-optimal — and blockedness is one-way
+
+`Fusion.no_fusion_sixCol`, `no_fusion_nineCol`, `no_fusion_tenCol`, `no_fusion_elevenCol`,
+`no_fusion_r66Col`, `no_fusion_sumCol`: for the certified 5-colouring of `K₆`, the 8-colouring of
+`K₉`, the 9-colouring of `K₁₀`, the 10-colouring of `K₁₁`, the 11-colour anchor `r66Col` on `K₁₂`
+and the round-robin `sumCol 9`, **no pair of colours can be merged** — each a `native_decide` over
+all colour pairs and all four-sets.  This is the rigorous explanation of the failure of the
+1200-second searches of rounds 65–77.  `Fusion.blocked_is_not_optimal` records the converse
+failure: `sumCol 9` is fusion-blocked and still uses nine colours while `f(9,4,5) = 8`, so
+blockedness certifies nothing *below* optimality.
+
+`Fusion.fusion_criterion_recovers_small_values` re-derives `f(6,4,5) = 5`, `f(9,4,5) = 8`,
+`f(10,4,5) = 9`, `f(11,4,5) = 10` from fusion blockedness plus the counting lower bounds of
+`Vacant.lean`, i.e. **without enumerating a single colouring** — a third route to those four
+values.
+
+### 4. What is not yet proved (moved blocker, no mathematics missing)
+
+Two drafted sections were removed because they did not compile inside the round budget; their
+statements are recorded in the file's §5 placeholder and in `policy.json`:
+
+* **the set fusion** (`fuseSetCol c r I hr`, the corrected object) — the natural generalisation of
+  the move to more than two colours;
+* **the saving ladder** (`Save`, `Save.criterion`, `Ladder`, `Ladder.card_le`, `Ladder.saving`):
+  a chain of `r` legal fusions proves `f(n,4,5) ≤ (#colours used by c) − r`, and each rung is legal
+  exactly when no tight four-set meets the pair — **a finite certificate for an upper bound on `f`
+  is a list of colour pairs plus one census statement per rung.**  This is the sharpest
+  prize-relevant object in the file and the first target of round 85.
+
+The obstruction is purely proof-engineering; the recorded pitfalls are in
+`policy.json.lean_pitfalls_round_84` (chiefly: `Finset.Mem` is a `Quot.lift` structure and can
+neither be projected nor applied; `omega` mis-abstracts `(colorsOn c S).card`, so the card
+hypothesis must be rewritten into the goal first).
+
+Unchanged prize blocker: `Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence
+of the labelled-triangle systems of arXiv:2207.02920 §4/§12 — is still the sole remaining content
+of `jsp_000140_main`; Mathlib v4.34.0 has no Lovász local lemma and no hypergraph-matching/nibble
+theorem.  By `Fusion.optimal_fusion_blocked` a rate-`5/6` improvement cannot come from fusing a
+single palette, so the construction must be a genuinely different colouring.
+
 ## Status (round 83)
 
 `lake build`: **OK** (3169 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
