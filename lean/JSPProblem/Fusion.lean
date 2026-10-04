@@ -138,9 +138,48 @@ not compile it; it is proved here, in §§7 and 8.
 * `Fusion.Ladder.exists_injCol` — the object is not vacuous: the injective colouring of `K_n` has a
   one-rung ladder, and `Fusion.EG_ge_five` (`f(n,4,5) ≥ 5`) is the reason a ladder stops at five.
 
-The *set* fusion (`Fusion.fuseSetCol c r I hr`, fusing a whole set of colours into a
-representative in one step — the corrected version of round 82's `colorsOn_fuseSetCol`) is still
-**not** on the build path; its statement and the missing proofs are recorded in `policy.json`.
+## §6  FUSING A WHOLE SET OF COLOURS AT ONCE (round 86 — proved here, first time)
+
+`Fusion.fuseSetCol c r I` sends every colour of the finset `I` to a **representative** `r ∈ I`; it
+is the corrected version of round 82's `colorsOn_fuseSetCol`, which sent the colours of `I` to
+`I.min' I` and therefore dropped that colour whenever it did not occur on the vertex set at hand.
+A pair fusion is the case `I = {i, j}` (`Fusion.fuseSetCol_eq_fuseCol`), so this move strictly
+contains the move of rounds 65–77, and §§9–10 prove it on the default build path.
+
+* **`Fusion.card_colorsOn_fuseSetCol'` — THE PRICE OF A SET FUSION**: on a vertex set `S` the
+  fusion removes every colour of `I` used there and adds the *single* colour `r`:
+  `|colorsOn (fuseSetCol c r I) S| = |C| - |C ∩ I| + [C ∩ I ≠ ∅]`.  **The `+1` is paid once, not
+  once per colour of `I`** — this is the difference between a set fusion and a chain of pair
+  fusions, and it is what makes `|I| - 1` colours saveable in a single step;
+* **`Fusion.not_five_le_of_fuseSetCol` — WHICH FOUR-SETS A SET FUSION BREAKS**: for `r ∈ I`, the
+  four-set `S` is left with fewer than five colours **iff** it spans exactly five colours and
+  meets `I` in at least **two** colours, or spans exactly six colours and meets `I` in at least
+  **three** colours;
+* **`Fusion.MultiMeet c t s I`** — the broken four-sets as a *finset*: the `t`-colour four-sets
+  meeting `I` in at least `s` colours.  Together with `Fusion.sixFourSets` (the rainbow `K₄`'s)
+  this is the four-set census of rounds 60–80 split by colour, with the extra parameter `s`;
+* **`Fusion.fuseSetCol_admissible_iff` — THE FUSION CRITERION FOR A SET OF COLOURS**: for `r ∈ I`
+  the fusion of the whole set `I` is admissible **iff** `MultiMeet c 5 2 I = ∅` and
+  `MultiMeet c 6 3 I = ∅`, i.e. iff no tight four-set meets `I` twice and no rainbow four-set
+  meets `I` three times.  This is the criterion advertised for this object since round 82;
+  `Fusion.fuseSetCol_admissible_iff_pair` recovers §3's pair criterion as its two-colour instance
+  (`MultiMeet c 6 3 {i, j} = ∅` holds for free, `Fusion.MultiMeet_two_six_empty`);
+* **`Fusion.EG_le_of_fuseSetCol` — THE SAVING**: a set of *used* colours accepted by the criterion
+  can be fused into one, giving `f(n,4,5) ≤ k - |I| + 1`;
+* **`Fusion.sum_card_Tight_I` / `sum_card_Tight_I_le` / `five_mul_sum_card_Tight_I_le` — THE
+  CENSUS PRICE**: the census identity of §2 restricted to `I`, and the consequence that the
+  `I`-part of the tight census is at most a **fifth** of the whole census
+  (`Σ_{i∈I} |Tight c i| ≤ |fiveFourSets c|`), so a fusible set of colours is met by at most one
+  tight four-set per tight four-set.  `Fusion.card_Tight_i_add_card_Tight_j_le` is the two-colour
+  form, the counterpart of `Fusion.card_Tight_ge_k_sub_one`;
+* **`Fusion.optimal_setFusion_blocked` — AN `EG`-OPTIMAL COLOURING ADMITS NO SET FUSION OF ANY
+  SIZE**: `Fusion.optimal_fusion_blocked` ("every *pair* of colours is blocked") with the pair
+  replaced by an arbitrary set `I` of at least two used colours.  Together with the ladder of §5
+  this closes the whole fusion route: not one pair, not any number of pairs, not any set of
+  colours, for any colouring in this development;
+* **`Fusion.fuseSetCol_injCol`** — the object is not vacuous: every set of at most two colours of
+  the injective colouring of `K_n` can be fused (all four-sets there are rainbow, so at most two
+  of six colours are lost).
 
 The obstruction to the prize itself is untouched: by `Fusion.Ladder.no_mergedCol` a rate-`5/6`
 improvement cannot come from any chain of fusions of any translation-invariant colouring, so the
@@ -1346,5 +1385,511 @@ theorem Ladder.no_sumCol {n : ℕ} (hn : 5 ≤ n) (hodd : n % 2 = 1)
     sumCol_eq_mergedCol
   exact Ladder.no_mergedCol hn hodd (by omega) L (fun x : ZMod n => zfin x)
     (hbridge ▸ admissible_sumCol n hodd) (hbridge ▸ hL)
+
+/-! ### §9  Fusing a SET of colours at once -/
+
+/-- **THE SET FUSION.**  Every colour of the finset `I` is sent to the **representative**
+`r ∈ I`.  A pair fusion is the case `I = {i, j}` (`Fusion.fuseSetCol_eq_fuseCol`), so this move
+strictly contains the move of rounds 65–77; it is also the *corrected* version of round 82's
+`colorsOn_fuseSetCol`, which sent the colours of `I` to `I.min' I` and therefore dropped that
+colour whenever it did not occur on the vertex set at hand. -/
+def fuseSetCol {n k : ℕ} (c : Col n k) (r : Fin k) (I : Finset (Fin k)) : Col n k :=
+  fun e => if c e ∈ I then r else c e
+
+@[simp] theorem fuseSetCol_apply {n k : ℕ} (c : Col n k) (r : Fin k) (I : Finset (Fin k))
+    (e : Sym2 (Verts n)) : fuseSetCol c r I e = if c e ∈ I then r else c e := rfl
+
+theorem fuseSetCol_eq {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    {e : Sym2 (Verts n)} (h : c e ∉ I) : fuseSetCol c r I e = c e := if_neg h
+
+theorem fuseSetCol_of {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    {e : Sym2 (Verts n)} (h : c e ∈ I) : fuseSetCol c r I e = r := if_pos h
+
+/-- A set fusion is a relabelling by the collapse map `x ↦ if x ∈ I then r else x`. -/
+theorem fuseSetCol_relabel {n k : ℕ} (c : Col n k) (r : Fin k) (I : Finset (Fin k)) :
+    fuseSetCol c r I = relabel (fun x : Fin k => if x ∈ I then r else x) c := by
+  funext e
+  rfl
+
+/-- **THE SET FUSION IS THE PAIR FUSION** on a two-element set of colours. -/
+theorem fuseSetCol_eq_fuseCol {n k : ℕ} {c : Col n k} {i j : Fin k} (hij : i ≠ j) :
+    fuseSetCol c i (insert j {i}) = fuseCol c i j := by
+  funext e
+  show (if c e ∈ insert j ({i} : Finset (Fin k)) then i else c e) = if c e = j then i else c e
+  by_cases hj : c e = j
+  · rw [if_pos (Finset.mem_insert.mpr (Or.inl hj)), if_pos hj]
+  · rw [if_neg hj]
+    by_cases hi : c e = i
+    · rw [if_pos (Finset.mem_insert.mpr (Or.inr (Finset.mem_singleton.mpr hi)))]
+      exact hi.symm
+    · rw [if_neg (fun h => by
+        rcases Finset.mem_insert.mp h with h | h
+        · exact hj h
+        · exact hi (Finset.mem_singleton.mp h))]
+
+/-- Fusing the singleton `{r}` changes nothing: the move needs at least two colours. -/
+theorem fuseSetCol_singleton {n k : ℕ} {c : Col n k} (r : Fin k) : fuseSetCol c r {r} = c := by
+  funext e
+  show (if c e ∈ ({r} : Finset (Fin k)) then r else c e) = c e
+  by_cases h : c e = r
+  · rw [if_pos (Finset.mem_singleton.mpr h), h]
+  · rw [if_neg (fun hx => h (Finset.mem_singleton.mp hx))]
+
+/-- **THE EFFECT OF A SET FUSION ON ONE VERTEX SET**: every colour of `I` used there is replaced
+by the single colour `r`, and nothing else changes. -/
+theorem colorsOn_fuseSetCol {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    (hr : r ∈ I) (S : Finset (Verts n)) (hne : (colorsOn c S ∩ I).Nonempty) :
+    colorsOn (fuseSetCol c r I) S = (colorsOn c S \ I) ∪ ({r} : Finset (Fin k)) := by
+  classical
+  show (edgeFinset S).image (fuseSetCol c r I) = ((edgeFinset S).image c \ I) ∪ {r}
+  ext x
+  simp only [Finset.mem_union, Finset.mem_sdiff, Finset.mem_singleton, Finset.mem_image]
+  constructor
+  · rintro ⟨e, he, heq⟩
+    by_cases hce : c e ∈ I
+    · exact Or.inr (heq.symm.trans (fuseSetCol_of hce))
+    · have hfe : fuseSetCol c r I e = c e := fuseSetCol_eq hce
+      have hcx : c e = x := hfe.symm.trans heq
+      exact Or.inl ⟨⟨e, he, hcx⟩, fun h => hce (hcx ▸ h)⟩
+  · rintro hx
+    rcases hx with hx | hxr
+    · rcases hx with ⟨hx, hxI⟩
+      obtain ⟨e, he, hce⟩ := hx
+      have hceI : c e ∉ I := fun h => hxI (hce ▸ h)
+      have hfe : fuseSetCol c r I e = c e := fuseSetCol_eq hceI
+      exact ⟨e, he, hfe.trans hce⟩
+    · obtain ⟨y, hy⟩ := hne
+      have hy1 : y ∈ Finset.image c (edgeFinset S) := Finset.mem_inter.mp hy |>.1
+      have hy2 : y ∈ I := Finset.mem_inter.mp hy |>.2
+      obtain ⟨e, he, hce⟩ := Finset.mem_image.mp hy1
+      have hfo : fuseSetCol c r I e = r := fuseSetCol_of (hce ▸ hy2)
+      exact ⟨e, he, hfo.trans hxr.symm⟩
+
+/-- A set fusion which meets no colour of `S` changes nothing there. -/
+theorem colorsOn_fuseSetCol_unused {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    (S : Finset (Verts n)) (h0 : colorsOn c S ∩ I = ∅) :
+    colorsOn (fuseSetCol c r I) S = colorsOn c S := by
+  classical
+  show (edgeFinset S).image (fuseSetCol c r I) = (edgeFinset S).image c
+  ext x
+  simp only [Finset.mem_image]
+  constructor
+  · rintro ⟨e, he, heq⟩
+    by_cases hce : c e ∈ I
+    · have hmem : c e ∈ colorsOn c S ∩ I :=
+        Finset.mem_inter.mpr ⟨Finset.mem_image_of_mem c he, hce⟩
+      rw [h0] at hmem
+      exact absurd hmem (Finset.notMem_empty (c e))
+    · have hfe : fuseSetCol c r I e = c e := fuseSetCol_eq hce
+      exact ⟨e, he, hfe.symm.trans heq⟩
+  · rintro ⟨y, hy, heq⟩
+    have hceI : c y ∉ I := fun h => by
+      have hy' : c y ∈ colorsOn c S := Finset.mem_image.mpr ⟨y, hy, rfl⟩
+      have hmem : c y ∈ colorsOn c S ∩ I := Finset.mem_inter.mpr ⟨hy', h⟩
+      rw [h0] at hmem
+      exact absurd hmem (Finset.notMem_empty (c y))
+    have hfe : fuseSetCol c r I y = c y := fuseSetCol_eq hceI
+    exact ⟨y, hy, hfe.trans heq⟩
+
+/-- **THE PRICE OF A SET FUSION, IN FULL.**  On a vertex set `S` a set fusion removes every colour
+of `I` used there and adds the single representative `r`; the new colour is paid for exactly when
+`I` is met there.  **The `+ 1` is paid once, not once per colour of `I`** — this is the difference
+between a set fusion and a chain of pair fusions, and it is what makes `|I| - 1` colours
+saveable in a single step. -/
+theorem card_colorsOn_fuseSetCol' {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    (hr : r ∈ I) (S : Finset (Verts n)) :
+    (colorsOn (fuseSetCol c r I) S).card
+      = (colorsOn c S).card - (colorsOn c S ∩ I).card
+        + (if (colorsOn c S ∩ I).Nonempty then 1 else 0) := by
+  classical
+  have hdisj : Disjoint (colorsOn c S \ I) ({r} : Finset (Fin k)) := by
+    refine Finset.disjoint_left.mpr fun x hx1 hx2 => ?_
+    rw [Finset.mem_singleton] at hx2
+    subst hx2
+    exact (Finset.mem_sdiff.mp hx1).2 hr
+  by_cases hne : (colorsOn c S ∩ I).Nonempty
+  · rw [colorsOn_fuseSetCol hr S hne, Finset.card_union_of_disjoint hdisj,
+      Finset.card_singleton, if_pos hne]
+    have h1 : (colorsOn c S \ I).card + (colorsOn c S ∩ I).card = (colorsOn c S).card :=
+      Finset.card_sdiff_add_card_inter _ _
+    omega
+  · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+    rw [colorsOn_fuseSetCol_unused S h0, if_neg hne, Finset.card_eq_zero.mpr h0, Nat.sub_zero]
+    omega
+
+/-- **THE PRICE OF A SET FUSION WHICH IS MET.** -/
+theorem card_colorsOn_fuseSetCol_of_nonempty {n k : ℕ} {c : Col n k} {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) {S : Finset (Verts n)}
+    (hne : (colorsOn c S ∩ I).Nonempty) :
+    (colorsOn (fuseSetCol c r I) S).card
+      = (colorsOn c S).card - (colorsOn c S ∩ I).card + 1 := by
+  rw [card_colorsOn_fuseSetCol' hr S, if_pos hne]
+
+/-- **THE PRICE OF A SET FUSION WHICH IS NOT MET.** -/
+theorem card_colorsOn_fuseSetCol_of_disjoint {n k : ℕ} {c : Col n k} {r : Fin k}
+    {I : Finset (Fin k)} {S : Finset (Verts n)} (h0 : colorsOn c S ∩ I = ∅) :
+    (colorsOn (fuseSetCol c r I) S).card = (colorsOn c S).card :=
+  congrArg Finset.card (colorsOn_fuseSetCol_unused S h0)
+
+/-- **THE FOUR-SETS A SET FUSION CAN BREAK.**  With `r ∈ I`, the four-set `S` is left with fewer
+than five colours **iff** it spans exactly five colours and meets `I` in at least **two** colours,
+or spans exactly six colours and meets `I` in at least **three** colours.  For a pair fusion this
+is `Fusion.not_five_le_of_fuseCol`; for a set of any size it is the same statement with "`two`
+(resp. `three`) colours of `I`". -/
+theorem not_five_le_of_fuseSetCol {n k : ℕ} {c : Col n k} (hc : Admissible c) {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) (S : Finset (Verts n)) (hS : S.card = 4) :
+    ¬ (5 ≤ (colorsOn (fuseSetCol c r I) S).card) ↔
+      ((colorsOn c S).card = 5 ∧ 2 ≤ (colorsOn c S ∩ I).card) ∨
+      ((colorsOn c S).card = 6 ∧ 3 ≤ (colorsOn c S ∩ I).card) := by
+  have h56 : (colorsOn c S).card = 5 ∨ (colorsOn c S).card = 6 :=
+    card_colorsOn_four_five_or_six hc hS
+  have key : ∀ hnf : ¬ (5 ≤ (colorsOn (fuseSetCol c r I) S).card),
+      ((colorsOn c S).card = 5 ∧ 2 ≤ (colorsOn c S ∩ I).card) ∨
+      ((colorsOn c S).card = 6 ∧ 3 ≤ (colorsOn c S ∩ I).card) := by
+    intro hnf
+    rcases h56 with h5 | h6
+    · left
+      refine ⟨h5, ?_⟩
+      by_cases hne : (colorsOn c S ∩ I).Nonempty
+      · have hle := card_colorsOn_fuseSetCol_of_nonempty hr hne
+        rw [h5] at hle
+        rw [hle] at hnf
+        have hne' : (colorsOn c S ∩ I).card ≠ 0 := Finset.card_ne_zero.mpr hne
+        omega
+      · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+        have hle := card_colorsOn_fuseSetCol_of_disjoint (r := r) h0
+        rw [h5] at hle
+        rw [hle] at hnf
+        omega
+    · right
+      refine ⟨h6, ?_⟩
+      by_cases hne : (colorsOn c S ∩ I).Nonempty
+      · have hle := card_colorsOn_fuseSetCol_of_nonempty hr hne
+        rw [h6] at hle
+        rw [hle] at hnf
+        have hne' : (colorsOn c S ∩ I).card ≠ 0 := Finset.card_ne_zero.mpr hne
+        omega
+      · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+        have hle := card_colorsOn_fuseSetCol_of_disjoint (r := r) h0
+        rw [h6] at hle
+        rw [hle] at hnf
+        omega
+  constructor
+  · exact key
+  · intro hbad hle
+    rcases hbad with ⟨h5, hx2⟩ | ⟨h6, hx3⟩
+    · have hne : (colorsOn c S ∩ I).Nonempty := Finset.card_pos.mp (by omega)
+      have hle' := card_colorsOn_fuseSetCol_of_nonempty hr hne
+      rw [h5] at hle'
+      rw [hle'] at hle
+      omega
+    · have hne : (colorsOn c S ∩ I).Nonempty := Finset.card_pos.mp (by omega)
+      have hle' := card_colorsOn_fuseSetCol_of_nonempty hr hne
+      rw [h6] at hle'
+      rw [hle'] at hle
+      omega
+
+/-! #### The broken four-sets, as a finset: `MultiMeet` -/
+
+/-- **THE BROKEN FOUR-SETS, WRITTEN AS A FINSET**: `MultiMeet c t s I` is the set of `t`-colour
+four-sets which meet the fused set `I` in at least `s` colours.  The set fusion is admissible
+exactly when `MultiMeet c 5 2 I` and `MultiMeet c 6 3 I` are both empty
+(`Fusion.fuseSetCol_admissible_iff`), and this is a *decidable* description — for each four-set
+one compares two finite sets, and there is no search at all. -/
+def MultiMeet {n k : ℕ} (c : Col n k) (t s : ℕ) (I : Finset (Fin k)) :
+    Finset (Finset (Verts n)) :=
+  (fourSets n).filter fun S => (colorsOn c S).card = t ∧ s ≤ (colorsOn c S ∩ I).card
+
+@[simp] theorem mem_MultiMeet {n k : ℕ} {c : Col n k} {t s : ℕ} {I : Finset (Fin k)}
+    {S : Finset (Verts n)} :
+    S ∈ MultiMeet c t s I ↔ S.card = 4 ∧ (colorsOn c S).card = t ∧
+      s ≤ (colorsOn c S ∩ I).card := by
+  simp only [MultiMeet, Finset.mem_filter, mem_fourSets]
+
+/-- The five-colour broken four-sets are tight four-sets. -/
+theorem MultiMeet_five_subset {n k : ℕ} (c : Col n k) (I : Finset (Fin k)) :
+    MultiMeet c 5 2 I ⊆ fiveFourSets c := by
+  intro S hS
+  rw [mem_MultiMeet] at hS
+  exact mem_fiveFourSets.mpr ⟨hS.1, hS.2.1⟩
+
+/-- The six-colour four-sets, i.e. the rainbow `K₄`'s. -/
+def sixFourSets {n k : ℕ} (c : Col n k) : Finset (Finset (Verts n)) :=
+  (fourSets n).filter fun S => (colorsOn c S).card = 6
+
+@[simp] theorem mem_sixFourSets {n k : ℕ} {c : Col n k} {S : Finset (Verts n)} :
+    S ∈ sixFourSets c ↔ S.card = 4 ∧ (colorsOn c S).card = 6 := by
+  simp only [sixFourSets, Finset.mem_filter, mem_fourSets]
+
+/-- The six-colour broken four-sets are rainbow four-sets. -/
+theorem MultiMeet_six_subset {n k : ℕ} (c : Col n k) (I : Finset (Fin k)) :
+    MultiMeet c 6 3 I ⊆ sixFourSets c := by
+  intro S hS
+  rw [mem_MultiMeet] at hS
+  exact mem_sixFourSets.mpr ⟨hS.1, hS.2.1⟩
+
+/-- **THE FUSION CRITERION FOR A SET OF COLOURS.**  For `r ∈ I`, fusing the whole set `I` into the
+representative `r` is admissible **iff no tight four-set meets `I` twice and no rainbow four-set
+meets `I` three times**:
+
+* a tight four-set (five colours) survives iff it meets `I` in at most one colour;
+* a rainbow four-set (six colours) survives iff it meets `I` in at most two colours.
+
+This is `Fusion.fuseCol_admissible_iff` with "`i`, `j`" replaced by "the set `I`", and it is the
+criterion advertised for this object since round 82 and proved here for the first time. -/
+theorem fuseSetCol_admissible_iff {n k : ℕ} {c : Col n k} (hc : Admissible c) {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) :
+    Admissible (fuseSetCol c r I) ↔ MultiMeet c 5 2 I = ∅ ∧ MultiMeet c 6 3 I = ∅ := by
+  classical
+  constructor
+  · intro ha
+    constructor
+    · rw [Finset.eq_empty_iff_forall_notMem]
+      intro S hS
+      rw [mem_MultiMeet] at hS
+      have hnot : ¬ (5 ≤ (colorsOn (fuseSetCol c r I) S).card) :=
+        (not_five_le_of_fuseSetCol hc hr S hS.1).mpr (Or.inl ⟨hS.2.1, hS.2.2⟩)
+      exact (hnot (ha S hS.1)).elim
+    · rw [Finset.eq_empty_iff_forall_notMem]
+      intro S hS
+      rw [mem_MultiMeet] at hS
+      have hnot : ¬ (5 ≤ (colorsOn (fuseSetCol c r I) S).card) :=
+        (not_five_le_of_fuseSetCol hc hr S hS.1).mpr (Or.inr ⟨hS.2.1, hS.2.2⟩)
+      exact (hnot (ha S hS.1)).elim
+  · intro h12 S hS
+    have hc5 : MultiMeet c 5 2 I = ∅ := h12.1
+    have hc6 : MultiMeet c 6 3 I = ∅ := h12.2
+    by_cases h5' : (colorsOn c S).card = 5
+    · have hle : ¬ (2 ≤ (colorsOn c S ∩ I).card) := by
+        intro hx
+        exact absurd (mem_MultiMeet.mpr ⟨hS, h5', hx⟩)
+          (by rw [hc5]; exact Finset.notMem_empty S)
+      by_cases hne : (colorsOn c S ∩ I).Nonempty
+      · have hle' := card_colorsOn_fuseSetCol_of_nonempty hr hne
+        have hne' : (colorsOn c S ∩ I).card ≠ 0 := Finset.card_ne_zero.mpr hne
+        rw [h5'] at hle'
+        rw [hle']
+        omega
+      · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+        have hle' := card_colorsOn_fuseSetCol_of_disjoint (r := r) h0
+        rw [h5'] at hle'
+        rw [hle']
+    · have h6' : (colorsOn c S).card = 6 := by
+        rcases card_colorsOn_four_five_or_six hc hS with h | h
+        · exact absurd h h5'
+        · exact h
+      have hle : ¬ (3 ≤ (colorsOn c S ∩ I).card) := by
+        intro hx
+        exact absurd (mem_MultiMeet.mpr ⟨hS, h6', hx⟩)
+          (by rw [hc6]; exact Finset.notMem_empty S)
+      by_cases hne : (colorsOn c S ∩ I).Nonempty
+      · have hle' := card_colorsOn_fuseSetCol_of_nonempty hr hne
+        have hne' : (colorsOn c S ∩ I).card ≠ 0 := Finset.card_ne_zero.mpr hne
+        rw [h6'] at hle'
+        rw [hle']
+        omega
+      · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+        have hle' := card_colorsOn_fuseSetCol_of_disjoint (r := r) h0
+        rw [h6'] at hle'
+        rw [hle']
+        norm_num
+
+/-- A pair fusion can never break a *rainbow* four-set, so its criterion only involves the tight
+ones: `MultiMeet c 6 3 {i, j} = ∅` for free. -/
+theorem MultiMeet_two_six_empty {n k : ℕ} {c : Col n k} {i j : Fin k} (hij : i ≠ j) :
+    MultiMeet c 6 3 (insert j ({i} : Finset (Fin k))) = ∅ := by
+  classical
+  rw [Finset.eq_empty_iff_forall_notMem]
+  intro S hS
+  rw [mem_MultiMeet] at hS
+  have hsub : colorsOn c S ∩ insert j ({i} : Finset (Fin k))
+      ⊆ insert j ({i} : Finset (Fin k)) := fun x hx => (Finset.mem_inter.mp hx).2
+  have hle : (colorsOn c S ∩ insert j ({i} : Finset (Fin k))).card ≤ 2 := by
+    calc (colorsOn c S ∩ insert j ({i} : Finset (Fin k))).card
+        ≤ (insert j ({i} : Finset (Fin k))).card := Finset.card_le_card hsub
+      _ = 2 := by
+        rw [Finset.card_insert_of_notMem (by rw [Finset.mem_singleton]; exact Ne.symm hij),
+          Finset.card_singleton]
+  omega
+
+/-- **THE FUSION CRITERION OF §3 IS THE TWO-COLOUR INSTANCE OF THE CRITERION FOR SETS.** -/
+theorem fuseSetCol_admissible_iff_pair {n k : ℕ} {c : Col n k} (hc : Admissible c)
+    {i j : Fin k} (hij : i ≠ j) :
+    Admissible (fuseSetCol c i (insert j {i})) ↔ MultiMeet c 5 2 (insert j {i}) = ∅ := by
+  have hr : i ∈ (insert j ({i} : Finset (Fin k))) :=
+    Finset.mem_insert.mpr (Or.inr (Finset.mem_singleton_self i))
+  constructor
+  · intro h
+    exact (fuseSetCol_admissible_iff hc hr).mp h |>.1
+  · intro h
+    exact (fuseSetCol_admissible_iff hc hr).mpr ⟨h, MultiMeet_two_six_empty hij⟩
+
+/-- **THE SAVING OF A SET FUSION.**  If `I` is a set of *used* colours which the criterion
+accepts, then all of them may be fused into one at once, and the colouring that comes out uses
+`|I| - 1` colours fewer.  For `|I| = 2` this is `Fusion.EG_le_of_fuseCol`; for larger `I` it is a
+strictly stronger move, saving `|I| - 1` colours in a single step. -/
+theorem card_colorsOn_fuseSetCol_univ_le {n k : ℕ} {c : Col n k} {r : Fin k} {I : Finset (Fin k)}
+    (hr : r ∈ I) (hI : I ⊆ colorsOn c (Finset.univ : Finset (Verts n))) (hk : 0 < k) :
+    (colorsOn (fuseSetCol c r I) (Finset.univ : Finset (Verts n))).card ≤ k - I.card + 1 := by
+  classical
+  have hinter : colorsOn c (Finset.univ : Finset (Verts n)) ∩ I = I :=
+    Finset.inter_eq_right.mpr hI
+  have hne : (colorsOn c (Finset.univ : Finset (Verts n)) ∩ I).Nonempty :=
+    ⟨r, Finset.mem_inter.mpr ⟨hI hr, hr⟩⟩
+  have h := card_colorsOn_fuseSetCol_of_nonempty (c := c) hr hne
+  rw [hinter] at h
+  have hle : (colorsOn c (Finset.univ : Finset (Verts n))).card ≤ k := by
+    calc (colorsOn c (Finset.univ : Finset (Verts n))).card
+        ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_le_card (Finset.subset_univ _)
+      _ = k := by rw [Finset.card_univ, Fintype.card_fin]
+  omega
+
+/-- **A SET FUSION SAVES `|I| - 1` COLOURS AT ONCE**: `f(n,4,5) ≤ k - |I| + 1`. -/
+theorem EG_le_of_fuseSetCol {n k : ℕ} {c : Col n k} (hc : Admissible c) {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) (hI : I ⊆ colorsOn c (Finset.univ : Finset (Verts n)))
+    (hk : 0 < k) (hn : 2 ≤ n) (hc5 : MultiMeet c 5 2 I = ∅) (hc6 : MultiMeet c 6 3 I = ∅) :
+    EG n ≤ k - I.card + 1 :=
+  le_trans (EG_le_used ((fuseSetCol_admissible_iff hc hr).mpr ⟨hc5, hc6⟩) hn)
+    (card_colorsOn_fuseSetCol_univ_le hr hI hk)
+
+/-- **THE INJECTIVE COLOURING IS FUSIBLE IN EVERY SET OF AT MOST TWO COLOURS**: for `n ≥ 4`, a
+set of at most two colours of `Definitions.injCol`, together with one of its members as
+representative, may be fused, because every four-set there is rainbow and the price formula loses
+at most two of six colours.  The object is therefore not vacuous. -/
+theorem fuseSetCol_injCol {n : ℕ} (hn : 4 ≤ n) (r : Fin (n * n)) (I : Finset (Fin (n * n)))
+    (hr : r ∈ I) (hI : I.card ≤ 2) : Admissible (fuseSetCol (injCol n) r I) := by
+  classical
+  intro S hS
+  have h6 : (colorsOn (injCol n) S).card = 6 := card_colorsOn_injCol_four hS
+  by_cases hne : (colorsOn (injCol n) S ∩ I).Nonempty
+  · have hle' := card_colorsOn_fuseSetCol_of_nonempty hr hne
+    have hne' : (colorsOn (injCol n) S ∩ I).card ≠ 0 := Finset.card_ne_zero.mpr hne
+    have hle : (colorsOn (injCol n) S ∩ I).card ≤ I.card := by
+      refine Finset.card_le_card ?_
+      intro x hx
+      exact (Finset.mem_inter.mp hx).2
+    rw [h6] at hle'
+    rw [hle']
+    omega
+  · have h0 := Finset.not_nonempty_iff_eq_empty.mp hne
+    rw [card_colorsOn_fuseSetCol_of_disjoint (r := r) h0, h6]
+    norm_num
+
+/-! #### §10  The census price of a set fusion -/
+
+/-- **THE CENSUS OF THE FUSED COLOURS.**  The tight four-sets meeting the colours of `I`,
+counted with multiplicity over `I`, equal the tight four-sets of `c` counted with multiplicity
+over the colours they meet from `I`.  This is the census identity `Fusion.sum_card_Tight`
+(`Σᵢ |Tight c i| = 5 |fiveFourSets c|`) with the sum restricted to `I`. -/
+theorem sum_card_Tight_I {n k : ℕ} (c : Col n k) (I : Finset (Fin k)) :
+    (∑ i ∈ I, (Tight c i).card) = ∑ S ∈ fiveFourSets c, (colorsOn c S ∩ I).card := by
+  classical
+  have hbo (S : Finset (Verts n)) :
+      (∑ i ∈ I, if i ∈ colorsOn c S then 1 else 0) = (colorsOn c S ∩ I).card := by
+    have h1 : (I.filter fun i => i ∈ colorsOn c S) = colorsOn c S ∩ I := by
+      ext i
+      simp only [Finset.mem_filter, Finset.mem_inter, and_comm]
+    rw [← Finset.card_filter, h1]
+  calc (∑ i ∈ I, (Tight c i).card)
+      = ∑ i ∈ I, ∑ S ∈ fourSets n,
+          (if (colorsOn c S).card = 5 ∧ i ∈ colorsOn c S then 1 else 0) := by
+        refine Finset.sum_congr rfl fun i _ => ?_
+        rw [Tight, Finset.card_filter]
+    _ = ∑ S ∈ fourSets n, ∑ i ∈ I,
+          (if (colorsOn c S).card = 5 ∧ i ∈ colorsOn c S then 1 else 0) := Finset.sum_comm
+    _ = ∑ S ∈ fourSets n, (if (colorsOn c S).card = 5 then (colorsOn c S ∩ I).card else 0) := by
+        refine Finset.sum_congr rfl fun S _ => ?_
+        by_cases h5 : (colorsOn c S).card = 5
+        · rw [if_pos h5]
+          have hstep : (∑ i ∈ I, if (colorsOn c S).card = 5 ∧ i ∈ colorsOn c S then 1 else 0)
+              = ∑ i ∈ I, if i ∈ colorsOn c S then 1 else 0 := by
+            refine Finset.sum_congr rfl fun i _ => ?_
+            by_cases hix : i ∈ colorsOn c S
+            · rw [if_pos ⟨h5, hix⟩, if_pos hix]
+            · rw [if_neg (fun h => hix h.2), if_neg hix]
+          rw [hstep, hbo S]
+        · rw [if_neg h5]
+          refine Finset.sum_eq_zero fun i _ => ?_
+          rw [if_neg (fun h => h5 h.1)]
+    _ = ∑ S ∈ fiveFourSets c, (colorsOn c S ∩ I).card := by
+      rw [← Finset.sum_filter]
+      refine Finset.sum_congr rfl fun S _ => rfl
+
+/-- **THE CENSUS PRICE OF A SET FUSION.**  If the set `I` can be fused (i.e. the fusion is
+admissible) then **the `I`-part of the tight four-set census is at most a fifth of the whole
+census**: `Σ_{i ∈ I} |Tight c i| ≤ |fiveFourSets c|`.  So a fusible set of colours is a set of
+colours which between them are met by at most one tight four-set per tight four-set — a sharp,
+global, decidable obstruction to any set fusion of size `|I| ≥ 2`, and the set-version of
+`Fusion.card_Tight_ge_k_sub_one`. -/
+theorem sum_card_Tight_I_le {n k : ℕ} {c : Col n k} (hc : Admissible c) {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) (hf : Admissible (fuseSetCol c r I)) :
+    (∑ i ∈ I, (Tight c i).card) ≤ (fiveFourSets c).card := by
+  classical
+  have hc5 : MultiMeet c 5 2 I = ∅ := (fuseSetCol_admissible_iff hc hr).mp hf |>.1
+  have hsub : ∀ S ∈ fiveFourSets c, (colorsOn c S ∩ I).card ≤ 1 := by
+    intro S hS
+    rw [mem_fiveFourSets] at hS
+    have hnot : ¬ (2 ≤ (colorsOn c S ∩ I).card) := by
+      intro hx
+      exact absurd (mem_MultiMeet.mpr ⟨hS.1, hS.2, hx⟩)
+        (by rw [hc5]; exact Finset.notMem_empty S)
+    omega
+  calc (∑ i ∈ I, (Tight c i).card) = ∑ S ∈ fiveFourSets c, (colorsOn c S ∩ I).card :=
+        sum_card_Tight_I c I
+    _ ≤ (fiveFourSets c).card := by
+      calc (∑ S ∈ fiveFourSets c, (colorsOn c S ∩ I).card)
+          ≤ ∑ _ ∈ fiveFourSets c, (1 : ℕ) :=
+            Finset.sum_le_sum (fun S hS => hsub S hS)
+        _ = (fiveFourSets c).card := by rw [Finset.sum_const]; norm_num
+
+/-- **THE CENSUS PRICE, AS A FRACTION OF THE WHOLE CENSUS.** -/
+theorem five_mul_sum_card_Tight_I_le {n k : ℕ} {c : Col n k} (hc : Admissible c) {r : Fin k}
+    {I : Finset (Fin k)} (hr : r ∈ I) (hf : Admissible (fuseSetCol c r I)) :
+    5 * (∑ i ∈ I, (Tight c i).card) ≤ ∑ i : Fin k, (Tight c i).card := by
+  rw [sum_card_Tight c]
+  have h := sum_card_Tight_I_le hc hr hf
+  omega
+
+/-- **TWO FUSIBLE COLOURS SHARE AT MOST ALL THE TIGHT FOUR-SETS**: `|Tight c i| + |Tight c j| ≤
+|fiveFourSets c|`.  Compare `Fusion.card_Tight_ge_k_sub_one`, the reverse inequality at an
+optimal colouring: at least `(k-1)/4` tight four-sets per colour, and here at most the whole
+census for two colours together. -/
+theorem card_Tight_i_add_card_Tight_j_le {n k : ℕ} {c : Col n k} (hc : Admissible c)
+    {i j : Fin k} (hij : i ≠ j) (hf : Admissible (fuseSetCol c i (insert j {i}))) :
+    (Tight c i).card + (Tight c j).card ≤ (fiveFourSets c).card := by
+  have hr : i ∈ (insert j ({i} : Finset (Fin k))) :=
+    Finset.mem_insert.mpr (Or.inr (Finset.mem_singleton_self i))
+  have h := sum_card_Tight_I_le hc hr hf
+  rw [Finset.sum_insert (by rw [Finset.mem_singleton]; exact Ne.symm hij),
+    Finset.sum_singleton] at h
+  simpa [add_comm] using h
+
+/-- **AN `EG`-OPTIMAL COLOURING ADMITS NO SET FUSION AT ALL.**  If `c` is admissible and uses
+exactly `EG n` colours, then for every set `I` of used colours with a representative `r ∈ I`,
+some tight four-set meets `I` twice or some rainbow four-set meets `I` three times, so
+`fuseSetCol c r I` is never admissible.  This is `Fusion.optimal_fusion_blocked` ("every *pair*
+of colours is blocked") with the pair replaced by an arbitrary set of colours of any size — so
+not even a simultaneous fusion of `⌈k/2⌉` colours can improve an optimal colouring. -/
+theorem optimal_setFusion_blocked {n k : ℕ} {c : Col n k} (hc : Admissible c) (hopt : EG n = k)
+    (hk : 0 < k) (hn : 2 ≤ n) {r : Fin k} {I : Finset (Fin k)} (hr : r ∈ I) (hI2 : 2 ≤ I.card)
+    (hI : I ⊆ colorsOn c (Finset.univ : Finset (Verts n))) :
+    MultiMeet c 5 2 I ≠ ∅ ∨ MultiMeet c 6 3 I ≠ ∅ := by
+  classical
+  by_cases ha : MultiMeet c 5 2 I = ∅
+  · by_cases hb : MultiMeet c 6 3 I = ∅
+    · exfalso
+      have hadm : Admissible (fuseSetCol c r I) := (fuseSetCol_admissible_iff hc hr).mpr ⟨ha, hb⟩
+      have h1 : EG n ≤ (colorsOn (fuseSetCol c r I) (Finset.univ : Finset (Verts n))).card :=
+        EG_le_used hadm hn
+      have h2 := card_colorsOn_fuseSetCol_univ_le hr hI hk
+      have hle : (colorsOn c (Finset.univ : Finset (Verts n))).card ≤ k := by
+        calc (colorsOn c (Finset.univ : Finset (Verts n))).card
+            ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_le_card (Finset.subset_univ _)
+          _ = k := by rw [Finset.card_univ, Fintype.card_fin]
+      have hIle : I.card ≤ k := le_trans (Finset.card_le_card hI) hle
+      rw [hopt] at h1
+      omega
+    · exact Or.inr hb
+  · exact Or.inl ha
 
 end JSP140

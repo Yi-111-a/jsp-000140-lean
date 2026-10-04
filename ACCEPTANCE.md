@@ -1,3 +1,76 @@
+## Status (round 86)
+
+`lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 86 PROVES THE SET FUSION — THE OBJECT ADVERTISED SINCE ROUND 82 AND NEVER PROVED — AND
+WITH IT THE FUSION CRITERION FOR ARBITRARY SETS OF COLOURS.**  §3 of the module docstring of
+`lean/JSPProblem/Fusion.lean` described a `Fusion.fuseSetCol c r I hr` (a whole set of colours
+fused into a representative in one step) and its criterion `fuseSetCol_admissible_iff`; the
+statements were there, the theorems were not, and `policy.json` listed the four missing
+ingredients as `blockers[1]`.  All of it is now proved, in `Fusion.lean` §§9–10 (1349 → 1856
+lines, 80 → 97 declarations, 0 placeholders, on the default build path).
+
+### 1. The object and its price
+
+`Fusion.fuseSetCol c r I` sends every colour of the finset `I` to the **representative** `r ∈ I`
+(the corrected version of round 82's `colorsOn_fuseSetCol`, which sent them to `I.min' I` and
+therefore *dropped* that colour whenever it did not occur on the vertex set at hand).  A pair
+fusion is the case `I = {i, j}` — `Fusion.fuseSetCol_eq_fuseCol` — so the new move strictly
+contains the move of rounds 65–77.
+
+| new theorem | statement |
+|---|---|
+| **`Fusion.card_colorsOn_fuseSetCol'`** | **THE PRICE OF A SET FUSION**: on `S` the fusion removes every colour of `I` used there and adds the *single* colour `r`: `|colorsOn (fuseSetCol c r I) S| = |C| − |C ∩ I| + [C ∩ I ≠ ∅]`.  **The `+1` is paid once, not once per colour of `I`** — the difference between a set fusion and a chain of pair fusions, and the reason `|I| − 1` colours are saveable *in one step* |
+| `Fusion.colorsOn_fuseSetCol`, `colorsOn_fuseSetCol_unused` | the exact effect on one vertex set, with and without contact |
+| **`Fusion.not_five_le_of_fuseSetCol`** | **WHICH FOUR-SETS A SET FUSION BREAKS**: for `r ∈ I`, `S` is broken **iff** it spans exactly five colours and meets `I` in ≥ **two** colours, or spans exactly six and meets `I` in ≥ **three** colours |
+| `Fusion.card_colorsOn_fuseSetCol_of_nonempty`, `…_of_disjoint` | the two clean forms of the price (the `if` cases, which is what all the proofs below use) |
+
+### 2. The criterion, in two parameters
+
+`Fusion.MultiMeet c t s I` is the finset of the `t`-colour four-sets meeting `I` in at least `s`
+colours — the four-set census of rounds 60–80 (`Tight`, `fiveFourSets`) with the extra parameter
+`s`; `Fusion.sixFourSets c` is the rainbow `K₄`'s.
+
+* **`Fusion.fuseSetCol_admissible_iff` — THE FUSION CRITERION FOR A SET OF COLOURS**: for `r ∈ I`
+  the fusion is admissible **iff** `MultiMeet c 5 2 I = ∅` and `MultiMeet c 6 3 I = ∅`;
+* `Fusion.MultiMeet_five_subset`, `MultiMeet_six_subset`, `mem_MultiMeet`, `mem_sixFourSets` — the
+  two broken families live inside `fiveFourSets` and `sixFourSets`, and membership is one
+  conjunction, so the criterion is a *finite certificate*, not a search;
+* `Fusion.MultiMeet_two_six_empty`, `fuseSetCol_admissible_iff_pair` — §3's pair criterion is the
+  two-colour instance (a pair never breaks a rainbow four-set, for free);
+* **`Fusion.EG_le_of_fuseSetCol`** — a set of *used* colours accepted by the criterion fuses into
+  one and **saves `|I| − 1` colours at once**: `f(n,4,5) ≤ k − |I| + 1`;
+* `Fusion.fuseSetCol_injCol` — the object is not vacuous: every set of ≤ 2 colours of the
+  injective colouring fuses (all four-sets there are rainbow, so ≤ 2 of 6 colours are lost).
+
+### 3. The census price, and the no-go
+
+* `Fusion.sum_card_Tight_I` — the census identity `Σᵢ |Tight c i| = 5|fiveFourSets c|` **restricted
+  to `I`**: `Σ_{i∈I} |Tight c i| = Σ_{S ∈ fiveFourSets c} |colorsOn c S ∩ I|`;
+* **`Fusion.sum_card_Tight_I_le` / `five_mul_sum_card_Tight_I_le` — THE CENSUS PRICE OF A SET
+  FUSION**: a fusible set satisfies `Σ_{i∈I} |Tight c i| ≤ |fiveFourSets c|`, i.e. **the
+  `I`-part of the tight census is at most a fifth of the whole census**.  `Fusion.card_Tight_i_add_
+  card_Tight_j_le` is the two-colour form, the counterpart of round 84's `card_Tight_ge_k_sub_one`;
+* **`Fusion.optimal_setFusion_blocked` — AN `EG`-OPTIMAL COLOURING ADMITS NO SET FUSION OF ANY
+  SIZE**: `Fusion.optimal_fusion_blocked` ("every *pair* of colours is blocked") with the pair
+  replaced by an arbitrary set `I` of at least two used colours.  Together with round 85's
+  `Ladder.no_mergedCol` this closes the fusion route completely: no pair, no chain of pairs, no
+  set of colours, for any colouring of this development.
+
+### 4. Not proved this round (unchanged prize blocker)
+
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence of the labelled-triangle
+systems of arXiv:2207.02920 §4/§12 — is still the sole remaining content of `jsp_000140_main`,
+and `jsp_000140_main` was again **not** declared (declaring it with the existence statement as an
+assumption would falsify the prize).  Since a set fusion of *any* size is now excluded at every
+`EG`-optimal colouring (`Fusion.optimal_setFusion_blocked`), the rate-`5/6` construction cannot be
+obtained from any colouring of this development by any recolouring-by-fusion, which is consistent
+with the papers: both published constructions are probabilistic and produce genuinely new
+colourings.
+
 ## Status (round 85)
 
 `lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
