@@ -1,3 +1,89 @@
+## Status (round 68)
+
+`lake build`: **OK** (3156 jobs; the new file `lean/JSPProblem/Grow.lean` — 374 lines,
+22 declarations, 20 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 68 CHANGES THE SHAPE OF THE REMAINING PROBLEM: THE PRIZE IS NO LONGER A FUNCTION OF AN
+INFINITE, PROBABILISTIC FAMILY.  IT IS A FUNCTION OF *ONE LOCAL LEMMA*: THE SIX-STEP GROWTH LEMMA
+`Grow6`.  No hypothesis of arXiv:2207.02920, no design-existence theorem and no asymptotic
+existential is needed — `Grow6` alone implies `jsp_000140_target`.**
+
+### 1. The new hypothesis
+
+```lean
+/-- every admissible colouring of K_m extends to an admissible colouring of K_{m+6}
+    which uses FIVE MORE colours -/
+def Grow6 : Prop :=
+  ∀ (m j : ℕ) (c : Col m j), Admissible c → ∃ (d : Col (m + 6) (j + 5)), Admissible d
+```
+
+This is `f(m+6,4,5) ≤ f(m,4,5) + 5` as a *construction* statement, at the catalog rate `5/6`.  It
+is finite, deterministic and local: one cannot obtain it from probability, and it needs no
+verification of `K₄`'s beyond what admissibility already means.
+
+### 2. What one anchor buys
+
+| new theorem | statement |
+|---|---|
+| `Grow6.step`, **`Grow6.family`** | `Grow6` iterates: from one admissible `(m,j)`-colouring, for every `t`, an admissible colouring of `K_{m+6t}` with `j+5t` colours |
+| **`Grow6.error_preserved`** | the slack `6j - 5m` is **exactly** preserved by growth: `6(j+5t) ≤ 5(m+6t)+6` whenever `6j ≤ 5m+6` |
+| `Grow6.eg_le` | `f(m+6t) ≤ j+5t` |
+| **`Grow6.count_bound`** | hence, for every `n ≥ m`: **`6·f(n,4,5) ≤ 5n + 31`** — one finite anchor plus `Grow6` gives an `O(1)` error at all `n` |
+| `Grow6.fiveSixthUpper` | that is the upper half `FiveSixthUpper EG` |
+| **`Grow6.jsp_000140_main`** | `Grow6` + one anchor `6j ≤ 5m+6` ⟹ `jsp_000140_target` (lower half from `Main.fiveSixthLower_eg`) |
+| **`Grow6.main`** | **`Grow6` ⟹ `jsp_000140_target`**, using the *already verified* value `EG 12 = 11` as the anchor |
+
+So the whole remaining content of the prize is: **prove `Grow6`** (one local lemma), or **find one
+refined anchor** (see §4) — as opposed to the infinite families of
+`Restriction.fiveSixthUpper_of_family_const`, `Pack.PackFamily` and `Slack.STSFamily`.
+
+### 3. The pin-down: where `Grow6` can hold
+
+| new theorem | statement |
+|---|---|
+| **`Grow6.anchor_counting`** | if a six-step out of `(m,j)` exists then `5(m-1)+1 ≤ 6j`: this is exactly the classical counting bound of `Cherry.five_sixth_lower`, so **counting rules the growth lemma out nowhere** — together with `Grow6.error_preserved` this is why the route is open |
+| **`Grow6.not_from_six`** | but there is **no six-step out of `Tables.sixCol`** (`f(6,4,5) = 5`): it would be an admissible `10`-colouring of `K₁₂`, excluded by `Extend.five_n_add_one_le_six_k` (`61 ≤ 60`).  The growth route therefore needs one colour to spare over the counting bound; it cannot be bootstrapped from the classical constructions |
+| **`Grow6.sharp_of_refined_anchor`** | conversely, from a **refined** anchor (`6j = 5m+1`, `m ≥ 7`, the `(2,1)`-block shape of `BlockCol.lean`) the six-step lemma yields the **exact** value `f(m+6t,4,5) = j+5t` for every `t ≥ 0` |
+
+### 4. The first anchor, and the family it generates
+
+`EG 12 = 11` sits **exactly on the growth boundary** `6j = 5m+6` (`6·11 = 5·12+6`).
+
+| new theorem | statement |
+|---|---|
+| `anchor_twelve` | `EG 12 = 11 ∧ 6·11 = 5·12+6` |
+| `Grow6.family_twelve` | `f(12+6t) ≤ 11+5t = 5(12+6t)/6 + 1` — the catalog statement along `n ≡ 0 (mod 6)` |
+| **`Grow6.sharp_family`** | **and in fact `f(12+6t) = 11+5t` exactly** (the lower bound `⌈(5(12+6t)+1)/6⌉ = 11+5t` meets it), i.e. `Grow6` would give the **exact** value of `f(n,4,5)` at every order `≡ 0 (mod 6)`, `n ≥ 12`, at the catalog rate `5n/6 + 1` — the first infinite exact family this development would obtain |
+| `Grow6.error_one`, `Grow6.residue_family` | the same in the currency of the constant: `6·f(12+6t) = 5(12+6t) + 6`, `f(12+6t) = 5(12+6t)/6 + 1` |
+| **`Grow6.target_eighteen`** | **the first concrete pair the lemma decides: `16 ≤ f(18,4,5)` unconditionally (refined counting bound) and `f(18,4,5) = 16` under `Grow6`** |
+| `Grow6.target_twentyfour` | likewise `f(24,4,5) = 21` under `Grow6` |
+
+### 5. Falsifiable predictions for a growth construction
+
+| new theorem | statement |
+|---|---|
+| **`Grow6.propagated_surplus`** | from a boundary anchor (`6j = 5m+6`) every admissible extension on `m+6` vertices satisfies the **exact** defect equation `6·Isolated d + 2·Defect d = 11(m+6)` |
+| **`Grow6.propagated_bounds`** | and `m+6 ≤ Isolated d`, `2·Defect d ≤ 5(m+6)`, `6·Isolated d ≤ 11(m+6)`.  At the `K₁₂` anchor: `6I + 2D = 198` with `18 ≤ I ≤ 33`; the extreme case `I = 33, D = 0` means *every* edge is paid for by a two-edge path (`Paths = 51`), i.e. the extension is a `(2,1)`-block triangle packing — exactly the object of `Pack.lean`/`BlockCol.lean` and of the random triangle removal of arXiv:2207.02920 §4 |
+
+These three bounds are the acceptance test for any candidate six-step map, and they are cheap to
+check on a candidate colouring.
+
+### 6. What was NOT pursued this round
+
+* No attempt to *prove* `Grow6`: it is a genuinely hard construction problem (it would settle
+  `f(18,4,5) = 16`, `f(24,4,5) = 21`, …, orders at which the searches of rounds 49–67 stall at
+  30+ violated four-sets), and no part of it is formalisable from the existing development.
+* `Grow6` was first formulated with the wrong integrality (a six-step was claimed to need `6j ≥ 5m+6`
+  and to be impossible from refined anchors); the ℕ/ℝ division mismatch was caught by the Lean
+  checker and the correct statement — no obstruction beyond `Cherry.five_sixth_lower` — is
+  `Grow6.anchor_counting`.  Recorded because the same trap (`(a/b) ≤ c ⇏ a ≤ b·c` over ℕ) will catch
+  the next round.
+* No search was run: the growth map is not a local-search problem (it must produce a colouring of
+  `K_{m+6}` which extends a *given* colouring of `K_m`), and the searches of rounds 57/66/67 already
+  show that free-form search stalls at the targets `Grow6` would have to hit.
+
 ## Status (round 67)
 
 `lake build`: **OK** (3155 jobs; the new file `lean/JSPProblem/Extend.lean` — 20 declarations,
