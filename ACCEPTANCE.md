@@ -1,3 +1,64 @@
+## Status (round 79)
+
+`lake build`: **OK** (3165 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 79 CHANGES THE ATTACK FAMILY: it writes the required statement in the notation the catalog
+uses.**  Rounds 1–78 wrote `jsp_000140_target` in the ε-notation of `Topology.Instances.Real`, but
+the *catalog answer itself* is
+
+> `f(n,4,5) = 5n/6 + o(n)`  (arXiv:2207.02920, Bennett–Cushman–Dudek–Prałat)
+
+and `o(·)` is a first-class object of Mathlib (`Asymptotics.IsLittleO`).  **Verified by grep: not one
+of the 38 348 lines above imports or mentions `Filter`, `Tendsto`, `IsBigO`, `IsLittleO`, `atTop` or
+`nhds`.**  So the sentence the prize actually asks for had never been written in its own notation,
+and the two halves of the answer had never been separated *asymptotically*.  New file
+`lean/JSPProblem/LittleO.lean` (524 lines, 38 declarations, zero placeholders, on the default build
+path) writes it.
+
+* **`LittleO.main_iff_littleO` — THE PRIZE IN `o`-NOTATION.**
+  `jsp_000140_target ↔ IsLittleO (atTop) (fun n => |dev n|) idreal`, where `dev n = EG n - 5n/6`:
+  an equivalence with the literal `o`-sentence of arXiv:2207.02920.
+* **`LittleO.upper_iff_littleO`, `LittleO.lower_iff_littleO`** — the two halves separately.
+  `FiveSixthUpper` is *one-sided* while `IsLittleO` uses `‖·‖`, so the two are reconciled by the
+  **positive part**: `LittleO.norm_max_zero` (`‖max 0 x‖ = max 0 x`) and `LittleO.max_excess_iff` /
+  `max_deficit_iff`.  Together with `LittleO.abs_eq_max_add_max_neg` (`|x| = max 0 x + max 0 (-x)`)
+  this shows the prize splits **exactly** into *the excess of `f` over `5n/6` is `o(n)`* and *the
+  deficit is `o(n)`*.
+* **`LittleO.lower_littleO'` — THE PROVED LOWER HALF, IN `o`-NOTATION.**  Not a hypothesis:
+  `max(0, 5n/6 - f(n,4,5)) =o[atTop] id` is a **theorem**, from `Main.fiveSixthLower_eg` (round 10,
+  i.e. `Cherry.three_mul_paths_le_edges`).  The sharp `5/6` counting lemma of BCDP22, sitting inside
+  Mathlib's asymptotic calculus.
+* **`LittleO.main_iff_upper_littleO`, `LittleO.main_iff_upper_isBigOWith`** — since the lower half
+  is a theorem, `jsp_000140_main` reduces to a **single object**:
+  `∀ c > 0, IsBigOWith c (atTop) (fun n => max 0 (dev n)) idreal` (equivalently `IsLittleO`).
+* **`LittleO.upper_tendsto_iff`, `LittleO.main_tendsto_iff`** — the upper half, and the whole prize,
+  **as limits**: `FiveSixthUpper EG ↔ Tendsto (fun n => (EG n:ℝ)/n) atTop (nhds (5/6))`, and
+  `jsp_000140_target ↔` the same.  **The sole remaining content of the required theorem
+  `jsp_000140_main` is the single convergence assertion `f(n,4,5)/n → 5/6`.**
+* **`LittleO.EG_ge_lower_uniform`** — the proved lower bound with an **explicit constant and no
+  threshold**: `5n/6 - 5/6 ≤ f(n,4,5)` for every `n ≥ 4` (from `Cherry.EG_ge_five_sixth`).  This is
+  what makes the two limit statements provable without carrying a threshold.
+* **THE GAP IS PRICED.**  `LittleO.excess_isBigOWith_one` / `excess_isBigO` give
+  `max(0, f(n,4,5) - 5n/6) = O(1·n)` from the round-robin colouring, and
+  `LittleO.isBigOWith_mono'` / `upper_isBigOWith_ge` turn a constant-`d` bound into the catalog upper
+  half for every `ε ≥ d`.  **The prize needs that constant to be arbitrary.**  (The implication
+  `IsBigO ⇒ FiveSixthUpper` is **false** — `IsBigO` supplies one constant — drafted, proved false and
+  removed; recorded so no future round mistakes `O(n)` for `o(n)`.)
+* `LittleO.upper_at`, `LittleO.upper_iff_AdmissibleUpper`, `LittleO.gap_statement`,
+  `LittleO.main_o_iff` — the finite/`ε`-indexed forms, so the `o`-layer composes with the existing
+  colouring-level interface.
+
+**Lean 4.34.0 pitfalls of this round** (all recorded in `discovery/JSP-000140/tree.jsonl`):
+`IsLittleO`/`IsBigO`/`IsBigOWith` take the **filter first** (`IsLittleO (atTop : Filter ℕ) f g`) —
+the `=o[l] g` notation hides this and the term form does not; both are **`irreducible_def`s**, so
+`obtain` on them fails and one must use `isBigOWith_iff` / `isBigO_iff_isBigOWith` and
+`IsLittleO.def'`; `le_or_lt` does not exist (use `lt_or_ge 0 x`); `max_eq_left h` *keeps the first*
+argument (so `max 0 x = 0` needs `x ≤ 0`) while `max_eq_right h` keeps the second; `Metric.tendsto_atTop`
+is an `Iff`; `linarith` cannot multiply an inequality by a variable (`c·X ≤ e·X` from `c ≤ e` needs
+`mul_le_mul_of_nonneg_right`).
+
 ## Status (round 77)
 
 `lake build`: **OK** (3164 jobs; the new file `lean/JSPProblem/NoMerge.lean` — 438 lines, 15
