@@ -1,3 +1,69 @@
+## Status (round 70)
+
+`lake build`: **OK** (3158 jobs; the new file `lean/JSPProblem/Merger.lean` — 806 lines, 28
+declarations, 22 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`:
+**0**.  `harness/score.py problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 70 COUNTS FOUR-SETS: THE MERGER BUDGET AND THE SPREAD CONDITION.**  Rounds 14–69 all count
+vertices (`Paths`, `Isolated`, `Defect`) or edges (`|E_i|`), and all of them discard the same
+information: how many four-vertex sets each colour *merges* in.  This round counts four-sets.
+
+### 1. The merge count
+
+A `K₄` has six edges and spans at least five colours, so **at most one colour is doubled** in it.
+The colours lost in `S` are
+
+    mu(S) = #{ i : exactly two edges of S have colour i } = 6 - |colours in S| <= 1,
+
+formalised as `Merger.merge_eq` and `Merger.merge_le_one` (with `Merger.sum_eq_six`,
+`Merger.colorsOn_eq_filter`, `Merger.card_colorsOn_eq_count`, `Merger.merge_eq_sum`).  Summing over
+`S` gives the **merger budget** `Merger.budget`: the total number of four-sets in which some
+colour is doubled is at most `C(n,4)`.
+
+### 2. The exact four-set profile of a colour class
+
+Count the pairs `(e, S)` with `e` a colour-`i` edge inside the four-set `S`, first by `e` (each edge
+lies in exactly `C(n-2,2)` four-sets) and then by `S` (`t_i(S) = [t_i >= 1] + [t_i = 2]`):
+
+    **card (Doubles c i) = |E_i| * C(n-2,2) - C(n,4) + card (Misses c i)**      (`Merger.doubles_eq`)
+
+with `Doubles c i` the four-sets doubling colour `i` and `Misses c i` those missing it
+(`Merger.incidence`, `Merger.classIn_eq_filter`, `Merger.merge_split`, `Merger.doubles_nonneg`).
+The classical bound `3|E_i| <= 2n` only bounds `|E_i|` from above; this determines what `|E_i|`
+*does* to the four-sets.
+
+### 3. Two new necessary conditions
+
+* **The spread condition** (`Merger.spread`): `sum_i card (Misses c i) <= (k - 5) * C(n,4)`.  On
+  average every colour class must appear in at least a `5/k` fraction of all four-sets — a
+  quantitative *no hiding place* test that rejects a colour class concentrated on a few vertices.
+* **For `k <= 5` no colour can be missed** (`Merger.empty4_eq_empty`), so the profile is exact
+  (`Merger.doubles_eq_of_k_le_five`) and yields a **size lower bound**, new and complementary to
+  `3|E_i| <= 2n`: every colour class has at least `C(n,4)/C(n-2,2) = n(n-1)/12` edges
+  (`Merger.classIn_card_ge`).  Concretely `|E_i| >= 3` at `(6,5)` (`Merger.six_classIn_card_ge`) and
+  `|E_i| >= 2` at `(5,5)` (`Merger.five_classIn_card_ge`); since the five classes partition the
+  fifteen edges of `K_6`, each has *exactly* three.
+
+### 4. What is still missing
+
+`jsp_000140_main = FiveSixth EG` is untouched: the lower half is proved (`Main.fiveSixthLower_eg`)
+and the upper half is equivalent (`Grow6.main`, round 68) to the single local statement `Grow6` plus
+the verified anchor `EG 12 = 11`.  The merger budget is a necessary condition on a witness, not a
+construction.  The rigidity statement at the tight order — *every* admissible 5-colouring of `K_6`
+is a 1-factorisation (`Merger.six_fact`) — is proved in outline only: the counting part is formal,
+the local bookkeeping (a path-plus-edge colour class doubles five four-sets, via
+`ColorClass.three_of_classIn_fourSet`) is the declared next lemma of round 71.
+
+### 5. Lean pitfalls recorded this round
+
+* `omega` does **not** reason about `Nat` truncated subtraction in this toolchain:
+  `example (A B : Nat) (h : 0 <= A - B) : B <= A := by omega` fails.  Rewrite with `Nat.sub_zero`
+  and `Nat.le_sub_iff_add_le` / `Nat.sub_le` instead.
+* `Finset.card_eq_zero` is stated `s.card = 0 <-> s = Empty`, so the empty-class rewrite is `.mp`.
+* `Finset.sum_add_distrib` matches only a *single* sum of `f x + g x`; to split two sums use
+  `rw [← Finset.sum_add_distrib]` or `calc`.
+
 ## Status (round 69)
 
 `lake build`: **OK** (3157 jobs; the new file `lean/JSPProblem/Pad.lean` — 654 lines, 37

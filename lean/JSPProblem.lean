@@ -55,3 +55,4 @@ import JSPProblem.Window
 import JSPProblem.Extend
 import JSPProblem.Grow
 import JSPProblem.Pad
+import JSPProblem.Merger
