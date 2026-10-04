@@ -56,3 +56,4 @@ import JSPProblem.Extend
 import JSPProblem.Grow
 import JSPProblem.Pad
 import JSPProblem.Merger
+import JSPProblem.Grid

@@ -1,3 +1,102 @@
+## Status (round 71)
+
+`lake build`: **OK** (3159 jobs; the new file `lean/JSPProblem/Grid.lean` — 600 lines, 36
+declarations, 30 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`:
+**0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`,
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 71 COUNTS (VERTEX, COLOUR) PAIRS: THE GRID DECOMPOSITION OF THE EXTREMAL CASE, AND THE
+FIRST VALUE BOUND STRICTER THAN `⌈5(n-1)/6⌉`.**  Rounds 14–70 all counted vertices (`Paths`,
+`Isolated`, `Defect`), edges (`|E_i|`) or four-sets (`Merger`); this round counts *cells* — a cell is
+a `(vertex, colour)` pair — and obtains a **no-go theorem at the tight order**.
+
+### 1. The grid
+
+`Grid.cell n k = Verts n × Fin k`, `Grid.grid` (of `n · k` cells, `Grid.card_grid`), the colour class
+`Grid.cellsOf j` (of `n` cells, `Grid.card_cellsOf`), and the **cross** of a labelled triangle
+`Grid.cross c u p q = triPairs c u p q` — the five cells `(u, λ), (p, λ), (q, λ), (p, μ), (q, μ)`
+with `λ = c s(u,p) = c s(u,q)` the *cherry* colour and `μ = c s(p,q) ≠ λ` the *leaf* colour
+(`Grid.card_cross`, `Grid.mem_cross_cases'`, `Grid.mem_cross_col'`, `Grid.card_col_cross`: three cells
+of colour `λ`, two of colour `μ`, none of any other colour).
+
+### 2. The cell equation (the theorem of the round)
+
+`Grid.Decomposes c T` says the crosses of a family `T` of labelled triangles cover the whole grid
+pairwise disjointly (the matching condition plus fullness).  Then
+
+> `Grid.cellCount`: for every colour `j` the `n` cells of colour `j` are covered exactly once, three
+> by every triangle with cherry colour `j` and two by every triangle with leaf colour `j`, so
+> **`3 · a_j + 2 · b_j = n`**.
+
+This is a constraint on extremal *colourings* — the colour classes split into cherry-heavy and
+leaf-heavy — invisible both to the Steiner-triangle-system characterisation of round 13/30 and to
+the price `5|T| ≤ nk` of round 51 (`Grid.card_eq_of_decomposes` is its global shadow `5|T| = nk`).
+
+### 3. The obstruction at `n = 7`, and `f(7,4,5) ≥ 6`
+
+`3 a_j + 2 b_j = 7` forces `a_j = 1` and `b_j = 2` for every colour (`Grid.cellCount_seven`), hence
+`Grid.card_eq_five`: a decomposition of the `7 × 5` grid has exactly **five** triangles.  On the other
+hand the tight colouring of `K_7` has `n(n-1)/6 = 7` of them, because
+
+* `Grid.decomposes_of_tight` — **the extremal case is a grid decomposition**: if an admissible
+  colouring of `K_n` (`n ≥ 4`) attains `6k = 5(n-1)`, then the family of its labelled triangles
+  (`Grid.TriFamilyOf`, one per two-edge path; `Grid.card_TriFamilyOf`, `Grid.mem_LabTri`,
+  `Grid.inj_triVerts`, `Grid.six_mul_card_TriFamilyOf`) decomposes the `n × k` grid — disjointness
+  from `Cover.triVerts_eq_of_mem_triPairs`, coverage from `5·n(n-1)/6 = nk`;
+
+so `Grid.no_five_colours` (no admissible 5-colouring of `K_7`) and
+
+* **`Grid.eg_seven_ge_six : 6 ≤ EG 7`** — the first *proved* value bound of this development
+  strictly stronger than `Tables.EG_ge_ceil_five_sixth` (`⌈5(n-1)/6⌉ = 5`).  Equivalently: the sharp
+  `5/6` bound of Bennett–Cushman–Dudek–Prałat is **not attained** at `n = 7`, so the rigidity
+  theory of round 13 is refuted at its first admissible order.
+
+### 4. Search evidence (all in `discovery/JSP-000140/`)
+
+* `r71_grid_probe.py` — exhaustive (search **complete**) over all `20⁷` labelings of the seven Fano
+  blocks: **no** cross decomposition of the `7 × 5` grid.  This is the computational counterpart of
+  `Grid.card_eq_five` and the first *complete* negative result in this development's search log at a
+  tight order.
+* `r71_n13b.py` — bitmask search for the `13 × 10` grid did not terminate in `4.7·10⁷` nodes
+  (UNKNOWN), while the `13 × 11` grid admits a decomposition after `2.2·10⁶` nodes: the obstruction
+  belongs to the tight bound, not to the block family.
+* `r71_hall_probe.py`, `r71_hall2.py` — the (incorrect) bipartite-*matching* reading of the cell
+  equation, kept because it records that the constraint is **not** a matching condition.
+
+### 5. Lean pitfalls recorded this round
+
+* `intro a b -` and `obtain ⟨x, -, y⟩` silently desynchronise the parser: later lines report
+  "Unknown identifier" and the goal becomes `?m`.  Name every hypothesis.
+* `Prod.mk.injEq` is a *statement*, not an iff: use `congrArg Prod.fst/snd`, or `Prod.ext_iff.mp`
+  followed by `simpa only [Prod.fst, Prod.snd]`.
+* `Finset.not_mem_empty` does not exist in this Mathlib — use `Finset.notMem_empty x`.
+* `Finset.card_eq_two` has no order component, and `obtain`-ing its witness breaks the syntactic link
+  to the `choose`s: restate the facts from the original term
+  (`(Finset.card_eq_two.mp …).choose_spec.choose_spec.1`) or rewrite *before* `obtain`.
+* `Finset.sum_insert` carries `a ∉ s`, so `simp only [Finset.sum_insert, …]` does nothing unless the
+  simp set also has `Finset.mem_insert`; and `Finset.card_filter` is a simp lemma turning a
+  filter-card back into an indicator sum, so do `rw [Finset.card_filter]` first and only then simp.
+* `Finset.disjoint_left.mp h ha hb` — the element is *implicit*; `Finset.eq_of_subset_of_card_le :
+  s ⊆ t → t.card ≤ s.card → s = t`; `Nat.eq_of_mul_eq_mul_left` needs the positivity proof; `omega`
+  cannot cancel a factor.
+* `subst`/`rw … at h` cannot rewrite `EG n = 5` inside a hypothesis whose *type* mentions it: use
+  `by_cases hEq : EG 7 = 5` and `rw [hEq] at h` on a hypothesis that does.
+
+### 6. What is still missing
+
+`jsp_000140_main = FiveSixth EG` is untouched: the lower half is proved (`Main.fiveSixthLower_eg`)
+and the upper half is `Main.AdmissibleUpper ε` for `0 < ε < 1/6`, the probabilistic existence
+theorem of arXiv:2207.02920 §4/§12 (= arXiv:2208.12563 §4): a hypergraph matching of labelled
+triangles covering all but `o(n)` degree of leftover.  No Mathlib tool provides it (no Rödl nibble,
+no hypergraph-matching existence), and the searches of rounds 53–67 plus 71 found no admissible
+colouring below the counting bound at `n ≤ 20`.
+
+**Declared next lemmas for round 72:** (i) `Grid.tight_thirteen_shape` — from `Grid.cellCount` at
+`n = 13`, `k = 10`, exactly two colours have `(a_j, b_j) = (1, 5)` (7 edges) and eight have `(3, 2)`
+(8 edges), `2·7 + 8·8 = 78 = C(13,2)`: a falsifiable prediction about the colour-class sizes of a
+hypothetical 10-colouring of `K_13`, usable to attack the benchmark `EG 13 = 11`; (ii) the general
+parity consequence `a_j ≡ n (mod 2)` for every colour.
+
 ## Status (round 70)
 
 `lake build`: **OK** (3158 jobs; the new file `lean/JSPProblem/Merger.lean` — 806 lines, 28
