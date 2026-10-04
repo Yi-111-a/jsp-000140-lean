@@ -1,6 +1,7 @@
 import JSPProblem.Disj
 import JSPProblem.Window
 import JSPProblem.Vacant
+import JSPProblem.NoMerge
 
 /-!
 # JSP-000140 — round 84: THE FUSION CRITERION — when may two colours be merged, and why never
@@ -99,13 +100,54 @@ enumeration of the palette, and
   blockedness of the certified witnesses plus the counting lower bounds, i.e. *without* any
   enumeration of colourings: a third route to those four values.
 
-## §5  NOT YET ON THE BUILD PATH
+## §5  THE SAVING LADDER — a finite certificate for an upper bound on `f`
 
-Round 84 drafted, but could not compile within the round budget, the *set* fusion
-(`Fusion.fuseSetCol c r I hr`, the object of rounds 65–77's two-colour merges) and the **saving
-ladder** (`Fusion.Save`, `Fusion.Ladder`, `Fusion.Ladder.card_le`, `Fusion.Ladder.saving`).  They
-are recorded here because the statements are the right ones; see `policy.json` for the missing
-proofs.  Everything in §§0–4, 6 and 8 *is* proved.
+`Fusion.Ladder c L` (`L` a list of colour pairs, read left to right) is a **chain of legal
+fusions**: at each rung the pair `(i, j)` fuses the colour `j` into the colour `i`, both colours
+are *in use*, and the fused colouring is still admissible.  Round 84 drafted this object but could
+not compile it; it is proved here, in §§7 and 8.
+
+* **`Fusion.Ladder.saving` — THE SAVING OF THE WHOLE CHAIN**: `EG n + L.length ≤ (#colours used
+  by c)`, i.e. **a finite certificate for an upper bound on `f(n,4,5)` is a list of colour pairs
+  plus one admissibility check per rung**, and the value it certifies is the number of used
+  colours minus the length of the list (`Fusion.Ladder.saving'` for the subtractive form);
+* **`Fusion.Ladder.criterion` — the same in the language of the four-set census**: every rung of a
+  ladder satisfies `Disjoint (Tight c i) (Tight c j)`, so the certificate can be written as *one
+  `Disjoint` statement per rung*, with no search at all;
+* `Fusion.ladderDecidable` — the certificate is **decidable**: a chain is checked, not found;
+* `Fusion.Ladder.counting_le` / `Fusion.Ladder.card_ge` — the two ends: `5(n-1) + 6r ≤ 6k`
+  (the counting bound) and `r + 5 ≤ #colours used` (no `K₄` spans fewer than five colours, so a
+  ladder can never fuse below five) bound the length of a ladder from both sides;
+* **`Fusion.Ladder.catalogue` — WHAT A LADDER WOULD BUY**: off the round-robin colouring of `K_n`
+  (written in a palette of `n` colours) a ladder of `r` rungs certifies `f(n,4,5) ≤ n - r`, so a
+  ladder with `n - 5 ≤ 6r` would already give `6 f(n,4,5) ≤ 5n + 5`: **the catalogue constant
+  `5n/6` with an additive error `5/6`, for every odd `n`**.  One finite object — a list of `≈ n/6`
+  colour pairs plus one `Disjoint` statement per rung — would settle the upper half of JSP-000140
+  up to `O(1)`;
+* **`Fusion.Ladder.no_mergedCol` / `Fusion.Ladder.no_sumCol` — AND WHY THAT LADDER CANNOT BE
+  BUILT**: round 77 proved that *one* fusion of a sum-type colouring (`c({a,b}) = φ (a+b)`) destroys
+  admissibility.  A ladder is a *sequence* of fusions and its end is again of sum type, with the
+  composite map (`Fusion.fuseAll_mergedCol`), so **`Fusion.Ladder.no_mergedCol` forbids the whole
+  sequence at once, for any number of rungs, any group and any modulus**: for odd `m ≥ 5` the only
+  legal ladder of a sum-type colouring — in particular of the round-robin colouring — is the empty
+  one.  So the `1/6` of the colours missing from the round-robin colouring cannot be recovered by
+  *any chain* of fusions of it, which is the general form of the failure of the searches of
+  rounds 65–77;
+* `Fusion.Ladder.none_of_blocked`, `none_sixCol`, `none_nineCol`, `none_r66Col`,
+  `none_of_all_tight` — **every certified colouring of this development has no nonempty ladder**;
+* `Fusion.Ladder.exists_injCol` — the object is not vacuous: the injective colouring of `K_n` has a
+  one-rung ladder, and `Fusion.EG_ge_five` (`f(n,4,5) ≥ 5`) is the reason a ladder stops at five.
+
+The *set* fusion (`Fusion.fuseSetCol c r I hr`, fusing a whole set of colours into a
+representative in one step — the corrected version of round 82's `colorsOn_fuseSetCol`) is still
+**not** on the build path; its statement and the missing proofs are recorded in `policy.json`.
+
+The obstruction to the prize itself is untouched: by `Fusion.Ladder.no_mergedCol` a rate-`5/6`
+improvement cannot come from any chain of fusions of any translation-invariant colouring, so the
+construction of arXiv:2207.02920 §4/§12 must be a genuinely different, probabilistic
+colouring, and `Main.AdmissibleUpper ε` for `0 < ε < 1/6` remains the sole content of
+`jsp_000140_main`.
+
 -/
 
 namespace JSP140
@@ -893,5 +935,416 @@ theorem fusion_criterion_recovers_small_values :
     exact EG_le 10 9 tenCol admissible_tenCol
   · refine Nat.le_antisymm ?_ EG_eleven_ge_ten
     exact EG_le 11 10 elevenCol admissible_elevenCol
+
+/-! ### §7  THE SAVING LADDER -/
+
+/-- **A LEGAL LADDER OF COLOUR PAIRS.**  `Ladder c L` says that the list `L` of colour pairs is a
+*chain of legal fusions* of the colouring `c`: reading `L` from the left, the pair `(i, j)` fuses
+the colour `j` into the colour `i`, the fusion is legal (its result is admissible) and **both**
+colours are in use, so the step removes exactly one colour from the palette of `c` and introduces
+none.  The empty list is the empty ladder, of length `0`. -/
+def Ladder {n k : ℕ} (c : Col n k) : List (Fin k × Fin k) → Prop
+  | [] => True
+  | (i, j) :: L =>
+      i ≠ j ∧ (i ∈ colorsOn c (Finset.univ : Finset (Verts n))) ∧
+        (j ∈ colorsOn c (Finset.univ : Finset (Verts n))) ∧
+        Admissible (fuseCol c i j) ∧ Ladder (fuseCol c i j) L
+
+/-- The ladder property holds for the empty list. -/
+theorem Ladder.nil {n k : ℕ} (c : Col n k) : Ladder c [] := trivial
+
+/-- **THE RESULT OF A LADDER**: the colouring obtained by performing all of its steps, in order. -/
+def fuseAll {n k : ℕ} (c : Col n k) : List (Fin k × Fin k) → Col n k
+  | [] => c
+  | (i, j) :: L => fuseAll (fuseCol c i j) L
+
+/-- The decision procedure for a ladder: a rung is decided by three finite checks. -/
+private def ladderDec {n k : ℕ} (c : Col n k) :
+    ∀ L : List (Fin k × Fin k), Decidable (Ladder c L)
+  | [] => isTrue trivial
+  | (i, j) :: L => by
+    by_cases h1 : i ≠ j
+    · by_cases h2 : i ∈ colorsOn c (Finset.univ : Finset (Verts n))
+      · by_cases h3 : j ∈ colorsOn c (Finset.univ : Finset (Verts n))
+        · by_cases h4 : Admissible (fuseCol c i j)
+          · match ladderDec (fuseCol c i j) L with
+            | isTrue h5 => exact isTrue ⟨h1, h2, h3, h4, h5⟩
+            | isFalse h5 => exact isFalse (fun hh => h5 hh.2.2.2.2)
+          · exact isFalse (fun hh => h4 hh.2.2.2.1)
+        · exact isFalse (fun hh => h3 hh.2.2.1)
+      · exact isFalse (fun hh => h2 hh.2.1)
+    · exact isFalse (fun hh => h1 hh.1)
+
+/-- **THE LADDER IS A FINITE CERTIFICATE.**  `Ladder c L` is decidable — every rung of the chain is
+one finite check — so a chain of legal fusions is *checkable*, and `Fusion.Ladder.saving` turns a
+successful check into an upper bound on `f`. -/
+instance ladderDecidable {n k : ℕ} (c : Col n k) (L : List (Fin k × Fin k)) :
+    Decidable (Ladder c L) := ladderDec c L
+
+/-- **THE SAVING OF ONE RUNG.**  Fusing a used colour into another used colour removes exactly one
+colour from the palette and introduces none. -/
+theorem Ladder.card_univ {n k : ℕ} {c : Col n k} (i j : Fin k) (hne : i ≠ j)
+    (hi : i ∈ colorsOn c (Finset.univ : Finset (Verts n)))
+    (hj : j ∈ colorsOn c (Finset.univ : Finset (Verts n))) :
+    (colorsOn (fuseCol c i j) (Finset.univ : Finset (Verts n))).card
+      = (colorsOn c (Finset.univ : Finset (Verts n))).card - 1 := by
+  rw [card_colorsOn_fuseCol i j hne _ hi, if_pos hj]
+
+/-- **THE SAVING LADDER SAVES `L.length` COLOURS.**  A chain of `r` legal fusions of two colours
+that are both in use at every rung is a *certificate for an upper bound on `f`*: the colouring it
+produces is admissible and uses `r` colours fewer, so
+
+    `f(n,4,5) + r ≤ (number of colours used by c)`.
+
+This is the sharpest prize-relevant object of the fusion family: **an upper bound on
+`f(n,4,5)` is a list of colour pairs plus one admissibility check per rung**, and the value it
+certifies is the number of used colours minus the length of the list. -/
+theorem Ladder.saving {n k : ℕ} (hn : 2 ≤ n) :
+    ∀ (c : Col n k), Admissible c → ∀ L : List (Fin k × Fin k), Ladder c L →
+      EG n + L.length ≤ (colorsOn c (Finset.univ : Finset (Verts n))).card := by
+  intro c hc L
+  induction L generalizing c hc with
+  | nil =>
+      intro _
+      have h := EG_le_used hc hn
+      omega
+  | cons s L ih =>
+    rcases s with ⟨i, j⟩
+    intro hL
+    rcases hL with ⟨hne, hi, hj, hadm, hrest⟩
+    have hcard := Ladder.card_univ (c := c) i j hne hi hj
+    have hpos : 0 < (colorsOn c (Finset.univ : Finset (Verts n))).card :=
+      Finset.card_pos.mpr (colorsOn_univ_nonempty hn)
+    have h1 := ih (fuseCol c i j) hadm hrest
+    calc EG n + ((i, j) :: L).length = (EG n + L.length) + 1 := by rw [List.length_cons]; omega
+      _ ≤ (colorsOn (fuseCol c i j) (Finset.univ : Finset (Verts n))).card + 1 :=
+        Nat.add_le_add_right h1 1
+      _ = (colorsOn c (Finset.univ : Finset (Verts n))).card - 1 + 1 := by rw [hcard]
+      _ = (colorsOn c (Finset.univ : Finset (Verts n))).card := Nat.sub_add_cancel hpos
+
+/-- **THE SAME, IN THE SUBTRACTIVE FORM**: a ladder of length `r` off `c` proves
+`f(n,4,5) ≤ (used colours) - r`. -/
+theorem Ladder.saving' {n k : ℕ} (hn : 2 ≤ n) {c : Col n k} (hc : Admissible c)
+    {L : List (Fin k × Fin k)} (hL : Ladder c L) :
+    EG n ≤ (colorsOn c (Finset.univ : Finset (Verts n))).card - L.length := by
+  have h := Ladder.saving hn c hc L hL
+  have hk : L.length ≤ (colorsOn c (Finset.univ : Finset (Verts n))).card := by omega
+  exact (Nat.le_sub_iff_add_le hk).mpr h
+
+/-- A colour occurring on the whole vertex set is the colour of one of its edges, written
+`c s(a, b)` with `a ≠ b`. -/
+private theorem exists_mk_mem_colorsOn {n k : ℕ} {c : Col n k} {i : Fin k}
+    (hi : i ∈ colorsOn c (Finset.univ : Finset (Verts n))) :
+    ∃ a b : Verts n, a ≠ b ∧ c s(a, b) = i := by
+  obtain ⟨e, he, hce⟩ := Finset.mem_image.mp hi
+  obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+  exact ⟨a, b, ((mem_edgeFinset.mp he).2) _ _ rfl, hce⟩
+
+/-- `f(n,4,5) ≥ 5` as soon as `n ≥ 4`: every `K₄` needs five colours. -/
+theorem EG_ge_five {n : ℕ} (hn : 4 ≤ n) : 5 ≤ EG n := by
+  obtain ⟨c, hc⟩ := EG_admissible n
+  let a0 : Verts n := ⟨0, by omega⟩
+  let a1 : Verts n := ⟨1, by omega⟩
+  let a2 : Verts n := ⟨2, by omega⟩
+  have hne : ¬ (a0 = a1) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hne02 : ¬ (a0 = a2) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hne12 : ¬ (a1 = a2) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hsym : ¬ (s(a0, a1) = s(a1, a2)) := by
+    intro hh
+    have h1 : a0 ∈ s(a0, a1) := by rw [Sym2.mem_iff]; exact Or.inl rfl
+    rw [hh, Sym2.mem_iff] at h1
+    rcases h1 with h | h
+    · exact absurd h hne
+    · exact absurd h hne02
+  have hp : ({s(a0, a1), s(a1, a2)} : Finset (Sym2 (Verts n))).card = 2 :=
+    Finset.card_eq_two.mpr ⟨s(a0, a1), s(a1, a2), hsym, rfl⟩
+  obtain ⟨S, hS, hsub⟩ := exists_fourSet_of_pair hp (by
+    intro g hg
+    rw [Finset.mem_insert, Finset.mem_singleton] at hg
+    rcases hg with rfl | rfl
+    · exact offDiag_iff.mpr hne
+    · exact offDiag_iff.mpr hne12) hn
+  have h5 := hc S hS
+  have hle : (colorsOn c (Finset.univ : Finset (Verts n))).card ≤ EG n := by
+    calc (colorsOn c (Finset.univ : Finset (Verts n))).card
+        ≤ (Finset.univ : Finset (Fin (EG n))).card := Finset.card_le_card (Finset.subset_univ _)
+      _ = EG n := by rw [Finset.card_univ, Fintype.card_fin]
+  have hsub' : colorsOn c S ⊆ colorsOn c (Finset.univ : Finset (Verts n)) :=
+    colorsOn_subset_univ (Finset.subset_univ S)
+  have h5' : (colorsOn c S).card ≤ (colorsOn c (Finset.univ : Finset (Verts n))).card :=
+    Finset.card_le_card hsub'
+  omega
+
+/-- **A LADDER CANNOT FUSE A COLOURING BELOW FIVE COLOURS.** -/
+theorem Ladder.card_ge {n k : ℕ} {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    {L : List (Fin k × Fin k)} (hL : Ladder c L) :
+    L.length + 5 ≤ (colorsOn c (Finset.univ : Finset (Verts n))).card := by
+  have h1 := Ladder.saving (by omega) c hc L hL
+  have h2 := EG_ge_five hn
+  omega
+
+/-- **THE COUNTING PRICE OF A LADDER.**  A ladder of `r` steps off a `k`-colouring cannot save more
+than the gap between `k` and the counting lower bound `5(n-1)/6`: `5(n-1) + 6r ≤ 6k`.  So the
+longest possible ladder is read off the two ends at once. -/
+theorem Ladder.counting_le {n k : ℕ} {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    {L : List (Fin k × Fin k)} (hL : Ladder c L) :
+    5 * (n - 1) + 6 * L.length ≤ 6 * k := by
+  have hle : (colorsOn c (Finset.univ : Finset (Verts n))).card ≤ k := by
+    calc (colorsOn c (Finset.univ : Finset (Verts n))).card
+        ≤ (Finset.univ : Finset (Fin k)).card := Finset.card_le_card (Finset.subset_univ _)
+      _ = k := by rw [Finset.card_univ, Fintype.card_fin]
+  calc 5 * (n - 1) + 6 * L.length ≤ 6 * EG n + 6 * L.length :=
+        Nat.add_le_add_right (EG_ge_five_sixth n hn) (6 * L.length)
+    _ = 6 * (EG n + L.length) := by ring
+    _ ≤ 6 * (colorsOn c (Finset.univ : Finset (Verts n))).card :=
+        Nat.mul_le_mul_left 6 (Ladder.saving (by omega) c hc L hL)
+    _ ≤ 6 * k := Nat.mul_le_mul_left 6 hle
+
+/-- **THE LAST RUNG OF A LADDER IS ADMISSIBLE.** -/
+theorem Ladder.admissible_fuseAll {n k : ℕ} :
+    ∀ (c : Col n k) (L : List (Fin k × Fin k)), Admissible c → Ladder c L →
+      Admissible (fuseAll c L) := by
+  intro c L
+  induction L generalizing c with
+  | nil =>
+      intro hc _
+      exact hc
+  | cons s L ih =>
+    rcases s with ⟨i, j⟩
+    intro hc hL
+    rcases hL with ⟨_, _, _, hadm, hrest⟩
+    exact ih (fuseCol c i j) hadm hrest
+
+/-- **EVERY NONEMPTY LADDER IS A CHAIN OF CENSUS-DISJOINT PAIRS.**  So the saving ladder is
+exactly the object whose rungs are `Disjoint (Tight c i) (Tight c j)`: **an upper bound on
+`f(n,4,5)` is a list of colour pairs plus one `Disjoint` statement per rung**, written in the
+language of the four-set census of rounds 60–80 and with no search at all. -/
+theorem Ladder.criterion {n k : ℕ} {c : Col n k} (hc : Admissible c) {L : List (Fin k × Fin k)}
+    (hL : Ladder c L) {i j : Fin k} (hL' : ∃ rest, L = (i, j) :: rest) :
+    Disjoint (Tight c i) (Tight c j) ∧ Admissible (fuseCol c i j) := by
+  obtain ⟨rest, rfl⟩ := hL'
+  rcases hL with ⟨hne, _, _, hadm, _⟩
+  exact ⟨(fuseCol_admissible_iff' hc i j hne).mp hadm, hadm⟩
+
+/-- **A FUSION-BLOCKED COLOURING ADMITS NO LADDER.**  The first rung of a nonempty ladder is a
+legal fusion, so a colouring in which no pair of colours can be merged has no nonempty ladder. -/
+theorem Ladder.none_of_blocked {n k : ℕ} {c : Col n k}
+    (hb : ∀ i j : Fin k, i ≠ j → ¬ Admissible (fuseCol c i j)) :
+    ∀ L : List (Fin k × Fin k), L ≠ [] → ¬ Ladder c L := by
+  intro L hne hL
+  cases L with
+  | nil => exact absurd rfl hne
+  | cons s L =>
+    rcases s with ⟨i, j⟩
+    exact hb i j hL.1 hL.2.2.2.1
+
+theorem Ladder.none_sixCol : ∀ L : List (Fin 5 × Fin 5), L ≠ [] → ¬ Ladder sixCol L :=
+  Ladder.none_of_blocked no_fusion_sixCol
+
+theorem Ladder.none_nineCol : ∀ L : List (Fin 8 × Fin 8), L ≠ [] → ¬ Ladder nineCol L :=
+  Ladder.none_of_blocked no_fusion_nineCol
+
+theorem Ladder.none_r66Col :
+    ∀ L : List (Fin 11 × Fin 11), L ≠ [] → ¬ Ladder (listCol 12 11 (by norm_num) r66Col) L :=
+  Ladder.none_of_blocked no_fusion_r66Col
+
+/-- **A COLOURING IN WHICH EVERY FOUR-SET IS TIGHT ADMITS NO LADDER.** -/
+theorem Ladder.none_of_all_tight {n k : ℕ} {c : Col n k} (hc : Admissible c) (hn : 4 ≤ n)
+    (ht : ∀ S : Finset (Verts n), S.card = 4 → (colorsOn c S).card = 5)
+    {L : List (Fin k × Fin k)} (hne : L ≠ []) : ¬ Ladder c L := by
+  intro hL
+  cases L with
+  | nil => exact absurd rfl hne
+  | cons s L =>
+    rcases s with ⟨i, j⟩
+    rcases hL with ⟨hij, hi, hj, hadm, _⟩
+    exact (no_fusion_of_all_tight hc hn ht i j hij (exists_mk_mem_colorsOn hi)
+      (exists_mk_mem_colorsOn hj)) hadm
+
+/-- **THE LADDER OBJECT IS NOT VACUOUS**: the injective colouring of `K_n` has a one-rung ladder
+for any two of its colours which carry an edge. -/
+theorem Ladder.exists_injCol {n : ℕ} (hn : 4 ≤ n) :
+    ∃ (L : List (Fin (n * n) × Fin (n * n))) (i j : Fin (n * n)),
+      L = [(i, j)] ∧ i ≠ j ∧ Ladder (injCol n) L := by
+  let a0 : Verts n := ⟨0, by omega⟩
+  let a1 : Verts n := ⟨1, by omega⟩
+  let a2 : Verts n := ⟨2, by omega⟩
+  have hne01 : ¬ (a0 = a1) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hne02 : ¬ (a0 = a2) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hne10 : ¬ (a1 = a0) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hne12 : ¬ (a1 = a2) := by
+    intro h
+    exact absurd (congrArg Fin.val h) (by norm_num)
+  have hsym : ¬ (s(a0, a1) = s(a0, a2)) := by
+    intro hh
+    have h1 : a1 ∈ s(a0, a1) := by rw [Sym2.mem_iff]; exact Or.inr rfl
+    rw [hh, Sym2.mem_iff] at h1
+    rcases h1 with h | h
+    · exact hne10 h
+    · exact hne12 h
+  let ci : Fin (n * n) := injCol n s(a0, a1)
+  let cj : Fin (n * n) := injCol n s(a0, a2)
+  have hcij : ci ≠ cj := by
+    intro hh
+    exact hsym (injCol_inj hh)
+  refine ⟨[(ci, cj)], ci, cj, rfl, hcij, ?_⟩
+  show ci ≠ cj ∧ ci ∈ colorsOn (injCol n) (Finset.univ : Finset (Verts n)) ∧
+    cj ∈ colorsOn (injCol n) (Finset.univ : Finset (Verts n)) ∧
+    Admissible (fuseCol (injCol n) ci cj) ∧ Ladder (fuseCol (injCol n) ci cj) []
+  refine ⟨hcij, ?_, ?_, fuseCol_injCol hn ci cj hcij, trivial⟩
+  · exact Finset.mem_image.mpr
+      ⟨s(a0, a1), mem_edgeFinset_mk (Finset.mem_univ _) (Finset.mem_univ _) hne01, rfl⟩
+  · exact Finset.mem_image.mpr
+      ⟨s(a0, a2), mem_edgeFinset_mk (Finset.mem_univ _) (Finset.mem_univ _) hne02, rfl⟩
+
+/-- **THE CERTIFICATE IS CHECKED, NOT FOUND.**  The ladder predicate is *computable*, so a
+candidate certificate is verified by one `native_decide` call.  A one-rung ladder of the injective
+colouring of `K₆` is found; -/
+theorem ladder_decidable_injCol :
+    decide (∃ i j : Fin (6 * 6), i ≠ j ∧ Ladder (injCol 6) [(i, j)]) = true := by
+  native_decide
+
+/-- ... and the first rung of a ladder of the round-robin colouring of `K₉` is refused, in the
+same way. -/
+theorem ladder_decidable_sumCol :
+    decide (Ladder (sumCol 9) [(⟨0, by norm_num⟩, ⟨1, by norm_num⟩)]) = false := by
+  native_decide
+
+/-! ### The saving ladder off the round-robin colouring -/
+
+/-- **A LADDER OFF THE ROUND-ROBIN COLOURING SAVES ITS LENGTH.**  The round-robin colouring of
+`K_n` is written in a palette of `n` colours, so a legal ladder of `r` rungs off it certifies
+`f(n,4,5) ≤ n - r`. -/
+theorem Ladder.roundRobin {n : ℕ} (hn : 2 ≤ n) (hodd : n % 2 = 1) {L : List (Fin n × Fin n)}
+    (hL : Ladder (sumCol n) L) : EG n + L.length ≤ n := by
+  have hle : (colorsOn (sumCol n) (Finset.univ : Finset (Verts n))).card ≤ n := by
+    calc (colorsOn (sumCol n) (Finset.univ : Finset (Verts n))).card
+        ≤ (Finset.univ : Finset (Fin n)).card := Finset.card_le_card (Finset.subset_univ _)
+      _ = n := by rw [Finset.card_univ, Fintype.card_fin]
+  exact le_trans (Ladder.saving hn (sumCol n) (admissible_sumCol n hodd) L hL) hle
+
+/-- **WHAT A LADDER WOULD BUY — THE PRIZE IN THE LADDER FORM.**  A legal ladder of `r` rungs off
+the round-robin colouring of `K_n` certifies `f(n,4,5) ≤ n - r`; so a ladder with `n - 5 ≤ 6r`
+would already give `6 f(n,4,5) ≤ 5n + 5`, i.e. **the catalogue constant `5n/6` with an additive
+error `5/6`**, for every odd `n`.  One finite object — a list of `≈ n/6` colour pairs plus one
+`Disjoint` statement per rung — would therefore settle the upper half of JSP-000140 up to `O(1)`. -/
+theorem Ladder.catalogue {n : ℕ} (hn : 2 ≤ n) (hodd : n % 2 = 1) {L : List (Fin n × Fin n)}
+    (hL : Ladder (sumCol n) L) (hr : n - 5 ≤ 6 * L.length) : 6 * EG n ≤ 5 * n + 5 := by
+  have h := Ladder.roundRobin hn hodd hL
+  omega
+
+/-! ### No ladder off a sum-type colouring: the no-merge theorem for chains -/
+
+private theorem sumCol_eq_mergedCol [NeZero n] :
+    sumCol n = mergedCol n n (Nat.pos_of_neZero n) (fun x : ZMod n => zfin x) := by
+  funext e
+  obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+  rw [mergedCol_mk]
+  apply Fin.ext
+  rw [show (sumCol n s(a, b)).val = (a.val + b.val) % n from rfl]
+  rw [show (zfin ((a : ZMod n) + (b : ZMod n)) : Verts n).val
+      = ((a : ZMod n) + (b : ZMod n)).val from rfl]
+  rw [ZMod.val_add, ZMod.val_natCast, ZMod.val_natCast, Nat.add_mod]
+
+private theorem fuseCol_mergedCol {m k : ℕ} (hk : 0 < k) (φ : ZMod m → Fin k) (i j : Fin k) :
+    fuseCol (mergedCol m k hk φ) i j
+      = mergedCol m k hk (fun x => if φ x = j then i else φ x) := by
+  funext e
+  obtain ⟨a, b, rfl⟩ := Sym2.exists.mp ⟨e, rfl⟩
+  rw [fuseCol_apply, mergedCol_mk, mergedCol_mk]
+
+/-- **THE COMPOSITE OF A LADDER.**  Performing the steps of the list `L` in order amounts to
+relabelling by the composite of the elementary maps `x ↦ if x = j then i else x`. -/
+def fuseMap {k : ℕ} : List (Fin k × Fin k) → (Fin k → Fin k)
+  | [] => fun x => x
+  | (i, j) :: L => fun x => fuseMap L (if x = j then i else x)
+
+/-- **THE END OF A LADDER OFF A SUM-TYPE COLOURING IS SUM-TYPE.** -/
+theorem fuseAll_mergedCol {m k : ℕ} (hk : 0 < k) (L : List (Fin k × Fin k)) (φ : ZMod m → Fin k) :
+    fuseAll (mergedCol m k hk φ) L = mergedCol m k hk (fun x => fuseMap L (φ x)) := by
+  induction L generalizing φ with
+  | nil => rfl
+  | cons s L ih =>
+    rcases s with ⟨i, j⟩
+    rw [fuseAll, fuseCol_mergedCol]
+    exact ih (φ := fun x => if φ x = j then i else φ x)
+
+/-- **NO LADDER OFF A SUM-TYPE COLOURING — THE NO-MERGE THEOREM FOR CHAINS.**  Round 77 proved
+(`NoMerge.injective_of_admissible`) that *one* fusion of a colouring whose colour of `{a, b}`
+depends only on `a + b` destroys admissibility.  A ladder is a *sequence* of fusions, and its end
+is again of sum type, with the composite map (`Fusion.fuseAll_mergedCol`); so the whole sequence
+is forbidden at once, for any number of rungs:
+
+> **for odd `m ≥ 5`, the only legal ladder of a sum-type colouring is the empty one.**
+
+This is the full statement that **fusions can never reach the catalogue constant `5n/6` from any
+translation-invariant colouring** — not one pair, not any number of pairs, for any group and any
+modulus — and it is the general form of the failure of the searches of rounds 65–77. -/
+theorem Ladder.no_mergedCol {m k : ℕ} (hm : 5 ≤ m) (hodd : m % 2 = 1) (hk : 0 < k)
+    (L : List (Fin k × Fin k)) (φ : ZMod m → Fin k) (_hc : Admissible (mergedCol m k hk φ))
+    (hL : Ladder (mergedCol m k hk φ) L) : L = [] := by
+  cases L with
+  | nil => rfl
+  | cons s L =>
+    rcases s with ⟨i, j⟩
+    obtain ⟨hne, hi, hj, hadm, hrest⟩ := hL
+    obtain ⟨a, b, hab, hφz⟩ := exists_mk_mem_colorsOn hi
+    obtain ⟨c, d, hcd, hφw⟩ := exists_mk_mem_colorsOn hj
+    have hφz' : φ ((a : ZMod m) + (b : ZMod m)) = i := hφz
+    have hφw' : φ ((c : ZMod m) + (d : ZMod m)) = j := hφw
+    have hzw : ¬ ((a : ZMod m) + (b : ZMod m) = (c : ZMod m) + (d : ZMod m)) := by
+      intro hh
+      have hzw1 : φ ((a : ZMod m) + (b : ZMod m)) = φ ((c : ZMod m) + (d : ZMod m)) := by
+        rw [hh]
+      exact hne (hφz'.symm.trans ((hzw1.trans hφw')))
+    let φ' : ZMod m → Fin k := fun x => if φ x = j then i else φ x
+    have h1 : φ' ((a : ZMod m) + (b : ZMod m)) = i := by
+      show (if φ ((a : ZMod m) + (b : ZMod m)) = j then i
+        else φ ((a : ZMod m) + (b : ZMod m))) = i
+      rw [if_neg (fun h => hne (hφz'.symm.trans h))]
+      exact hφz'
+    have h2 : φ' ((c : ZMod m) + (d : ZMod m)) = i := by
+      show (if φ ((c : ZMod m) + (d : ZMod m)) = j then i
+        else φ ((c : ZMod m) + (d : ZMod m))) = i
+      rw [if_pos hφw']
+    have hcomp : ¬ Function.Injective (fun x : ZMod m => fuseMap L (φ' x)) := by
+      intro hinj
+      refine hzw (hinj ?_)
+      show fuseMap L (φ' ((a : ZMod m) + (b : ZMod m)))
+        = fuseMap L (φ' ((c : ZMod m) + (d : ZMod m)))
+      rw [h1, h2]
+    have hadm' : Admissible (mergedCol m k hk (fun x => fuseMap L (φ' x))) := by
+      rw [← fuseAll_mergedCol hk L φ']
+      refine Ladder.admissible_fuseAll (mergedCol m k hk φ') L ?_ ?_
+      · have h5 := hadm
+        rw [fuseCol_mergedCol hk φ i j] at h5
+        exact h5
+      · have h6 := hrest
+        rwa [fuseCol_mergedCol hk φ i j] at h6
+    exact absurd (injective_of_admissible m k hm hodd hk _ hadm') hcomp
+
+/-- **NO LADDER OFF THE ROUND-ROBIN COLOURING.**  For odd `n ≥ 5` the ladder of the round-robin
+colouring of `K_n` is empty, so `Fusion.Ladder.catalogue` can never be applied to `sumCol`,
+whatever the length of the ladder.  **The `1/6` of the colours missing from the round-robin
+colouring cannot be recovered by any chain of fusions of it.** -/
+theorem Ladder.no_sumCol {n : ℕ} (hn : 5 ≤ n) (hodd : n % 2 = 1)
+    (L : List (Fin n × Fin n)) (hL : Ladder (sumCol n) L) : L = [] := by
+  haveI : NeZero n := ⟨by omega⟩
+  have hbridge : sumCol n = mergedCol n n (Nat.pos_of_neZero n) (fun x : ZMod n => zfin x) :=
+    sumCol_eq_mergedCol
+  exact Ladder.no_mergedCol hn hodd (by omega) L (fun x : ZMod n => zfin x)
+    (hbridge ▸ admissible_sumCol n hodd) (hbridge ▸ hL)
 
 end JSP140

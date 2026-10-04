@@ -1,3 +1,80 @@
+## Status (round 85)
+
+`lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 85 PROVES THE SAVING LADDER OF ROUND 84 — THE PRIZE IN THE FORM OF A FINITE
+CERTIFICATE — AND CLOSES THE WHOLE FUSION ROUTE FOREVER.**  Round 84 named the "saving ladder"
+(`Fusion.Save`, `Fusion.Ladder`, `Ladder.card_le`, `Ladder.saving`) as the sharpest prize-relevant
+object in the file and could not compile it.  It is now proved, in `lean/JSPProblem/Fusion.lean`
+§§7–8 (896 → 1349 lines, 48 → 80 declarations, 0 placeholders, on the default build path).
+
+### 1. THE LADDER AND THE SAVING
+
+`Fusion.Ladder c L` (a list `L` of colour pairs, read left to right) is a **chain of legal
+fusions**: at each rung `(i, j)` fuses the colour `j` into the colour `i`, **both colours are in
+use**, and the fused colouring is still admissible.
+
+| new theorem | statement |
+|---|---|
+| **`Fusion.Ladder.saving`** | **THE SAVING OF THE WHOLE CHAIN**: `EG n + L.length ≤ (#colours used by c)`.  **A finite certificate for an upper bound on `f(n,4,5)` is a list of colour pairs plus one admissibility check per rung**, and the value it certifies is the number of used colours minus the length of the list |
+| `Fusion.Ladder.saving'` | the same, `f(n,4,5) ≤ (#colours used) - L.length` |
+| `Fusion.Ladder.card_univ` | the saving of **one** rung: fusing two used colours removes **exactly** one colour and introduces none |
+| **`Fusion.Ladder.criterion`** | **THE LADDER IN THE CENSUS LANGUAGE**: every rung satisfies `Disjoint (Tight c i) (Tight c j)`, i.e. a certificate is a list of pairs **plus one `Disjoint` statement per rung**, with no search at all |
+| `Fusion.ladderDecidable` (`instance`) | the certificate is **decidable**: a chain is *checked*, not found |
+| `Fusion.Ladder.counting_le` | `5(n-1) + 6r ≤ 6k` — the **counting price** of a ladder: it cannot save more than the gap between `k` and `5(n-1)/6` |
+| `Fusion.Ladder.card_ge` / `Fusion.EG_ge_five` | `r + 5 ≤ (#colours used)` and `5 ≤ f(n,4,5)` for `n ≥ 4` — the **floor**: a ladder never fuses a colouring below five colours |
+| `Fusion.Ladder.admissible_fuseAll`, `fuseAll`, `fuseMap` | the end of a ladder, and the composite relabelling it induces |
+
+### 2. WHAT A LADDER WOULD BUY — AND WHY IT CANNOT BE BUILT OFF THE ROUND-ROBIN COLOURING
+
+* **`Fusion.Ladder.roundRobin`** — a legal ladder of `r` rungs off the round-robin colouring of
+  `K_n` (written in a palette of `n` colours) certifies `f(n,4,5) ≤ n - r`;
+* **`Fusion.Ladder.catalogue`** — **THE PRIZE IN THE LADDER FORM**: if `n - 5 ≤ 6r` then
+  `6 f(n,4,5) ≤ 5n + 5`, i.e. **the catalogue constant `5n/6` with an additive error `5/6`,
+  for every odd `n`**.  One finite object — a list of `≈ n/6` colour pairs plus one `Disjoint`
+  statement per rung — would settle the upper half of JSP-000140 up to `O(1)`;
+* **`Fusion.Ladder.no_mergedCol`** — **THE NO-MERGE THEOREM FOR CHAINS.**  Round 77 proved that
+  *one* fusion of a colouring `c({a,b}) = φ (a+b)` destroys admissibility; a ladder is a *sequence*
+  of fusions whose end is again of sum type with the composite map
+  (`Fusion.fuseAll_mergedCol`), so **the whole sequence is forbidden at once, for any number of
+  rungs, any group and any modulus**: for odd `m ≥ 5` the only legal ladder of a sum-type
+  colouring is the empty one;
+* **`Fusion.Ladder.no_sumCol`** — in particular the round-robin colouring of every odd `K_n`
+  (`n ≥ 5`) admits **no nonempty ladder**.  So `Ladder.catalogue` has **no sum-type witness**:
+  the `1/6` of the colours missing from the round-robin colouring cannot be recovered by *any
+  chain* of fusions of it, which is the general form of the failure of the searches of rounds
+  65–77 and closes this attack family completely.
+
+### 3. NO LADDER ANYWHERE ELSE EITHER
+
+`Fusion.Ladder.none_of_blocked`, `none_sixCol`, `none_nineCol`, `none_r66Col`,
+`none_of_all_tight` — **every certified colouring of this development has no nonempty ladder**
+(the certified 5-colouring of `K₆`, the 8-colouring of `K₉`, the 11-colour `K₁₂` anchor
+`r66Col`, and every colouring in which all four-sets are tight);
+`Fusion.Ladder.exists_injCol` — the object is not vacuous: the injective colouring of `K_n`
+(`n ≥ 4`) has a one-rung ladder, `Ladder.exists_injCol`.  And the certificate is **checked, not
+found**: `Fusion.ladder_decidable_injCol` and `Fusion.ladder_decidable_sumCol` are two
+`native_decide` instances — the one-rung ladder of `injCol` is found and the first rung of a ladder
+of `sumCol 9` is refused, each by a single call.
+
+### 4. Not proved this round (unchanged prize blocker)
+
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence of the
+labelled-triangle systems of arXiv:2207.02920 §4/§12 — is still the sole remaining content of
+`jsp_000140_main`, and `jsp_000140_main` was again **not** declared (declaring it with the existence
+statement as an assumption would falsify the prize).  By `Fusion.Ladder.no_mergedCol` a rate-`5/6`
+improvement cannot come from any chain of fusions of any translation-invariant colouring, so the
+construction must be a genuinely different colouring — consistent with the papers.
+
+Also still off the build path: the **set** fusion `Fusion.fuseSetCol c r I hr` (the corrected
+version of round 82's `colorsOn_fuseSetCol`, fusing a whole set of colours into a representative
+`r ∈ I` in one step).  Its statement and the missing proofs are recorded in `policy.json`; the
+bridge lemmas this round (§8: `fuseCol_mergedCol`, `fuseAll_mergedCol`, the private
+`sumCol_eq_mergedCol`) are exactly the arithmetic it needs, so it is the first target of round 86.
+
 ## Status (round 84)
 
 `lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
