@@ -1,3 +1,105 @@
+## Status (round 74)
+
+`lake build`: **OK** (3161 jobs; the new file `lean/JSPProblem/Miss.lean` — 24 declarations,
+19 public theorems, 0 placeholders — is on the default build path, and `lean/JSPProblem/Template.lean`
+gained §7).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 74 DOES TWO INDEPENDENT THINGS: IT CLOSES THE ARITHMETIC BLOCKER OF ROUND 72, AND IT
+REMOVES THE EXTREMALITY HYPOTHESIS FROM THE GRID ACCOUNTING.**
+
+### 1. `Template.lean` §7 — the cell system is arithmetically feasible at every tight order
+
+Round 72 named the exact missing lemma.  It is now proved, with the two ingredients it needs:
+
+| new theorem | statement |
+|---|---|
+| `Template.exists_fill` | **the staircase filling**: `D ≤ N·m`, `m > 0` ⇒ some `f : Fin N → ℕ` with `f j ≤ m` and `∑ f = D` |
+| **`Template.capacity_le`** | **`3 t² - 2 t ≤ 5 t (t - 1)` for every `t ≥ 2`** |
+| `Template.not_capacity_one` | the capacity condition fails at `t = 1`, i.e. exactly at `n = 7` |
+| **`Template.cell_system_solution`** | **for every `t ≥ 2` there are `a b : Fin (5t) → ℕ` with `3 a_j + 2 b_j = 6t+1`, `1 ≤ a_j ≤ 2t-1`, `b_j ≤ 3t-1`, `∑ a_j = ∑ b_j = t(6t+1)`** |
+| `Template.cell_system_solution_thirteen` | the `n = 13` profile (two colours with `a = 1, b = 5`, eight with `a = 3, b = 2`) is arithmetically consistent |
+| **`Template.cell_system_seven_impossible`** | **the system has NO solution at `t = 1`**: `n = 7` is the only tight order the per-class constraints exclude |
+
+**Consequence (honest accounting).**  The per-class constraints extracted from the extremal case in
+rounds 71–72 — the cell equation, the parity, the window, the balance — **exclude no tight order
+`n = 6t + 1 ≥ 13`**.  Any obstruction to a tight colouring at such an order must be combinatorial.
+(Also recorded: `3 a_j + 2 b_j = n` is equivalent to the vertex-covering equation of
+`Rigidity.tight_classes_span`, so it is not an independent structural theorem; what rounds 71–72
+added is the per-class *profile* and its census.)
+
+### 2. NEW FILE `Miss.lean` — THE MISS PROFILE: the per-colour grid defect, for ARBITRARY colourings
+
+Rounds 71–72 could state `2 |E_j| = n + |A_j|` and `3 a_j + 2 b_j = n` **only in the extremal case**,
+because only then is the grid fully covered.  `Miss.lean` introduces the object that removes the
+hypothesis: the vertices a colour **misses**.
+
+| new theorem | statement |
+|---|---|
+| `Miss.active`, `Miss.miss` | the vertices carrying colour `i`; `miss c i = n - |active c i|` — the number of **empty** `(vertex, colour)` cells |
+| **`Miss.identity`** | **`|active_i| + |A_i| = 2 · |E_i|`** for every colour of every admissible colouring |
+| **`Miss.slack`** | **`2 · |E_i| + miss_i = n + |A_i|`** — i.e. **the slack of the refined counting lemma `Paths.two_mul_classIn_le_add` is exactly the number of vertices that miss the colour** |
+| `Miss.class_ge` | `n - miss_i ≤ 2 |E_i|`: a colour missing `m` vertices still has `≥ (n-m)/2` edges |
+| **`Miss.incidence`** | **`∑_i |active_i| + Paths c = n(n-1)`** — the global census of cells; the per-vertex reading is `Window.missing_at` |
+| **`Miss.budget`** | **`6 · ∑_i miss_i + 5 n(n-1) ≤ 6 n k`**: if `6k = 5n + D` then the colouring leaves at most `n(D+5)/6` empty cells** |
+| `Miss.budget_tight` / `Miss.tight_all_active` | at `6k = 5(n-1)`: **nothing is missed at all** (`∑ miss = 0`, `miss_i = 0`), the grid-coverage statement of round 71 in per-colour language |
+| `Miss.budget_refined` | at `6k = 5n+1`: at most `n` empty cells |
+| `Miss.budget_anchor` | at `6k = 5n+6` (the shape of the verified witness `EG 12 = 11`): at most `11n/6` empty cells |
+| `Miss.class_eq_of_tight` | at `6k = 5(n-1)`: `2 |E_i| = n + |A_i|` — a **second, independent route** to `Template.class_two_mul_eq_add_twoA` |
+| `Miss.three_mul_twoA_le_active` | `3 a_i ≤ |active_i|`: the two-edge paths of a colour class use three distinct vertices each |
+| **`Miss.class_window`** | **`3 |E_i| ≤ 2 (n - miss_i)`**: a colour missing `m` vertices has at most `2(n-m)/3` edges — the classical `3 |E_i| ≤ 2n` refined by the miss count, and the search filter for the anchor step |
+| `Miss.anchor_twelve` | the verified 11-colouring of `K₁₂` leaves at most `22` empty cells |
+
+**Why this matters.**  `jsp_000140_main` still needs labelled-triangle systems with a *partial*
+triangle packing (arXiv:2207.02920 §4, arXiv:2208.12563 Thm 4.2).  The uncovered pairs of such a
+packing are precisely the empty cells of this grid, and `Miss.budget` says how much of the grid a
+construction with `6k = 5n + D` colours is allowed to leave empty.  With the papers' leftover graph
+`L` of maximum degree `n^{1-δ}` (`D = O(n^{1-δ})`) this is `O(n^{2-δ})` empty cells: **the grid
+coverage needed by `Pack.price` is quantitatively compatible with the counting bound**, which is
+what the second half of the catalog answer requires, and which no earlier file stated.
+
+### 3. Searches run (discovery side only; no Lean claim follows from any line)
+
+`discovery/JSP-000140/r74_search_log.txt` is the full log.  Two things:
+
+* **a correction of a solver practice of rounds 60/66/67**: `eg6r <n> <k> <budget> <seed>` prints
+  `FALSE` **without proof** whenever `budget > 0` (restart mode, budget exhausted); only
+  `budget = 0` is a decision.  The fast `FALSE` lines earlier rounds recorded from `budget > 0`
+  runs are therefore **void** as evidence of infeasibility;
+* 1200 s restart-mode searches at `(13,11)`, `(13,12)`, `(14,13)`, `(15,14)`, `(16,15)`,
+  `(17,15)`, `(18,16)`, `(19,16)`: **no witness** (8.2·10⁷ nodes each on the first four); exhaustive
+  decisions (`budget 0`) exceed 600 s for every `n ≥ 11`.  Positive controls at small order pass:
+  `(4,5)`, `(5,5)`, `(6,5)`, `(9,8)`, `(10,9)` TRUE and `(6,4)`, `(9,7)` FALSE, i.e. the solver
+  reproduces the literature values `f(6)=5`, `f(9)=8`, `f(10)=9`.
+
+So benchmarks **B5** (`EG 13 = 11`) and the anchor step **`EG 18 ≤ 16`** remain open, and
+`Miss.class_window` / `Miss.budget_anchor` give the next search its filter: at `(18,16)` the
+colouring may leave at most `11·18/6 = 33` empty `(vertex, colour)` cells and every colour class
+must satisfy `(n - miss_i)/2 ≤ |E_i| ≤ 2(n - miss_i)/3`.
+
+### 4. Not proved this round
+
+* **`Main.AdmissibleUpper ε` (`0 < ε < 1/6`)** — unchanged, the probabilistic existence of
+  labelled-triangle systems (arXiv:2207.02920 §4/§12).  `jsp_000140_main` was again **not** declared:
+  declaring it with the hypothesis as an assumption would falsify the prize.
+* benchmark **B5** (`EG 13 = 11`) and the anchor step `EG 18 ≤ 16`: still open.
+* Lean 4.34.0 pitfalls recorded this round: `ring` **cannot** prove `k * (A - B) = k*A - k*B` shapes
+  (`ω` and `ring` both refuse: use `Nat.mul_sub_left_distrib` / `Nat.mul_sub_right_distrib`, note
+  the two names are `(a - b) * c` and `a * (b - c)` respectively, i.e. *swapped* w.r.t. the usual
+  naming); `omega` cannot handle a goal containing `k * (A - B)` (it reports "No usable
+  constraints"); the truncated-subtraction identities `(a - b) + c = (a + c) - b`,
+  `(a - b) + (b + c) = a + c` and `(a - b) + c = a + (c - b)` have to be proved by hand (three
+  private lemmas in `Template.lean`); `Nat.mul_add_right_distrib` and
+  `Finset.sum_tsub` do **not** exist in this Mathlib (`Nat.mul_add` and
+  `Finset.sum_sub_distrib` do, but `Finset.sum_sub_distrib` needs
+  `SubtractionCommMonoid ℕ`, which is not an instance); `Nat.add_left_cancel : n + m = n + k → m = k`
+  cancels the **prefix** and `Nat.add_right_cancel : n + m = k + m → n = k` the **suffix** (the
+  names are the opposite of what one expects); a `def` with an implicit `{c}` parameter must be
+  applied as `f (c := c) i`, while the existing development uses `f c i` — match the file you
+  imitate; `Finset.single_le_sum` needs `(s := univ) (fun j _ => 0 ≤ f j) (Finset.mem_univ i)`
+  followed by `simpa`, because its right-hand side is `∑ x ∈ s, f x` and not `∑ x, f x`.
+
 ## Status (round 72)
 
 `lake build`: **OK** (3160 jobs; the new file `lean/JSPProblem/Template.lean` — 501 lines, 17

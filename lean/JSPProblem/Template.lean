@@ -482,20 +482,294 @@ theorem thirteen_profile_edges {c : Col 13 10} (hc : Admissible c) :
     exact h1
   constructor <;> omega
 
-/-! ### §6  What is missing here
+/-! ### §6  The cell system is arithmetically feasible at every tight order `n = 6 t + 1 ≥ 13`
 
-The cell equation `3 a_j + 2 b_j = n` of `Grid.cellCount`, read at `n = 6 t + 1`, is *equivalent* to a
-filling problem: with `a_j = 2 i_j + 1` and `b_j = 3 t - 1 - 3 i_j` the system is satisfiable iff
-there are `5 t` integers `i_j ≤ t - 1` with `∑_j i_j = 3 t² - 2 t`, i.e. iff `3 t² - 2 t ≤ 5 t (t - 1)`
-(the capacity condition, which holds for every `t ≥ 2` and fails exactly at `t = 1`, i.e. at
-`n = 7` — round 71's `Grid.card_eq_five`).  The capacity lemma and the explicit staircase filling
-are the declared next lemmas of round 73; they are not proved here.
+§6 of round 72 left the arithmetic of the cell system `3 a_j + 2 b_j = 6 t + 1` open and named the
+exact missing lemma.  **This section closes it.**  With `a_j = 2 i_j + 1` (`Template.cherry_parity`
+forces `a_j` odd) the system becomes
 
-`jsp_000140_main = FiveSixth EG` is untouched: its lower half is proved (`Main.fiveSixthLower_eg`)
-and its upper half is the existence of labelled-triangle systems (`Triangles.TriFamily`,
-`Grow6`), i.e. the probabilistic construction of arXiv:2207.02920 §4/§12.
+    `a_j = 2 i_j + 1`,   `b_j = 3 t - 1 - 3 i_j`,   `i_j ≤ t - 1`,   `∑_j i_j = 3 t² - 2 t`,
+
+and the two sums are forced (`∑ a_j = ∑ b_j = t (6 t + 1)`, the number of cherries of the
+tight colouring).  So the *only* obstruction is the capacity condition
+
+    `3 t² - 2 t ≤ 5 t (t - 1)`,
+
+which fails exactly at `t = 1`, i.e. exactly at `n = 7` — the obstruction of round 71's
+`Grid.card_eq_five`, now a proved statement rather than a paragraph:
+
+* **`Template.capacity_le`** — the capacity condition holds for every `t ≥ 2`;
+* **`Template.not_capacity_one`** — it fails at `t = 1`: `n = 7` is the ONLY arithmetic obstruction,
+  at the level of the cell system;
+* `Template.exists_fill` — the staircase filling (any `D ≤ N m` is distributed over `N` boxes of
+  capacity `m`), the one-line combinatorial tool this needed;
+* **`Template.cell_system_solution`** — the full system (`3 a_j + 2 b_j = 6 t + 1` for all `j`,
+  `1 ≤ a_j ≤ 2 t - 1`, `b_j ≤ 3 t - 1`, `∑ a = ∑ b = t (6 t + 1)`) is solvable for every `t ≥ 2`;
+* `Template.cell_system_solution_thirteen` — read at `t = 2`: the profile of a hypothetical
+  admissible **10-colouring of `K₁₃`** (`2 * 1 + 5 * 2` for the two cheap colours, `2 * 3 + 2 * 8`
+  for the eight expensive ones) exists, so `Template.thirteen_profile` is *arithmetically*
+  consistent and any obstruction to a tight colouring at `n = 13` must be combinatorial.
+
+The consequence for the catalog statement: **the cell equation of rounds 71–72 is vacuous as a
+source of lower bounds** — it excludes no tight order `n = 6 t + 1 ≥ 13`.  The remaining content of
+`jsp_000140_main = FiveSixth EG` is its upper half: the existence of labelled-triangle systems
+(`Triangles.TriFamily`, `Grow6`), i.e. the probabilistic construction of arXiv:2207.02920 §4/§12.
 
 -/
+
+/-! ### §7  The arithmetic of the cell system -/
+
+/-- `(a - b) + (b + c) = a + c` for `b ≤ a`. -/
+private theorem sub_add_add (a b c : ℕ) (h : b ≤ a) : (a - b) + (b + c) = a + c := by
+  calc (a - b) + (b + c) = ((a - b) + b) + c := by rw [Nat.add_assoc]
+    _ = a + c := by rw [Nat.sub_add_cancel h]
+
+/-- `(a - b) + c = (a + c) - b`, the truncated-subtraction identity `omega` does not use. -/
+private theorem sub_add_comm' (a b c : ℕ) (h : b ≤ a) : (a - b) + c = (a + c) - b := by
+  have h1 : ((a - b) + c) + b = a + c := by
+    calc ((a - b) + c) + b = (a - b) + (c + b) := Nat.add_assoc _ _ _
+      _ = (a - b) + (b + c) := by congr 1; exact Nat.add_comm _ _
+      _ = ((a - b) + b) + c := by rw [Nat.add_assoc]
+      _ = a + c := by rw [Nat.sub_add_cancel h]
+  exact Nat.eq_sub_of_add_eq h1
+
+/-- `(a - b) + c = a + (c - b)`, the other truncated-subtraction lemma `omega` does not use. -/
+private theorem sub_add_move (a b c : ℕ) (h1 : b ≤ a) (h2 : b ≤ c) : (a - b) + c = a + (c - b) := by
+  have e1 : (a - b) + c = (a + c) - b := sub_add_comm' a b c h1
+  have e2 : a + (c - b) = (a + c) - b := by
+    have hh := sub_add_comm' c b a h2
+    calc a + (c - b) = (c - b) + a := Nat.add_comm _ _
+      _ = (c + a) - b := hh
+      _ = (a + c) - b := by rw [Nat.add_comm]
+  exact e1.trans e2.symm
+
+/-- **THE STAIRCASE FILLING.**  If `D ≤ N · m` and `m > 0` then `D` can be distributed over `N`
+boxes of capacity `m`: there is `f : Fin N → ℕ` with `f j ≤ m` everywhere and `∑_j f j = D`.
+This is the whole of the combinatorial content of the cell system. -/
+private theorem exists_fill (D N m : ℕ) (hm : 0 < m) (hD : D ≤ N * m) :
+    ∃ f : Fin N → ℕ, (∀ j, f j ≤ m) ∧ (∑ j : Fin N, f j) = D := by
+  induction N generalizing D with
+  | zero =>
+      have hD0 : D = 0 := by omega
+      subst hD0
+      exact ⟨fun _ => 0, fun _ => by simp, by simp⟩
+  | succ N ih =>
+      rcases Nat.lt_or_ge D m with hDlt | hDge
+      · have hsum : (∑ j : Fin (N + 1), (if j = 0 then D else 0 : ℕ)) = D := by
+          rw [Fin.sum_univ_succ]
+          simp
+        refine ⟨fun j => if j = 0 then D else 0, ?_, hsum⟩
+        intro j
+        by_cases h0 : j = 0
+        · simp [h0]
+          omega
+        · simp [h0]
+      · have hDm : m ≤ D := hDge
+        have hsub : D - m ≤ N * m := by
+          have hD2 : D ≤ N * m + m := by
+            simpa [show N * m + m = (N + 1) * m from by ring] using hD
+          rw [← Nat.sub_add_cancel hDm] at *
+          omega
+        obtain ⟨f, hf, hsum⟩ := ih (D - m) hsub
+        have hfun : ∀ j : Fin (N + 1), (Fin.cases m f j) ≤ m := by
+          intro j
+          cases j using Fin.cases with
+          | zero => show m ≤ m; exact le_refl _
+          | succ j => exact hf j
+        have hsum' : (∑ j : Fin (N + 1), (Fin.cases m f j)) = D := by
+          rw [Fin.sum_univ_succ]
+          simp [hsum]
+          omega
+        exact ⟨fun j => Fin.cases m f j, hfun, hsum'⟩
+
+/-- **THE CAPACITY LEMMA.**  `3 t² - 2 t ≤ 5 t (t - 1)` for every `t ≥ 2`: the `5 t` colours of a
+tight colouring of `K_{6 t + 1}` can carry the `t (6 t + 1)` cherries the cell equation demands,
+`2 i + 1` of them per colour with `i ≤ t - 1`. -/
+theorem capacity_le (t : ℕ) (ht : 2 ≤ t) : 3 * t * t - 2 * t ≤ 5 * t * (t - 1) := by
+  have hlin : 3 * t - 2 ≤ 5 * (t - 1) := by omega
+  have h1 : (3 * t - 2) * t = 3 * t * t - 2 * t := Nat.mul_sub_right_distrib (3 * t) 2 t
+  have h2 : (5 * (t - 1)) * t = 5 * t * (t - 1) := by ring
+  rw [← h1, ← h2]
+  exact Nat.mul_le_mul_right t hlin
+
+/-- **THE OBSTRUCTION AT `n = 7` IS THE ONLY ARITHMETIC ONE.**  The capacity condition fails at
+`t = 1`, the order `n = 7` of round 71's `Grid.card_eq_five`: `1 ≤ 0` is false. -/
+theorem not_capacity_one : ¬ (3 * 1 * 1 - 2 * 1 ≤ 5 * 1 * (1 - 1)) := by decide
+
+/-- **THE CELL SYSTEM HAS A SOLUTION AT EVERY TIGHT ORDER `n = 6 t + 1`, `t ≥ 2`.**  With
+`a_j = 2 i_j + 1` (forced by the parity of `Template.cherry_parity`) and the staircase filling of
+`i_j ≤ t - 1`, `∑ i_j = 3 t² - 2 t`, the cell equation `3 a_j + 2 b_j = n` of `Grid.cellCount`, the
+window of §3 (`a_j ≤ 2 t - 1`), the leaf bound of §4 (`b_j ≤ 3 t - 1`) and the two census sums of
+§1 (`∑ a_j = ∑ b_j = t (6 t + 1)`) hold simultaneously.
+
+**Consequence.**  The per-class constraints that rounds 71–72 extracted from the extremal case
+exclude **no** tight order `n = 6 t + 1 ≥ 13`; every obstruction to a tight colouring at such an
+order must be *combinatorial*. -/
+
+theorem cell_system_solution (t : ℕ) (ht : 2 ≤ t) :
+    ∃ (a b : Fin (5 * t) → ℕ),
+      (∀ j, 3 * a j + 2 * b j = 6 * t + 1) ∧ (∀ j, 1 ≤ a j) ∧ (∀ j, a j ≤ 2 * (t - 1) + 1)
+      ∧ (∀ j, b j ≤ 3 * t - 1) ∧ (∑ j, a j = t * (6 * t + 1)) ∧ (∑ j, b j = t * (6 * t + 1)) := by
+  have hm : 0 < t - 1 := by omega
+  have hcap : 3 * t * t - 2 * t ≤ 5 * t * (t - 1) := by
+    have hlin : 3 * t - 2 ≤ 5 * (t - 1) := by omega
+    have h1 : (3 * t - 2) * t = 3 * t * t - 2 * t := Nat.mul_sub_right_distrib (3 * t) 2 t
+    have h2 : (5 * (t - 1)) * t = 5 * t * (t - 1) := by ring
+    rw [← h1, ← h2]
+    exact Nat.mul_le_mul_right t hlin
+  obtain ⟨i, hi, hsum⟩ := exists_fill (3 * t * t - 2 * t) (5 * t) (t - 1) hm hcap
+  have hA : (∑ j : Fin (5 * t), i j) = 3 * t * t - 2 * t := hsum
+  have hge : ∀ j : Fin (5 * t), 3 * i j ≤ 3 * t - 1 := by
+    intro j
+    have := hi j
+    omega
+  have hmul2 : (∑ j : Fin (5 * t), 2 * i j) = 2 * (∑ j : Fin (5 * t), i j) :=
+    (Finset.mul_sum (Finset.univ : Finset (Fin (5 * t))) (fun j => i j) 2).symm
+  have hmul3 : (∑ j : Fin (5 * t), 3 * i j) = 3 * (∑ j : Fin (5 * t), i j) :=
+    (Finset.mul_sum (Finset.univ : Finset (Fin (5 * t))) (fun j => i j) 3).symm
+  have hcard : (∑ _j : Fin (5 * t), (1 : ℕ)) = 5 * t := by
+    calc (∑ _j : Fin (5 * t), (1 : ℕ)) = (Finset.univ : Finset (Fin (5 * t))).card := by
+          simp [Finset.sum_const]
+      _ = 5 * t := by simp
+  -- SUM A
+  have hsumA : (∑ j : Fin (5 * t), (2 * i j + 1)) = t * (6 * t + 1) := by
+    have hadd : (∑ j : Fin (5 * t), (2 * i j + 1))
+        = ∑ j : Fin (5 * t), 2 * i j + ∑ _j : Fin (5 * t), (1 : ℕ) := by
+      rw [← Finset.sum_add_distrib]
+    have h2a : 2 * (3 * t * t - 2 * t) = 6 * t * t - 4 * t := by
+      rw [Nat.mul_sub_left_distrib 2 (3 * t * t) (2 * t)]
+      congr 1 <;> ring
+    have h4 : 4 * t ≤ 6 * t * t := by
+      have := Nat.mul_le_mul_right t (by omega : (4:ℕ) ≤ 6 * t)
+      simpa [Nat.mul_assoc] using this
+    have hstep : (6 * t * t - 4 * t) + 5 * t = 6 * t * t + (5 * t - 4 * t) :=
+      sub_add_move (a := 6 * t * t) (b := 4 * t) (c := 5 * t) h4 (by have := Nat.add_comm (4 * t) t; omega)
+    have h54 : 5 * t - 4 * t = t := by
+      have h1 : 5 * t = 4 * t + t := by ring
+      omega
+    have hR : t * (6 * t + 1) = 6 * t * t + t := by ring
+    rw [hadd, hmul2, hA, hcard, h2a, hstep, h54, hR]
+  -- SUM B
+  have h5a : 5 * t * (3 * t - 1) = 15 * t * t - 5 * t := by
+    have h1 : t * (3 * t - 1) = 3 * t * t - t := by
+      rw [Nat.mul_sub_left_distrib t (3 * t) 1]
+      congr 1 <;> ring
+    calc 5 * t * (3 * t - 1) = 5 * (t * (3 * t - 1)) := by ring
+      _ = 5 * (3 * t * t - t) := by rw [h1]
+      _ = 5 * (3 * t * t) - 5 * t := Nat.mul_sub_left_distrib 5 (3 * t * t) t
+      _ = 15 * t * t - 5 * t := by congr 1; ring
+  have h3a : 3 * (3 * t * t - 2 * t) = 9 * t * t - 6 * t := by
+    rw [Nat.mul_sub_left_distrib 3 (3 * t * t) (2 * t)]
+    congr 1 <;> ring
+  have hZY : t * (6 * t + 1) + 3 * (3 * t * t - 2 * t) = 5 * t * (3 * t - 1) := by
+    rw [Nat.add_comm]
+    have h3 : t * (6 * t + 1) = 6 * t * t + t := by ring
+    rw [h3a, h3, h5a]
+    have h6 : 6 * t ≤ 9 * t * t := by
+      have := Nat.mul_le_mul_right t (by omega : (6:ℕ) ≤ 9 * t)
+      simpa [Nat.mul_assoc] using this
+    have hstep : (9 * t * t - 6 * t) + (6 * t * t + t) = (9 * t * t + (6 * t * t + t)) - 6 * t :=
+      sub_add_comm' (a := 9 * t * t) (b := 6 * t) (c := 6 * t * t + t) h6
+    rw [hstep, ← Nat.add_assoc]
+    have hA' : 9 * t * t + 6 * t * t + t = 15 * t * t + t := by ring
+    rw [hA']
+    have hsub : (15 * t * t + t) - (t + 5 * t) = (15 * t * t + t) - t - 5 * t :=
+      (Nat.sub_sub (n := 15 * t * t + t) (m := t) (k := 5 * t)).symm
+    rw [show 6 * t = t + 5 * t from by ring, hsub, Nat.add_sub_cancel]
+  have hsumB : (∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) = t * (6 * t + 1) := by
+    have hpair : ∀ j : Fin (5 * t), (3 * t - 1 - 3 * i j) + 3 * i j = 3 * t - 1 := by
+      intro j
+      have := hge j
+      omega
+    have hc : (∑ _j : Fin (5 * t), (3 * t - 1 : ℕ)) = 5 * t * (3 * t - 1) := by
+      calc (∑ _j : Fin (5 * t), (3 * t - 1 : ℕ)) = (Finset.univ : Finset (Fin (5 * t))).card
+              * (3 * t - 1) := by simp [Finset.sum_const, nsmul_eq_mul]
+        _ = 5 * t * (3 * t - 1) := by simp
+    have hX : ∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j) = ∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j) := rfl
+    have hadd' : ((∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) + ∑ x : Fin (5 * t), 3 * i x) = ∑ j : Fin (5 * t), ((3 * t - 1 - 3 * i j) + 3 * i j) := by
+      rw [← Finset.sum_add_distrib]
+    have h2 : (∑ j : Fin (5 * t), ((3 * t - 1 - 3 * i j) + 3 * i j)) = ∑ _j : Fin (5 * t), (3 * t - 1) :=
+      Finset.sum_congr rfl (fun j _ => hpair j)
+    have hA1 : (∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) + ∑ x : Fin (5 * t), 3 * i x
+        = 5 * t * (3 * t - 1) := by
+      rw [← Finset.sum_add_distrib, h2, hc]
+    have hA2 : (∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) + ∑ x : Fin (5 * t), 3 * i x
+        = t * (6 * t + 1) + ∑ x : Fin (5 * t), 3 * i x := by
+      calc (∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) + ∑ x : Fin (5 * t), 3 * i x
+          = 5 * t * (3 * t - 1) := hA1
+        _ = t * (6 * t + 1) + 3 * (3 * t * t - 2 * t) := hZY.symm
+        _ = t * (6 * t + 1) + ∑ x : Fin (5 * t), 3 * i x := by rw [hmul3, hA]
+    exact (Nat.add_right_cancel (n := t * (6 * t + 1)) (m := ∑ x : Fin (5 * t), 3 * i x)
+      (k := ∑ j : Fin (5 * t), (3 * t - 1 - 3 * i j)) hA2.symm).symm
+  set a : Fin (5 * t) → ℕ := fun j => 2 * i j + 1 with ha
+  set b : Fin (5 * t) → ℕ := fun j => 3 * t - 1 - 3 * i j with hb
+  refine ⟨a, b, ?_, ?_, ?_, ?_, ?_, ?_⟩
+  · intro j
+    have hb' : b j = 3 * t - 1 - 3 * i j := by rw [hb]
+    have ha' : a j = 2 * i j + 1 := by rw [ha]
+    rw [ha', hb']
+    have h1 : 3 * (2 * i j + 1) = 6 * i j + 3 := by ring
+    have h3 : 2 * (3 * t - 1) = 6 * t - 2 := by
+      rw [Nat.mul_sub_left_distrib 2 (3 * t) 1]
+      congr 1
+      ring
+    have h2 : 2 * (3 * t - 1 - 3 * i j) = 2 * (3 * t - 1) - 2 * (3 * i j) := by
+      rw [show 3 * t - 1 - 3 * i j = (3 * t - 1) - 3 * i j from rfl,
+        Nat.mul_sub_left_distrib 2 (3 * t - 1) (3 * i j)]
+    have h4 : 2 * (3 * i j) = 6 * i j := by ring
+    have h5 : 6 * i j ≤ 6 * t - 2 := by
+      have h6' : 6 * i j ≤ 2 * (3 * t - 1) := by
+        have := Nat.mul_le_mul_right 2 (hge j)
+        simpa [Nat.mul_assoc, Nat.mul_comm, Nat.mul_left_comm] using this
+      exact h6'.trans h3.le
+    rw [h1, h2, h3, h4]
+    calc (6 * i j + 3) + ((6 * t - 2) - 6 * i j) = ((6 * t - 2) - 6 * i j) + (6 * i j + 3) :=
+        Nat.add_comm _ _
+      _ = (((6 * t - 2) - 6 * i j) + 6 * i j) + 3 := by rw [Nat.add_assoc]
+      _ = (6 * t - 2) + 3 := by rw [Nat.sub_add_cancel h5]
+      _ = 6 * t + 1 := sub_add_add (a := 6 * t) (b := 2) (c := 1) (by omega)
+  · intro j
+    have ha' : a j = 2 * i j + 1 := by rw [ha]
+    omega
+  · intro j
+    have ha' : a j = 2 * i j + 1 := by rw [ha]
+    have h2 : 2 * i j ≤ 2 * (t - 1) := by
+      have := Nat.mul_le_mul_right 2 (hi j)
+      simpa [Nat.mul_comm] using this
+    omega
+  · intro j
+    have hb' : b j = 3 * t - 1 - 3 * i j := by rw [hb]
+    have h3 : 3 * i j ≤ 3 * (t - 1) := by
+      simpa [Nat.mul_comm] using Nat.mul_le_mul_right 3 (hi j)
+    omega
+  · rw [ha]
+    exact hsumA
+  · rw [hb]
+    exact hsumB
+
+/-- **THE PROFILE OF A HYPOTHETICAL TIGHT COLOURING OF `K₁₃` IS ARITHMETICALLY FEASIBLE.**  At
+`t = 2` (`n = 13`, `k = 10`) the system of `Template.cell_system_solution` has a solution, so the
+profile of `Template.thirteen_profile` (two colours with `a_j = 1`, `b_j = 5`, eight colours with
+`a_j = 3`, `b_j = 2`, `∑ a_j = ∑ b_j = 26`) is arithmetically consistent. -/
+theorem cell_system_solution_thirteen :
+    ∃ (a b : Fin 10 → ℕ),
+      (∀ j, 3 * a j + 2 * b j = 13) ∧ (∀ j, 1 ≤ a j) ∧ (∀ j, a j ≤ 3) ∧ (∀ j, b j ≤ 5)
+      ∧ (∑ j, a j = 26) ∧ (∑ j, b j = 26) :=
+  cell_system_solution 2 (by norm_num)
+
+/-- **THE `n = 7` CASE IS IMPOSSIBLE ARITHMETICALLY, AND EVERY OTHER TIGHT ORDER IS POSSIBLE.**  The
+system of `Template.cell_system_solution` at `t = 1` (`n = 7`, `k = 5`) has **no** solution: the
+census `∑_j a_j = t (6 t + 1) = 7` cannot be met by five colours carrying at most one cherry each.
+So round 71's obstruction at `n = 7` is *exactly* the capacity failure of §7, and `n = 7` is the
+**only** tight order the per-class constraints rule out. -/
+theorem cell_system_seven_impossible (a b : Fin 5 → ℕ)
+    (h1 : ∀ j, 3 * a j + 2 * b j = 7) (h2 : ∀ j, 1 ≤ a j) (h3 : ∀ j, a j ≤ 1)
+    (h5 : ∑ j, a j = 7) : False := by
+  have hle : (∑ j, a j) ≤ 5 := by
+    calc (∑ j, a j) ≤ ∑ _j, (1 : ℕ) := Finset.sum_le_sum fun j _ => h3 j
+      _ = (Finset.univ : Finset (Fin 5)).card := by simp [Finset.sum_const]
+      _ = 5 := by simp
+  omega
 
 end Template
 end JSP140
