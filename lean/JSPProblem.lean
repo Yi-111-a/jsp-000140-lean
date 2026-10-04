@@ -59,3 +59,5 @@ import JSPProblem.Merger
 import JSPProblem.Grid
 import JSPProblem.Template
 import JSPProblem.Miss
+import JSPProblem.Cell
+import JSPProblem.Rate

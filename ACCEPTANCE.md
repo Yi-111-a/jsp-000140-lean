@@ -1,3 +1,134 @@
+## Status (round 75)
+
+`lake build`: **OK** (3163 jobs; the two new files `lean/JSPProblem/Cell.lean` — 451 lines, 26
+declarations, 22 public theorems (incl. the def `Cell.leaf`), 0 placeholders — and `lean/JSPProblem/Rate.lean` — 190 lines, 18
+declarations, 17 public theorems, 0 placeholders — are on the default build path).
+`sorry`/`admit`: **0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 75 CLOSES THE `(VERTEX, COLOUR)` GRID ACCOUNTING OF ROUNDS 71–74 FOR *ARBITRARY*
+COLOURINGS, AND FIXES THE SHAPE OF ANY GROWTH-BASED CONSTRUCTION.**
+
+### 1. NEW FILE `Cell.lean` — THE CELL EQUATION, UNIVERSALLY
+
+Round 71 proved `3 a_j + 2 b_j = n` (`Grid.cellCount`) **only at the extremal order**
+`6k = 5(n-1)`, because only then is the grid fully covered; round 74 removed the extremality
+hypothesis from the *edge-count* identity (`Miss.slack : 2|E_i| + miss_i = n + a_i`) but its
+equation never mentions the single edges.  `Cell.lean` completes the accounting:
+
+| new theorem | statement |
+|---|---|
+| **`Cell.cells`** | **`3 · a_i + 2 · b_i + miss_i = n`** for every colour of every admissible colouring (`n ≥ 4`) — the column sum of the `(vertex, colour)` grid: three cells per cherry, two per single edge, the rest empty |
+| `Cell.class_eq_twoA_add_leaf` | `|E_i| = 2 a_i + b_i` **universally** (rounds 71–72 could only state it at the extremal order) |
+| `Cell.oneB_eq_two_mul_components` | `|B_i| = 2 (a_i + b_i) = 2 · (#components of `E_i`)` — the hand-shake lemma of a colour class |
+| `Cell.active_eq`, `Cell.covered_cells` | `|active_i| = 3 a_i + 2 b_i`, `n - miss_i = 3 a_i + 2 b_i` |
+| **`Cell.cells_tight`** | at `6k = 5(n-1)`: `3 a_i + 2 b_i = n` — round 71's equation re-derived from the *component structure* of the colour class, an independent second route to `Grid.cellCount` |
+| **`Cell.census`** | **`3 · Paths c + 2 · (#single edges) + ∑_i miss_i = n · k`** — the three kinds of cells of the whole grid |
+| `Cell.sum_leaf_eq` | `∑_i b_i = #single edges` (the single edges split over the palette) |
+| `Cell.parity`, `Cell.parity_active` | `a_i ≡ n - miss_i (mod 2)` resp. `a_i ≡ |active_i| (mod 2)` — round 72's `cherry_parity` had `miss_i = 0` |
+| `Cell.twoA_le`, `Cell.leaf_le` | `3 a_i ≤ n`, `2 b_i ≤ n`, for every colour of every admissible colouring |
+| **`Cell.profile_test`** | the three statements `|E_i| = 2a_i+b_i`, `|B_i| = 2(a_i+b_i)`, `3a_i+2b_i+miss_i = n` in one: the complete per-class acceptance test |
+
+### 2. HONEST ACCOUNTING OF ROUNDS 65 AND 74 (two new identities)
+
+* **`Cell.sum_miss_eq_isolated` — `∑_i miss_i = Isolated c`.**  `Isolated c` (round 65,
+  `Isolated c = ∑_i |zeroA c i|`, the `(vertex,colour)` pairs of colour-degree `0`) **is** the
+  empty-cell count of rounds 71–74: the miss profile is not an independent invariant, it is
+  `Isolated c` split over the palette.  With `Surplus.global_identity` this also gives
+  **`Cell.sum_miss_eq_surplus`**: `∑_i miss_i = n k + Paths c - n(n-1)`.
+* **`Cell.refined_sum_miss` — at `6k = 5n+1` (the shape of benchmark B5) the colouring misses
+  exactly `n` cells.**  Round 74's `Miss.budget_refined` (`∑_i miss_i ≤ n`) is an **equality**:
+  an admissible `(5n+1)/6`-colouring of `K_n` has exactly `n` empty cells, on average `6n/(5n+1) < 6/5`
+  per colour.  (`Cell.extremal_sum_miss` is the extremal end, `∑ miss = 0`.)
+* **`Cell.budget_iff_paths` — round 74's `Miss.budget` is *equivalent* to `6 Paths c ≤ n(n-1)`**, the
+  classical `Cherry.six_mul_paths_le`; the budget carries no information beyond the classical
+  counting lemma.
+
+### 3. Pigeonhole consequences: the profile a candidate must have
+
+* **`Cell.refined_pigeonhole` — at `6k = 5n+1` some colour class is present at all but at most ONE
+  vertex** (`miss_i ≤ 1`), with `Cell.refined_profile` its profile: `3 a_i + 2 b_i ≥ n - 1`.  At
+  `(13, 11)` this restricts that colour class to `(a_i, b_i) ∈ {(0,6), (1,5), (2,3), (3,2), (4,0)}`.
+* **`Cell.anchor_pigeonhole` — at `6k = 5n+6` (the shape of the verified witness `EG 12 = 11`) some
+  colour class is present at at least `n - 2` vertices.**
+
+### 4. NEW FILE `Rate.lean` — THE GROWTH RATE IS FORCED, THE SIX-STEP IS THE ONLY STEP
+
+Round 68 introduced `Grow6` ("every admissible `K_m` extends to an admissible `K_{m+6}` with five
+more colours") as *the* local lemma that would settle the prize, and proved `Grow6.main`.  Nothing
+said which steps a growth lemma could have.  `Rate.lean` answers that:
+
+| new theorem | statement |
+|---|---|
+| `Rate.GrowRate` | the general growth hypothesis of step `(a, b)`: `f(m+a,4,5) ≤ f(m,4,5) + b` for **every** `m`, `j`, `c` (the existence form of `Grow.lean`) |
+| `Rate.GrowRate.family`, `Rate.GrowRate.eg_le` | it iterates: `f(m + a t) ≤ j + b t` |
+| **`Rate.rate_le`** | **`GrowRate a b ⟹ 5 · a ≤ 6 · b`**: the rate `b/a` of a growth lemma is at most `5/6`.  Proof: iterate from an admissible colouring of `K₄` and apply the counting bound `Cherry.five_sixth_lower` (`5(n-1) ≤ 6k`) to the colouring of `K_{4+at}` with `EG 4 + bt` colours, with `t → ∞` |
+| `Rate.rate_five_sixth` | a growth route for the prize (rate `≤ 5/6`) therefore has rate **exactly** `5/6` |
+| **`Rate.dvd`** | at rate `5/6` the step length satisfies `6 ∣ a` (`gcd 5 6 = 1`), so the step is `(6s, 5s)` |
+| `Rate.not_Grow_3_2`, `not_Grow_4_3`, `not_Grow_5_4`, `not_Grow_6_4`, `not_Grow_7_5`, `not_Grow_8_6`, `not_Grow_9_7`, `not_Grow_11_9`, `not_Grow_13_10` | **falsifiable instances**: a three-step with two colours, a four-step with three, a five-step with four, a six-step with four, a seven-step with five, an eight-step with six, a nine-step with seven, an eleven-step with nine, a thirteen-step with ten **cannot exist** — each is `5a ≤ 6b`, false |
+| `Rate.six_step_at_boundary` | the six-step of `Grow.lean` sits **exactly** at the boundary (`5·6 = 6·5 = 30`), which is why `Grow6.anchor_counting` finds no numerical obstruction |
+| `Rate.family_of_mul` | a hypothesis `GrowRate (6s) (5s)` propagates `f(4 + 6 s t) ≤ EG 4 + 5 s t` |
+
+**So the six-step is not one arbitrary choice**: it is the finest admissible growth step, and every
+coarser admissible step is `(6s, 5s)`.  A constructive attack has exactly one finite target.
+
+### 5. Computation (discovery side only; no Lean claim follows)
+
+`discovery/JSP-000140/r75_profile.py` (log `r75_search_log.txt`, output `r75_profile.out`) checks
+round 75's new statements on the one certified witness of the development, `Window.r66Col`
+(`EG 12 = 11`, `native_decide` over all 495 four-sets): its per-colour profile is
+`(a_i, b_i, miss_i) ∈ {(1,4,1), (1,4,1), (0,6,0), (0,6,0), (2,3,0), (1,4,1), (1,4,1), (0,5,2),
+(0,5,2), (1,4,1), (2,3,0)}`, so `∑ a_i = 9`, `∑ b_i = 48`, `∑ miss_i = 9` and
+`3·9 + 2·48 + 9 = 132 = 12·11` (`Cell.census`), `|B_i| = 2(a_i+b_i)` and
+`3a_i + 2b_i + miss_i = 12` for every `i` (`Cell.cells`).  Reading: the anchor witness is **far**
+from the refined shape of B5 (9 cherries against the ceiling `|E|/3 = 22`, 9 missed cells against
+the 22 the budget allows), so `Cell.cells_tight` does not describe it; the refined order
+`6k = 5n+1` is where the unknown profile lives, and §3 says exactly what it must be.
+
+### 6. Lean 4.34.0 pitfalls recorded this round
+
+* `import JSPProblem.Miss` does **not** bring in `Singles`, `Surplus`, `Extremal`, `Extend`:
+  `Miss → Template → Grid → Cover → Triangles`, while `Singles → Extremal → Rigidity` and
+  `Surplus → Cherry` are on other chains.  Import all four explicitly.
+* `Extremal.lean`, `Singles.lean`, `Surplus.lean`, `Extend.lean` are all in the **plain namespace
+  `JSP140`**, not in a namespace named after the file: `two_mul_twoA_le_classIn`,
+  `card_single_in_classIn`, `card_singleFinset`, `global_identity`, `card_twoA_oneB_zeroA`,
+  `isolated_eq_n_defect_eq_zero` are used **unqualified** (`Extremal.two_mul_twoA_le_classIn` is an
+  unknown identifier);
+* `Finset.mul_sum` and `Finset.mul_add`-style lemmas have **three explicit arguments** here:
+  `Finset.mul_sum (Finset.univ : Finset (Fin k)) (fun i => f i) 2`, whereas
+  `Finset.sum_add_distrib` is applied *bare* (its arguments are implicit) and, in `calc` steps, only
+  in the `rw` direction that splits a two-sum;
+* `Finset.sum_congr rfl (fun i _ => …)` may silently unify `?s` with the wrong finset; give the sum
+  an explicit `calc`/`Finset.sum_congr` target instead;
+* `Nat.mod_eq_of_lt` takes **one** hypothesis (`a < b`), not two; `(2 * x) % 2 = 0` needs
+  `rw [Nat.mul_mod, show (2:ℕ) % 2 = 0 by rfl, Nat.zero_mul, Nat.zero_mod]`;
+* `Nat.Coprime.dvd_of_dvd_mul_right : k.Coprime n → k ∣ m * n → k ∣ m` (the product is ordered
+  `m * n`, so a hypothesis `k ∣ n * m` does *not* match); `Nat.dvd_refl 6 : 6 ∣ 6` takes the
+  element implicitly;
+* `Nat.mul_le_mul_right (k : ℕ) (h : n ≤ m) : n * k ≤ m * k` — the multiplier comes **first**;
+* `linarith` and `omega` are useless for the step `5 a t ≤ 6 b t + C` (both are degree-2 monomials
+  in `a, b, t`): do that step with `Nat.mul_le_mul_right` and finish the rest by hand with
+  `Nat.add_le_add_left` / `Nat.le_of_add_le_add_right`; conversely `omega` *is* enough when
+  `n * (n-1)` and `n * k` appear only as **atoms** (`global_identity` + `sum_miss_eq_surplus` are
+  one-line `omega` consequences of that observation);
+* `∑ i : Fin k, f i` and `Finset.univ.sum f` are defeq, but `a * (t + 1)` vs `a * t + a` is *not*
+  syntactically equal for a variable `a` — insert `show … from by ring` in `rw` lists of `calc`
+  steps of an induction (this is why `Grow6.family` compiles and a naive copy does not).
+
+### 7. Not proved this round
+
+* **`Main.AdmissibleUpper ε` (`0 < ε < 1/6`)** — unchanged: the probabilistic existence of
+  labelled-triangle systems (arXiv:2207.02920 §4/§12 = arXiv:2208.12563 §4).  `jsp_000140_main` was
+  again **not** declared: declaring it with the hypothesis as an assumption would falsify the prize.
+* `Rate.rate_le` shows that **no other growth lemma can replace `Grow6`**, so `Grow6` itself (or an
+  anchor with `6j = 5m+6`) is the single finite target of a constructive attack — and it is not
+  proved.  Its propagation to a *refined* anchor would imply the STS existence conjecture
+  (round 68/74), so only boundary anchors (`EG 12 = 11`) are usable.
+* benchmark **B5** (`EG 13 = 11`) and the anchor step `EG 18 ≤ 16`: still open.  What is new is the
+  exact profile test such a colouring must pass (§2–§3).
+
 ## Status (round 74)
 
 `lake build`: **OK** (3161 jobs; the new file `lean/JSPProblem/Miss.lean` — 24 declarations,
