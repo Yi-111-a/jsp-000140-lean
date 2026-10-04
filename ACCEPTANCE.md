@@ -1,3 +1,85 @@
+## Status (round 83)
+
+`lake build`: **OK** (3169 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 83 CHANGES THE ATTACK FAMILY TWICE: IT (i) REMOVES THE UNIFORMITY FROM THE GROWTH
+LEMMA, AND (ii) SUPPLIES THE CRITERION A SIX-STEP HAS NEVER HAD.**  The single remaining
+hypothesis (round 68's `Grow6`: *every* admissible colouring of `K_m` extends to `K_{m+6}` with five
+more colours) is a `∀∀∀` statement whose uniformity no search could ever have used; this round
+shows the prize follows from **one witness per order**, and supplies the exact local description
+of a six-step, from which the extension is a finite decidable certificate.
+
+### 1. `lean/JSPProblem/One.lean` (new, 282 lines, 14 declarations, 0 placeholders, default build path)
+
+* **`Solo6 m j` — THE NON-UNIFORM SIX-STEP HYPOTHESIS.**  `∀ t, ∃ d : Col (m + 6t) (j + 5t),
+  Admissible d`: the colourings may be completely unrelated, and *no extension statement is
+  assumed at all*.
+* **`Solo6.main_eighteen` — THE HEADLINE FROM ONE WITNESS PER ORDER.**  For every `t` an admissible
+  `16 + 5t`-colouring of `K_{18+6t}` **is** the required theorem `jsp_000140_target`.  Compare
+  `Grow6.main`, which needed the universal extension lemma for every admissible colouring of every
+  order.  This is the weakest form of the growth route ever derived in this development.
+* **`Solo6.sharp_eighteen` / `Solo6.residue_eighteen`** — conditionally `f(18 + 6t, 4, 5) = 16 + 5t
+  = 5n/6 + 1` **exactly**, i.e. the first statement here that would give the exact value of
+  `f(n,4,5)` at infinitely many orders at the catalogue rate.
+* **`Solo6.count_bound`** — `6·f(n') ≤ 5n' + 25 + C` for every `n' ≥ m`, the counting form of the
+  route with the uniform hypothesis deleted.
+* **`DenseSlack` — BOUNDED EXCESS ON 6-DENSE ORDERS.**  `∃ C m, ∀ N ≥ m, ∃ N ≤ n < N+6` with an
+  admissible colouring and `6k ≤ 5n + C`; `DenseSlack.main` derives `jsp_000140_target` from it.
+  Concretely: **it is enough to construct, for one absolute constant `C` and arbitrarily large `n`,
+  admissible colourings of `K_n` using at most `5n/6 + (25 + C)/6` colours** — no extension lemma,
+  no related family, no probability, no order arithmetic beyond `n < N + 6`.
+* **`DenseSlack.of_solo`** — a chain (`Solo6`) is a `DenseSlack` family; the converse is *not*
+  proved and is not expected to hold, which is why `DenseSlack` is the honest target.
+* Recorded failure mode: `BoundedSlack` (excess bounded, gaps **not** controlled) is **false as a
+  sufficient hypothesis** — monotonicity of `f` runs the wrong way and the `+25` in
+  `Solo6.count_bound` is exactly the price of the gap.
+
+### 2. `lean/JSPProblem/PadSet.lean` (new, 680 lines, 27 declarations, 0 placeholders, default build path)
+
+The vertices of `K_{n+m}` are written `Verts n ⊕ Verts m` (`IsOld`/`IsNew`), the cross colours are
+the **star matrix** `Star d w u = d s(inl w, inr u)`, and:
+
+* **`admissible_iff_padSet` — THE MULTI-VERTEX PADDING CRITERION.**  `AdmOn d ↔ OldOk4 ∧ NewOk4
+  ∧ TriOld ∧ TriNew ∧ PairOk`: one condition per shape of a four-set (`4+0`, `0+4`, `3+1`, `1+3`,
+  `2+2`).  For `m = 1` this is `Pad.admissible_iff_padOk`; for `m = 6` it is the certificate a
+  six-step needs, and `padSetOk_decidable` makes it **one decidable proposition** — no search has
+  to enumerate `16^153` colourings of `K_{18}`.
+* **`cross_eq` / `quad_eq`** — the exact colour sets of the `3+1` and `2+2` four-sets (the six
+  edges of the four-set are the three edges of `T`, the three at `x`, resp. the edge of `T`, the
+  edge of `U` and the four crossing edges).  These are the lemmas the criterion is built on.
+* **`fibre_le_two_of_triOld` / `fibre_le_two_of_triNew` — NO COLOUR THREE TIMES IN A COLUMN (resp.
+  IN A ROW).**  A monochromatic triple of star colours over a triangle spans at most four
+  colours.  Hence **`image_card_le` / `image_card_le'`**: a column of `n` entries takes at least
+  `⌈n/2⌉` values and a row of `m` entries at least `⌈m/2⌉`.  **At the `K₁₂` anchor of the growth
+  route (six new vertices, sixteen colours) every new vertex must see at least six of the sixteen
+  colours and every old vertex at least three** — the first search filters that depend only on the
+  star matrix.
+* **`pair_inj` — NO `2 × 2` MONOCHROMATIC BLOCK.**  For `x ≠ y` new vertices the map
+  `w ↦ (Star d w x, Star d w y)` is injective: two old vertices never agree on two new vertices at
+  once.  This is the combinatorial core of a six-step — a repeated colour in one column must be paid
+  for by fresh colours in every other column and cannot be paid twice.  **`pair_ne`** is the same
+  statement in usable form and **`card_le_sq`** the quantitative consequence (`n ≤ k²`).
+* `star_prod_card_le_two` (private) is the local count behind `pair_inj`: if a colour is repeated in
+  a column then the four crossing edges of the corresponding `2+2` four-set carry at most **two**
+  distinct colours, so the four-set spans at most `1 + 1 + 2 = 4` — the contradiction.
+
+### 3. New blocker found this round (recorded, not fixed)
+
+`lean/JSPProblem/Fusion.lean` (round 82, the fusion criterion — fusing two colour classes) **does
+not compile: 69 errors**, so it was never on the default build path and is still off it.  The
+errors are mostly this Mathlib's API (`Finset.card_insert_of_not_mem`, `if`-case `⟨…⟩`
+constructions, `rcases` on `Quot`-based `Finset.Mem` proofs) plus a few genuine proof bugs.  Nothing
+was deleted; the file is left in place, off the build path, so a later round can repair it.
+
+Unchanged blocker: `Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence of the
+labelled-triangle systems of arXiv:2207.02920 S4/S12 = arXiv:2208.12563 S4 — is still the sole
+remaining content of `jsp_000140_main`.  **This round sharpens what has to be supplied**: by
+`Solo6.main_eighteen`, *an admissible `16+5t`-colouring of `K_{18+6t}` for each `t`* would be
+enough, and by `PadSet.admissible_iff_padSet` such a colouring can be *certified* by five
+decidable local conditions on the `12 × 6` star matrix rather than searched over.
+
 ## Status (round 81)
 
 `lake build`: **OK** (3167 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

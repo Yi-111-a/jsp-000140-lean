@@ -65,3 +65,5 @@ import JSPProblem.NoMerge
 import JSPProblem.LittleO
 import JSPProblem.Disj
 import JSPProblem.Diff
+import JSPProblem.One
+import JSPProblem.PadSet
