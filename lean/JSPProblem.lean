@@ -52,3 +52,4 @@ import JSPProblem.Pack
 import JSPProblem.Profile
 import JSPProblem.Vacant
 import JSPProblem.Window
+import JSPProblem.Extend

@@ -1,3 +1,120 @@
+## Status (round 67)
+
+`lake build`: **OK** (3155 jobs; the new file `lean/JSPProblem/Extend.lean` — 20 declarations,
+14 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`: **0**.
+`harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`, `partial_ok = true`,
+`prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 67 PROVES THAT THE EXTREMAL SHAPE OF ROUND 66 IS NOT AN ARTEFACT OF `n = 13`: IT HOLDS AT
+EVERY ORDER AT WHICH THE REFINED BOUND CAN BE ATTAINED, AND IT FORCES A TRIANGLE DECOMPOSITION OF
+`K_n` WHICH IS ALSO A STEINER TRIPLE SYSTEM.  BENCHMARK B5 IS AN INFINITE FAMILY, INDEXED BY
+`n ≡ 1 (mod 6)`, `n ≥ 13`.**
+
+### 1. The extremal shape, for every order
+
+Round 66 could only read the shape at the single order `n = 13, k = 11`
+(`Window.extremal_at_thirteen_is_STS`).  `Extend.lean` re-derives it from `Surplus.surplus_of_k`
+(`6 * Isolated c + 2 * Defect c = n * (6k - 5(n-1))`), so it holds for **every** `(n, k)` with
+`6k = 5n + 1`:
+
+| new theorem | statement |
+|---|---|
+| `Extend.defect_eq_zero_of_refined` | at `6k = 5n+1`, `k+2 ≤ n`: **`Defect c = 0`** — every edge of `K_n` is paid for by a two-edge path (re-derived; round 65 had it inside `isolated_eq_n_defect_eq_zero`) |
+| `Extend.three_mul_paths_eq_of_refined` | **the `5/6` counting lemma `Cherry.three_mul_paths_le_edges` is an EQUALITY**, `3 * Paths c = |E(K_n)|` |
+| `Extend.paths_eq_of_refined` | `Paths c = n(n-1)/6`, the sharp hypothesis of `Cherry.five_sixth_of_paths`, with equality |
+| **`Extend.isSTS_of_refined`** | `Paths c = (pathFinset c).card`, `Isolated c = n`, `Defect c = 0` and **`IsSTS (pathFinset c)`** — at every order, not only `n = 13` |
+| `Extend.refined_shape` | the whole shape in one statement |
+| **`Extend.n_mod_six_of_refined`** | `6k = 5n+1 ⟹ n ≡ 1 (mod 6)` — the shape lives on that residue class and nowhere else |
+| **`Extend.refined_is_STS_family`** | **for every `t ≥ 2`: an admissible colouring of `K_{6t+1}` with the refined `5t+1` colours has its two-edge paths forming an `STS(6t+1)`** |
+
+### 2. The triangle decomposition (new content, not a corollary of anything in the file)
+
+| new theorem | statement |
+|---|---|
+| `pathTriangle`, `card_pathTriangle`, `pathTriangle_disjoint`, `pathTriangle_subset` | the triangle spanned by a two-edge path (its two edges and the edge between its leaves) has three edges, and two triangles of different two-edge paths are disjoint |
+| **`Extend.triangles_cover`** | **`(cherryFinset c).biUnion pathTriangle = edgeFinset (univ)`**: the edge set of `K_n` *is* the disjoint union of the `n(n-1)/6` triangles of the two-edge paths — a `(2,1)`-block decomposition of `K_n` which (by §1) is simultaneously a Steiner triple system.  This is the object of `BlockCol.lean` and of the searches of rounds 49–56, as a theorem for the whole residue class |
+| `Extend.card_biUnion_triangles` | `|E(K_n)| = n(n-1)/2 = 3 · n(n-1)/6` in that form |
+
+### 3. The per-vertex shape: the two-edge-path centres are almost uniformly spread (new)
+
+`Window.missing_at` says the colours missing at `v` are `k - (n-1)` plus the number of two-edge
+paths centred at `v`.  At `k = n-2` that forces one path per vertex (`Window.centre_of_paths`); at
+the refined bound the first term is `-(n-7)/6`, so:
+
+| new theorem | statement |
+|---|---|
+| **`Extend.centres_ge_of_refined`** | at `6k = 5n+1`, `k+2 ≤ n`: **every vertex centres at least `(n-7)/6` two-edge paths** |
+| **`Extend.centre_exists_of_refined`** | in the family form: for every `t ≥ 2` and every `v`, **`∃ i, v ∈ twoA c i`** — the analogue of `Window.centre_of_paths` at the refined bound |
+| `Extend.centres_ge_family` | at `n = 6t+1` every vertex centres at least `t-1` two-edge paths (the average is `t`) |
+
+Since the total number of paths is `n(n-1)/6`, i.e. the average per vertex is `(n-1)/6`, the last
+theorem says the path centres of an extremal colouring are **within one path of the average at every
+vertex**: the colouring is locally a partial parallel-class structure of size `≈ n/6`.
+
+### 4. The published bound is never attained (new)
+
+| new theorem | statement |
+|---|---|
+| **`Extend.no_five_sixth_eq`** | for every `n ≥ 7`, **no admissible colouring uses exactly `5(n-1)/6` colours**: `5(n-1)+1 ≤ 6k` |
+| `Extend.strict_five_sixth`, `Extend.eg_gt_five_sixth` | `5(n-1) < 6 * f(n,4,5)` for every `n ≥ 7` |
+
+(The arithmetic forces the equality case to `n ≡ 1 (mod 6)`, `k = 5(n-1)/6 ≤ n-2`, and there
+`Vacant.five_n_add_one_le_six_k` excludes it by one whole colour, so the sharp constant `5/6` of
+arXiv:2207.02920 is a limit from below that no finite order attains.)
+
+### 5. The residue class `n ≡ 4 (mod 6)`: two new negative results (search)
+
+The only even class with no `n-1` construction is `n ≡ 4 (mod 6)`; `EG 16`, `EG 22`, … are bounded
+only by the round-robin `n+1`.  Two CPU probes (see `discovery/JSP-000140/r67_search_log.txt`):
+
+* **`r67_star.py`: the ghost family is exactly characterised.**  For `m = 9, 15, 21` (`n = 10, 16, 22`,
+  i.e. `3 | m`) **NO** star colouring `g : Z_m → Z_m` makes the ghost construction admissible; every
+  hill-climbing run bottoms out at exactly `m/3` bad quadruples.  So `sum colouring on Z_m + one star
+  vertex` works iff `3 ∤ m`, and any construction for `n ≡ 4 (mod 6)` must use a different base.
+* **`r67_fac.py`: the `n-1` route cannot be a 1-factorisation.**  The cyclic 1-factorisation of
+  `K_n` has exactly 3 bad four-sets at `n = 10` and 5 at `n = 16`, and a cycle-swap local search
+  over 1-factorisations never improves on those numbers.  Since an admissible `m`-colouring of
+  `K_{m+1}` by perfect matchings would have `Isolated c = 0`, whereas the known witness
+  `Tables.tenCol` for `f(10,4,5) = 9` has `Isolated c = 8`, **the `n = 10` witness is not a
+  1-factorisation**: an `n-1` colouring for `n ≡ 4 (mod 6)`, if it exists, is not proper.
+
+### 6. The search campaign (negative, and one bug of round 66 fixed)
+
+`r67_launch.sh` re-ran the round-66 solver at `n = 16 … 19`: best 4 of 1820 at `(16,15)` (two colours
+above the counting bound; round 66 reached 24 at `(16,14)`), 28 of 2380 at `(17,15)`, 32 at
+`(18,16)`, 66 at `(19,16)`; `r67_walk2.c` (with `MAXT` raised to 8192, so `n = 22` fits) is still
+running at `(22,21)` and at `(17,16)`, `(18,17)`, `(19,17)`, `(20,18)`.
+
+**A bug of round 66 was found and fixed**: in `r66_walk.c` the array `bestCol` is declared
+`int bestCol[64][64]` while `col` is `unsigned char col[64][64]`, so `memcpy(bestCol, col, sizeof col)`
+fills only the first 1024 ints and the `none` branch of the output prints **garbage**.  The `FOUND`
+branch prints `col` and is correct, so round 66's certified witness `Window.r66Col` is unaffected,
+but every `none` output of rounds 66/67 (`r66_w_*.out`, `r67_w_*.out`) is unreadable.  `r67_walk3.c`
+fixes the type and adds an exhaustive 2/3-opt repair that fires whenever the best state has `≤ 8`
+violated four-sets (round 66 only ran it at `≤ 2`); the known-easy target `(9,8)` is found again in
+9331 steps, which validates the new binary.
+
+### 7. NOT proved this round
+
+The prize hypothesis `Main.AdmissibleUpper ε` (`0 < ε < 1/6`) is untouched, so `jsp_000140_main` was
+again **NOT** declared: declaring it with the hypothesis as an assumption would falsify the prize.
+§1–§3 sharpen the *structure* an extremal colouring must have; the prize needs the **existence** of
+such colourings, and arXiv:2207.02920 gets them from a random triangle-removal process analysed by
+the differential-equation method (Bennett–Cushman–Dudek–Prałat), which no search in this
+development has reproduced at any order.
+
+### 8. Lean 4.34.0 pitfalls recorded this round
+
+* `omega` does **not** close `a = b / 6` from `a * 6 = b`: the division turns `b` into a fresh
+  `bmod_div_term` atom.  The working recipe is `Nat.div_mul_cancel hd` (with `hd : 6 ∣ b` built by
+  `⟨a, by omega⟩`) followed by `Nat.eq_of_mul_eq_mul_left` — see the private `div_six` / `div_two` in
+  `Extend.lean`;
+* `Nat.div_le_iff_le_mul_add` and `Finset.Subset.of_card_le` **do not exist** in this Mathlib; the
+  available pair is `Nat.le_div_iff_mul_le` and `Finset.eq_of_subset_of_card_le` (whose card bound
+  is on the SUPERSET);
+* `Nat.mul_div_cancel_left m (h : 0 < n) : n * m / n = m` and `Nat.div_mul_cancel hd : m / n * n = m`
+  are the two division cancellations that exist (and `Nat.mul_div_cancel m h : m * n / n = m`).
+
 ## Status (round 66)
 
 `lake build`: **OK** (3154 jobs; the new file `lean/JSPProblem/Window.lean` — 26 declarations,
