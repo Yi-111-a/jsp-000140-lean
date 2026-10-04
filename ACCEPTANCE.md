@@ -1,3 +1,75 @@
+## Status (round 81)
+
+`lake build`: **OK** (3167 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 81 CLOSES THE SECOND (AND LAST) EXPLICIT CYCLIC CONSTRUCTION FAMILY: THE 1-FACTORISATION
+COLOURING `c({a,b}) = ψ (a − b)` IS NEVER ADMISSIBLE.**  Rounds 12–14 hand-checked this family and
+abandoned it; rounds 60–75 could only test it by brute force; round 77 killed the *sum*-type
+family in general (`NoMerge.injective_of_admissible`).  This round settles the *difference*-type
+family, exactly, for every `ψ`, every budget and every modulus.
+
+New file `lean/JSPProblem/Diff.lean` (426 lines, 25 declarations, 19 public theorems, zero
+placeholders, on the default build path):
+
+* **`card_path_class` — THE MONOCHROMATIC PATH.**  For every `ψ : ZMod m → Fin k` the colour class
+  of `pathColour m k ψ = ψ (−1)` contains the whole path `0 − 1 − 2 − … − (m−1)`, i.e. it has at
+  least `m − 1` edges.  The family is not merely too large: at the best possible budget `k = m − 1`
+  one colour carries a Hamiltonian path of `K_m`.
+* **`diffCol_edge_natCast` / `diffCol_edge_path` / `path_edge_mem_class`** — the local value: every
+  edge `{p, p+d}` written in increasing natural order has colour `ψ (−d)`, for arbitrary `d`.
+* **`three_consecutive` — THE MECHANISM.**  The four vertices `0, 1, 2, 3` span three edges of
+  colour `ψ (−1)`, so they span at most four colours (`Definitions.colorsOn_card_le_four`).
+* **`three_of_arith`** — the same for every four-term arithmetic progression
+  `p, p+d, p+2d, p+3d` inside `Fin m`: every such progression is a witness, with common colour
+  `ψ (−d)`.
+* **`never_admissible` — THE NO-DIFFERENCE THEOREM.**  `m ≥ 4` ⇒ `diffCol m k hk ψ` is not
+  admissible, for every `k > 0` and every `ψ`.  **No parity hypothesis is needed**, in contrast
+  with the sum type (which works exactly for odd moduli).
+* **`diffCol_admissible_iff` — THE COMPLETE CLASSIFICATION.**  `Admissible (diffCol m k hk ψ) ↔ m ≤ 3`
+  (the `m ≤ 3` direction is vacuity: `K_3` has no four-vertex clique, `diffCol_admissible_small`).
+* **`diffColR`, `diffColR_never_admissible`** — the reversed orientation convention `{a,b} ↦ ψ(b−a)`
+  fails as well, so the no-go does not depend on how an edge is oriented.
+* **`no_diff_family`, `no_cyclic_pair`, `cyclic_exhausted` — THE CYCLIC EXHAUSTION.**  For odd
+  `m ≥ 5`, any admissible colouring of `K_m` whose colour map is a function of `a + b` or of
+  `a − b` in `ZMod m` needs `m` colours at least (`k_ge` for the sum type, impossibility for the
+  difference type).  So inside `ZMod m` the round-robin colouring of `Construction.lean` is
+  **optimal**, and the catalogue constant `5n/6` is unreachable by any translation-invariant
+  scheme — which is the formal reason why the construction of arXiv:2207.02920 must be
+  probabilistic and non-cyclic.
+* **`four_colouring_refused`** — the classical 1-factorisation of `K_4` with four colours is refused
+  by `decide`, so the theorem above is not vacuous.
+
+Unchanged blocker: `Main.AdmissibleUpper ε` for `0 < ε < 1/6` (the probabilistic existence of the
+labelled-triangle systems of arXiv:2207.02920 S4/S12 = arXiv:2208.12563 S4) is still the sole
+remaining content of `jsp_000140_main`; Mathlib v4.34.0 has no Lovász local lemma and no
+hypergraph-matching/nibble theorem (re-verified by grep in round 80), so the published construction
+cannot be formalised in this environment.
+
+Lean 4.34 / this-Mathlib pitfalls met in this round (recorded for the next rounds):
+
+* `Set.InjOn` is a plain `def`, so `intro` does **not** unfold it — start the proof with
+  `rw [Set.InjOn]` (then `Finset.card_image_of_injOn` applies), while
+  `Finset.card_image_of_injective` demands *global* injectivity and is useless for
+  `Finset.range (m − 1)` (`p ↦ s(zfinN p, zfinN (p+1))` is only injective on the range: `p` and `p + m`
+  agree).
+* A `def` with `[NeZero m]` and implicit `{m}` gets `NeZero ?m` stuck when the expected type is only
+  supplied by a later ascription: make `m` an **explicit** argument (`zfinN (m : ℕ) [NeZero m] (n : ℕ)`).
+* `zfin_cast` (round 77) is not `rfl` for the new wrapper; prove `(zfinN m n : ZMod m) = (n : ZMod m)`
+  by `rw [zfinN, zfin_cast]`.
+* `Finset.card_le_univ` takes the finset explicitly and concludes `S.card ≤ Fintype.card _`
+  (so `rw [Fintype.card_fin]`, not `Finset.card_fin`).
+* `omega` does not derive `p < m` from `p < m − 1` in every context; `Nat.succ_le_of_lt` plus
+  `omega` is the reliable combination.
+* `Nat.cast_add` (not `push_cast`) turns `((p + d : ℕ) : ZMod m)` into `((p : ZMod m) + (d : ZMod m))`,
+  after which `ring` proves `(p) − (p + d) = −d`; but the resulting term must match the
+  instantiation **syntactically** (`p + d + d` vs `p + 2 * d` are different to `rw`).
+* `sym2_inj` gives `(a = a' ∧ b = b') ∨ (a = b' ∧ b = a')`; the two components are the *parallel*
+  equalities, so a contradiction argument must use the component whose endpoints are adjacent.
+
+---
+
 ## Status (round 80)
 
 `lake build`: **OK** (3166 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

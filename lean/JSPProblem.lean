@@ -64,3 +64,4 @@ import JSPProblem.Rate
 import JSPProblem.NoMerge
 import JSPProblem.LittleO
 import JSPProblem.Disj
+import JSPProblem.Diff
