@@ -63,3 +63,4 @@ import JSPProblem.Cell
 import JSPProblem.Rate
 import JSPProblem.NoMerge
 import JSPProblem.LittleO
+import JSPProblem.Disj

@@ -1,3 +1,78 @@
+## Status (round 80)
+
+`lake build`: **OK** (3166 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**Round 80 CORRECTS AND PROVES THE "COLLISION IDENTITY", AND PUTS THE FOUR-SET CENSUS AND THE
+`(vertex, colour)` CELL ACCOUNTING IN ONE FORMULA.**  Since round 14 this file has advertised, as
+"the missing lemma needed", the identity
+
+    `4·Paths c + Σᵢ binom(componentsᵢ, 2) = Σ_{|S| = 4} (6 − colours(S))`.
+
+**Both of its coefficients are wrong**, and this round proves the corrected identity and refutes the
+naive one by computation.
+
+New file `lean/JSPProblem/Disj.lean` (580 lines, 25 declarations, 22 public theorems, zero `sorry`,
+on the default build path):
+
+* **`card_fiveFourSets_disj` — THE CORRECTED COLLISION IDENTITY**
+  `|fiveFourSets c| = (n − 3)·Paths c + Σᵢ |disjPairs c i|` for every admissible colouring
+  (`n ≥ 4`).  Every collision of a `K₄` is either a two-edge path — and a two-edge path lies in
+  **`n − 3`**, not `4`, four-sets — or a pair of *disjoint* same-coloured edges, which spans exactly
+  one four-set.  `card_fiveFourSets_eq_sum_collision` identifies the total collision count
+  `Σ_{|S|=4}(6 − colours(S))` with `|fiveFourSets c|`, and `sum_collision_eq_disj` restates the
+  identity in the sum form;
+* **`naive_ne_nineCol` (with `naive_ne_tenCol`, `naive_ne_elevenCol`) — THE ROUND-14 FORM IS FALSE.**
+  For the certified colouring `Tables.nineCol` of `K₉` the naive right-hand side is `64` while the
+  true collision count is `84`; on `Tables.tenCol` it is `90` against `138`, on `Tables.elevenCol`
+  `120` against `195` (all `native_decide`).  The two defects are visible separately: for
+  `nineCol` the path term should be `6·4 = 24` and not `16`, and its disjoint pairs number `60` and
+  not `Σᵢ binom(componentsᵢ,2) = 48`.  `naive_sixCol` records that the naive form is *not* always
+  false — there every colour class is a perfect matching, exactly the case in which
+  `binom(componentsᵢ,2)` is the right weight — so the refutation is precise;
+* **`disjPairs_cell` — THE CLOSED FORM OF THE COLLISION COUNT OF ONE COLOUR**
+  `2|disjPairs c i| + 2 missᵢ + 5|Eᵢ| = |Eᵢ|² + 2n`: the disjoint-pair count of a colour class is a
+  quadratic function of its size and of the number of vertices it misses (`Miss.miss`), the first
+  formula in which the pair census of `Pairs.lean` and the cell accounting of `Miss.lean` meet.
+  **`disjPairs_components_eq` gives its component-by-component weight**
+  `2|disjPairs c i| = 8binom(aᵢ,2) + 4aᵢbᵢ + 2binom(bᵢ,2)` for `aᵢ` cherries and `bᵢ` single edges:
+  **two cherries of one colour span four disjoint pairs, a cherry and a single edge two, two single
+  edges one** — the weight that the naive identity replaced by `binom(componentsᵢ,2)`;
+* **`card_fiveFourSets_cell` — THE FOUR-SET SPECTRUM IS A FUNCTION OF THE CELL PROFILE**
+  `2|fiveFourSets c| + 2Σᵢmissᵢ + 5|E(K_n)| = 2(n−3)·Paths c + Σᵢ|Eᵢ|² + 2nk`
+  (`card_fiveFourSets_cell_edges` for the `Σᵢ|Eᵢ|` form), and `card_fiveFourSets_cell_tight` at the
+  extremal order `6k = 5(n−1)`, where `Cell.extremal_sum_miss` gives `Σᵢ missᵢ = 0`.  This is the
+  first formula in which the four-set census of rounds 60–62 and the `(vertex, colour)` grid
+  accounting of rounds 71–75 occur together;
+* **`tight_fourSets_eq`, `tight_fourSets_ge_four` — A DENSITY THEOREM FOR THE EXTREMAL CASE**: at
+  `6k = 5(n−1)`,
+  `(n−2)|fiveFourSets c| = 4|fourSets n| + (n−2) Σᵢ |disjPairs c i|`, so **at least the fraction
+  `4/(n−2)` of the four-vertex sets of an extremal colouring span exactly five colours** and every
+  further tight four-set is accounted for by a disjoint pair of equally coloured edges.
+  Supporting arithmetic: `card_fourSets_choose` (`|fourSets n| = binom(n,4)`) and
+  `choose_four_twelve` (`12 binom(n,4) = (n−2)(n−3) binom(n,2)`), plus `card_fiveFourSets_ge`
+  (`(n−3)·Paths c ≤ |fiveFourSets c|`) for arbitrary admissible colourings.
+
+**The prize hypothesis is untouched.**  The remaining content of `jsp_000140_main` is still
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6`, i.e. the probabilistic existence of the labelled-triangle
+systems of arXiv:2207.02920 §4/§12 (arXiv:2208.12563 §4).  This round verified the meta-blocker
+directly: **Mathlib v4.34.0 contains no Lovász local lemma** (`grep` over `Mathlib/` finds no file
+mentioning `LovaszLocalLemma`) **and no hypergraph-matching / Rödl-nibble theorem**
+(`Mathlib/Combinatorics/Hypergraph/` contains only `Basic.lean`), so the published construction has
+no formalisable route in this environment.
+
+Lean 4.34.0 pitfalls recorded this round: `omega` is **incomplete for `ℕ` goals that mix truncated
+subtraction with products** (it may fail to cancel a common factor — cancel by hand with
+`Nat.add_right_cancel` / `Nat.mul_right_cancel`, or multiply the hypotheses inside a `calc` step);
+`rw [Finset.mul_sum]` turns `a * ∑ f` into `∑ (a * f)`, and the reverse rewrite only unifies when the
+constant is written first (swap summands with `Nat.mul_comm` inside the sum first); `Finset.sum_add_distrib`
+should be used with explicit `(s :=) (f :=) (g :=)` arguments and finished with `ring`; `classF c i`
+and `classIn c i univ` are definitionally equal but `rw` does **not** unfold `classF`; there is no
+closed formula for `Nat.choose n 4` (use `Nat.choose_succ_succ'` + `two_mul_choose_two` by induction);
+and `ring` cannot rewrite `A * (4 + (r − 3))` to `A * (r + 1)` — use
+`rw [show 4 + (r - 3) = r + 1 by omega]`.
+
 ## Status (round 79)
 
 `lake build`: **OK** (3165 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
