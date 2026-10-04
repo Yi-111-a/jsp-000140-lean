@@ -1,3 +1,97 @@
+## Status (round 72)
+
+`lake build`: **OK** (3160 jobs; the new file `lean/JSPProblem/Template.lean` — 501 lines, 17
+declarations, 16 public theorems, 0 placeholders — is on the default build path).  `sorry`/`admit`:
+**0**.  `harness/score.py --strict-prize problems/JSP-000140/lean`: `build_ok = true`,
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 72 READS THE CELL EQUATION BACK ONTO THE COLOUR CLASSES: THE PROFILE OF A TIGHT COLOURING IS
+A NARROW WINDOW.**  Round 71 counted `(vertex, colour)` cells and obtained `3 a_j + 2 b_j = n`.  This
+round asks what that says about the **number of edges of each colour**, which no file of rounds 14–71
+computed.
+
+### 1. From cells to edges
+
+| new theorem | statement |
+|---|---|
+| `Template.cherryF_card_eq_twoA` | the `a_j` cherries of `Grid.cellCount` are the two-edge paths: `a_j = \|twoA c j\|` |
+| **`Template.class_eq_two_mul_cherry_add_leaf`** | **`\|E_j\| = 2 a_j + b_j`** — a tight colour class is a vertex-disjoint union of `a_j` two-edge paths and `b_j` isolated single edges |
+| **`Template.class_two_mul_eq_add_twoA`** | **`2 \|E_j\| = n + \|A_j\|`** — the refined counting lemma `Paths.two_mul_classIn_le_add` (`2\|E_i\| ≤ n + \|A_i\|`), which produced the sharp constant `5/6`, is an **equality** in the extremal case, in every colour |
+| **`Template.class_three_mul_add_leaf`** | **`3 \|E_j\| + b_j = 2n`** — the slack of the classical lemma `Counting.three_mul_classIn_le` is *exactly* the number of single edges of that colour |
+
+### 2. The window: a tight colouring is nearly balanced
+
+| new theorem | statement |
+|---|---|
+| **`Template.class_ge_half`** | `2 \|E_j\| ≥ n + 1`: **no colour class of a tight colouring is small** (`\|A_j\| ≥ 1` odd, `Extremal.tight_twoA_odd`) |
+| **`Template.class_le_two_third_sharp`** | `3 \|E_j\| ≤ 2(n-1)`, i.e. `\|E_j\| ≤ 2(n-1)/3`: the classical bound `3\|E_i\| ≤ 2n` is **never attained** at the tight order (`b_j ≥ 2`) |
+| **`Template.classes_balanced`** | `3 \|E_j\| ≤ 4 \|E_i\|` for all colours `i, j`: **every colour class of a tight colouring has between `(n+1)/2` and `2(n-1)/3` edges, so no class is more than `4/3` of another** |
+| `Template.window` | both ends of the window, plus the balancedness, in one statement |
+
+The window's lower end is *not* satisfied by any verified construction of this development: they all
+use `k = n-1` colours, i.e. class sizes `(n-1)/2`, whereas a tight colouring must clear `(n+1)/2`.
+This is a search filter strictly stronger than the parity test used since round 65.
+
+### 3. Parity, and the profile at `n = 13`
+
+* **`Template.cherry_parity`** — `a_j ≡ n (mod 2)` for every colour (declared lemma (ii) of round 71,
+  re-derived from `Grid.cellCount`).
+* **`Template.leaf_ge_two`** — `b_j ≥ 2`: no colour class of a tight colouring is a perfect packing of
+  two-edge paths.
+* **`Template.candidate_test`** — the whole per-class acceptance test for a candidate
+  `(6t+1, 5t)`-colouring: `1 ≤ a_j`, `3 a_j + 3 ≤ 6t+1`, `Σ_j a_j = t(6t+1)`, `3t+1 ≤ \|E_j\| ≤ 4t`.
+* **`Template.thirteen_profile`** / **`Template.thirteen_profile_edges`** (declared lemma (i) of round
+  71): an admissible 10-colouring of `K₁₃` has **exactly two** colour classes with one two-edge path —
+  `(a, b) = (1, 5)`, `\|E_j\| = 7` edges — and **exactly eight** with three, `(a, b) = (3, 2)`,
+  `\|E_j\| = 8`, with `2·7 + 8·8 = 78 = C(13,2)`.
+
+### 4. Honest accounting
+
+The cell equation `3 a_j + 2 b_j = n` is **equivalent** to the vertex-covering equation of
+`Rigidity.tight_classes_span` (a cherry triangle covers the three vertices of its two-edge path, a leaf
+triangle the two endpoints of its single edge, and the covering says each vertex is covered once), so
+it is *not* an independent structural theorem; what is new in rounds 71–72 is (i) the **per-class edge
+profile** it forces and (ii) the **counting** of that profile at `n = 13`, both of which require first
+identifying the grid cherries with the two-edge paths of the colouring.
+
+### 5. Not proved this round
+
+* **`Template.cell_system_solution`** — the arithmetic *feasibility* of the cell system at every tight
+  order (equivalently: `3t² - 2t ≤ 5t(t-1)` for `t ≥ 2`, together with a capacity-filling lemma).  It
+  was attempted and cut for budget; the exact missing lemma is recorded in `policy.json.blockers`.
+  Consequence if proved: the `n = 7` obstruction of `Grid.card_eq_five` is the *only* arithmetic one.
+* **`Main.AdmissibleUpper ε` (`0 < ε < 1/6`)** — unchanged, the probabilistic existence theorem of
+  arXiv:2207.02920 §4/§12.  `jsp_000140_main` was again **not** declared: declaring it with the
+  hypothesis as an assumption would falsify the prize.
+
+### 6. Lean 4.34.0 pitfalls recorded this round
+
+* `Finset.sum_congr` takes `(h : s₁ = s₂)` then the pointwise proof; inside `rw […]`, or with a numeral
+  on the right, the lambda binder fails to elaborate — give the equation an explicit `have … : … :=`
+  type and make the right-hand side a sum first.
+* `Finset.sum_mul` / `Finset.mul_sum` have **three explicit arguments** `(s f a)`, so `rw [Finset.sum_mul]`
+  fails (the pattern's head is the constant, not `HMul.hMul`): instantiate them in a `have` and rewrite
+  with the local hypothesis.  `Finset.sum_add_distrib` works only as `rw [← …]` on a two-sum goal.
+* `Nat.mul_assoc n m k : n * m * k = n * (m * k)` (so going the other way needs `.symm`), and Nat core
+  provides `Nat.mul_sub_left_distrib`, not `Nat.mul_sub_distrib` / `Nat.mul_mul` / `Nat.mul_mod_self`;
+  `Nat.div_add_mod (m n) : n * (m / n) + m % n = m` (both the argument order and the multiplication
+  order differ from the naive guess); `Nat.div_le_iff_mul_le` is the `x ≤ y/k` direction, so the
+  converse (`a/k ≤ b`) is `Nat.div_le_iff_le_mul`.
+* `Fin.sum_univ_succ` splits as `f 0 + ∑ i, f i.succ`, **not** as `∑ i : Fin n, f i + f n`; for a
+  range-style induction use `Finset.sum_range_succ` over `Finset.range` and convert with
+  `Fin.sum_univ_eq_sum_range`.
+* `nlinarith` does **not** expand `3 * (s+1) * (s+1)` against goals containing `Nat` truncated
+  subtraction (it reports “No usable constraints found”): keep the profile algebra linear by rewriting
+  `3t² - 2t` as `t · (3t - 2)` first and using `Nat.mul_assoc` / `Nat.mul_comm` /
+  `Nat.mul_sub_left_distrib` by hand.
+* `rw` cannot match inside an un-reduced beta-redex (`(fun j => …) j`): insert a `show` of the
+  beta-reduced statement before the `by_cases`/`rw` block — `omega` sees such an application as an atom.
+* `Grid.leaves` / `Grid.cherryTri` are `noncomputable`, and `cherryFinset c` is a `biUnion` whose `List`
+  representation contains an unevaluated `decide`: any rewrite that unfolds them needs
+  `maxHeartbeats > 10⁶` (this file sets `8000000`).
+* The private `Paths.sum_nb_card_eq` (degree sum split by colour-degree) has now been **duplicated for
+  the fourth time** (Paths, Rigidity, Classwise, Template): it should be made public once.
+
 ## Status (round 71)
 
 `lake build`: **OK** (3159 jobs; the new file `lean/JSPProblem/Grid.lean` — 600 lines, 36
