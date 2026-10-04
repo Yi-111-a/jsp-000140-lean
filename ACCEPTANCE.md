@@ -1,3 +1,71 @@
+## Status (round 77)
+
+`lake build`: **OK** (3164 jobs; the new file `lean/JSPProblem/NoMerge.lean` — 438 lines, 15
+declarations, 8 public theorems, 0 placeholders — is on the default build path).
+`sorry`/`admit`: **0** (project-wide; `#print axioms` on every new theorem reports only
+`propext, Classical.choice, Quot.sound`).  `harness/score.py --strict-prize problems/JSP-000140/lean`:
+`build_ok = true`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 77 PROVES THE NO-MERGE THEOREM: MERGING COLOUR CLASSES OF THE ROUND-ROBIN COLOURING NEVER
+PRESERVES ADMISSIBILITY — THE FAMILY IS WORTH EXACTLY `n` COLOURS.**
+
+Every *explicit* colouring ever built in this development is either the sum (round-robin)
+colouring of `Construction.lean` (`c({a,b}) = a + b mod m`, admissible for odd `m`, giving
+`EG n ≤ n`) or the ghost colouring of `Ghost.lean` (`n - 1` colours for `n ≡ 0, 2 (mod 6)`); both
+sit a whole colour above the catalog constant `5n/6`.  The obvious way to close that gap is to
+**merge** colour classes, i.e. to compose `a ↦ a + b` with a non-injective map
+
+    `NoMerge.mergedCol (m k) hk φ : Col m k`,   `c_φ({a, b}) = φ (a + b)`,   `φ : ZMod m → Fin k`.
+
+Rounds 60–74 attacked this **by brute force** (`discovery/JSP-000140/rrmerge_probe.py` and the
+`r66_*`, `r74_*` searches: no merge was ever admissible, at `n = 9, 11, 13`, for groups of size
+2, 3, 4).  Round 77 replaces those experiments by the general statement.
+
+### The theorems
+
+| new theorem | statement |
+|---|---|
+| **`NoMerge.injective_of_admissible`** | **THE NO-MERGE THEOREM.**  For odd `m ≥ 5`, `c_φ` is admissible only if `φ` is **injective** |
+| **`NoMerge.k_ge`** | an admissible sum-type colouring of `K_m` needs `k ≥ m` colours |
+| **`NoMerge.no_merge`** | for odd `m ≥ 5` and `k < m` there is **no** admissible `k`-colouring of `K_m` of the form `φ (a + b)` |
+| **`NoMerge.card_colorsOn_eq`** | such a colouring uses **exactly `m` colours** — the family contains the round-robin colouring and nothing better |
+| `NoMerge.card_colorsOn_le` | the family is worth at most `m` colours, with no hypothesis at all |
+| `NoMerge.no_merge_col` | no admissible `Col m k` with `k < m` is of sum type |
+| `NoMerge.three_of_four` | **THE MECHANISM**: if `φ x = φ y`, `x ≠ y` and `2u ∉ {x, y, 2y - x}`, then the four-set `{u, x-u, y-u, x-y+u}` is a `K₄` with **three edges of one colour** |
+| `NoMerge.exists_u` | **THE FOURTH VERTEX**: for odd `m ≥ 5` a residue `u` with `2u ∉ {x, y, 2y - x}` exists (multiplication by `2` is injective, so at most three of the `m` residues are excluded) |
+| `NoMerge.exists_add_ne` | every residue of `ZMod m` is the sum of two *distinct* vertices |
+| `NoMerge.zfin`, `NoMerge.zfin_inj`, `NoMerge.natCast_fin_inj` | the `ZMod m ↔ Verts m` dictionary |
+
+### Why (the local mechanism)
+
+Suppose `φ x = φ y` with `x ≠ y`.  Then for every `u` with `2u ∉ {x, y}` the two edges
+`u – (x - u)` and `u – (y - u)` meet at `u` and both have colour `φ x`: an **adjacent collision**.
+Admissibility (`Definitions.colorsOn_card_le_four`, "three edges of a `K₄` in one colour ⟹ at
+most four colours") therefore forces *every* other edge of the four-set
+`{u, x-u, y-u, x-y+u}` to avoid that colour; in particular the third edge of that four-set with
+endpoint-sum `x`, namely `{y-u, x-y+u}`, can only fail to be new if `x - y + u` coincides with one
+of the three vertices `u, x - u, y - u`.  That forces `2u ∈ {x, y, 2y - x}`, so `u` must be one
+of **three** residues; for `m ≥ 5` a fourth choice exists (`NoMerge.exists_u`), and for it the
+four vertices are distinct and their `K₄` carries **three** edges of colour `φ x`
+(`NoMerge.three_of_four`) — a contradiction.
+
+### Consequence for the prize
+
+The obstruction is purely local and needs no search, so it settles, for the whole (infinite)
+family, what rounds 60–74 could only test finitely: **the `1/6` of the colours missing from the
+round-robin colouring cannot be recovered by merging its colour classes**, for any group, any
+modulus and any number of merged classes.  Together with `SumColMod`'s admissibility this pins
+the whole "sum-type" part of the search space at exactly `n` colours, so the construction of
+arXiv:2207.02920 must be a genuinely different object — consistent with the fact that it is
+probabilistic (random triangle removal + the local lemma) and that no explicit colouring with
+`5n/6 + o(n)` colours is known.
+
+The prize blocker is unchanged: `Main.AdmissibleUpper ε` for `0 < ε < 1/6`, i.e. the existence
+of the labelled-triangle systems of arXiv:2207.02920 §4 / arXiv:2208.12563 §4, is the sole
+remaining content of `jsp_000140_main`, and `jsp_000140_main` was again **not** declared
+(declaring it with the existence statement as an assumption would falsify the prize).
+
 ## Status (round 75)
 
 `lake build`: **OK** (3163 jobs; the two new files `lean/JSPProblem/Cell.lean` — 451 lines, 26

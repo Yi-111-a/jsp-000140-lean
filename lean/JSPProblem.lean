@@ -61,3 +61,4 @@ import JSPProblem.Template
 import JSPProblem.Miss
 import JSPProblem.Cell
 import JSPProblem.Rate
+import JSPProblem.NoMerge
