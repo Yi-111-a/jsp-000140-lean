@@ -1,3 +1,78 @@
+## Status (round 91)
+
+`lake build`: **OK** (3175 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 91 PROVES A BARRIER: THE UNIFORM RANDOM COLOURING CANNOT CERTIFY THE 5n/6 RATE, AT ANY
+PALETTE.**  New file `lean/JSPProblem/Barrier.lean` (694 lines, 0 placeholders, on the default
+build path; `JSPProblem.lean` imports it).  This is the first round that says something about the
+*probabilistic* part of the catalogue result (`Main.AdmissibleUpper` — the sole surviving
+component of `jsp_000140_main`) rather than about a deterministic construction.  Concretely it
+proves that the union bound over the four-sets, evaluated on the uniform distribution over
+colourings, needs a palette of order `n²`: a factor `Θ(n)` worse than the `n+1` colours of
+`Construction.EG_le_succ`.  Hence **any** proof of `AdmissibleUpper` must use a *correlated*
+distribution (the labelled-triangle systems of arXiv:2207.02920 S4/S12), not a uniform one.
+
+### 1. The counting backbone (§§0–1)
+
+| theorem | statement |
+|---|---|
+| `Barrier.card_col` | `Fintype.card (Col n k) = k ^ Fintype.card (Sym2 (Verts n))` |
+| `Barrier.card_Sym2_ge_six` | `6 ≤ |Sym2 (Verts n)|` |
+| `Barrier.edgeFinset_fourSet` | the edges of a four-set `{a,b,c,d}` are exactly the six pairs inside it |
+
+### 2. The probability of one bad four-set (§2)
+
+A colouring is fixed on the six edges of a four-set iff it is *two-monochromatic-matching* on it:
+exactly one of the three matchings `{ab,cd}`, `{ac,bd}`, `{ad,bc}` is used.  Writing the four-set as
+`(a,b,c,d)` (in the order of `Definitions.fourSet`) the three matchings are
+`twoMatchings a b c d`.
+
+| theorem | statement |
+|---|---|
+| `Barrier.TwoMono` (+ `TwoMono_eq`) | the two-monochromatic-matching condition on the six edges, as four equations |
+| `Barrier.card_twoMono` | `k^(E-4)` colourings realise it, `E = |Sym2 (Verts n)|` |
+| `Barrier.colorsOn_le_four_of_TwoMono` | every four-set of such a colouring has at most four colours |
+
+So the failure probability of a *given* four-set is `≥ 1/k²`, exactly as in a matching
+decomposition, and no better.
+
+### 3. The first moment (§3)
+
+| theorem | statement |
+|---|---|
+| `Barrier.badAt` (+ `badAt_card_ge`) | for every four-set, `k²·k^(E-4) = k^(E-2)` colourings fail it |
+| `Barrier.firstMoment_eq` | `∑_c |badFours c| = ∑_{S ∈ fourSets n} |{c : S is bad}|` (double counting) |
+| `Barrier.firstMoment_ge` | `C(n,4)·k^(E-2) ≤ ∑_c |badFours c|` — **the union-bound budget** |
+
+### 4. The criterion and the failure (§4)
+
+| theorem | statement |
+|---|---|
+| `Barrier.unionBound` | a weighted first-moment criterion `∑ w_c·|bad c| < ∑ w_c` yields an admissible colouring |
+| `Barrier.AdmissibleUpper_of_firstMoment` | **that criterion at `k ≤ 5m/6 + δm` proves `Main.AdmissibleUpper 1`** |
+| `Barrier.uniform_firstMoment_fails` | the criterion FAILS for `k² ≤ C(n,4)` |
+| `Barrier.certificate_needs_more_than_n` | **so a uniform certificate forces `k > n`** |
+| `Barrier.firstMoment_needs_quadratic` | and `n⁴ ≤ 192k²`, i.e. `k ≥ n²/14` |
+| `Barrier.gain_needed` | the per-four-set failure probability must beat `1/k²` by a factor `C(n,4)` |
+
+Together `AdmissibleUpper_of_firstMoment` and `certificate_needs_more_than_n` are a genuine
+dichotomy: the *only* way this development can ever prove `AdmissibleUpper` is with a
+non-uniform (correlated) distribution — quantified here as arbitrary positive weights `w_c`.
+
+### 5. Finite part (§5)
+
+`Barrier.choose_four_eq`, `choose_four_ge_sq` (`n² ≤ C(n,4)` for `n ≥ 8`, analytically for
+`n ≥ 14`, by `decide` below), `choose_four_ge` (`n⁴ ≤ 192·C(n,4)`),
+`no_certificate_below_trivial`, `certificate_needs_more_than_n`, `firstMoment_needs_quadratic`,
+`firstMoment_vacuous_below`, `gain_needed`.
+
+**Blocker unchanged**: `Main.AdmissibleUpper ε` for `0 < ε < 1/6`; `jsp_000140_main` again NOT
+declared.  This round contributes the *negative* half of the answer: the uniform method cannot
+work, so the remaining work is the correlated first stage of arXiv:2207.02920 S4/S12.
+
 ## Status (round 90)
 
 `lake build`: **OK** (3174 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
