@@ -73,3 +73,4 @@ import JSPProblem.Nibble
 import JSPProblem.ApexPrice
 import JSPProblem.PathFac
 import JSPProblem.Barrier
+import JSPProblem.VertexBudget

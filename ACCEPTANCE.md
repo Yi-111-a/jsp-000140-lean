@@ -1,3 +1,99 @@
+## Status (round 92)
+
+`lake build`: **OK** (3176 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 92 WRITES THE PER-VERTEX BUDGET OF THE FIRST STAGE — THE LOCAL FORM OF THE PACKING BOUND —
+AND READS OFF THE PRICE OF A COMPLETE COVERING: `+1` COLOUR, NOT `+1/3`.**  New file
+`lean/JSPProblem/VertexBudget.lean` (1085 lines, 43 declarations, 0 placeholders, on the default
+build path; `JSPProblem.lean` imports it).
+
+Every statement of rounds 44–91 about the labelled-triangle encoding is an **aggregate**:
+`Cover.five_mul_card_le` counts the five `(vertex, colour)` slots of a triangle against the `n·k`
+available *globally*, `Cell.cells`/`PathFac.Factor.cells` read one *colour* at a time, and
+`Surplus.Isolated c` is a total over colours.  But the object arXiv:2208.12563 §4 actually builds
+is a matching of `(vertex, colour)` **pairs** in an auxiliary `8`-uniform hypergraph, so the bound
+that matters for it is a per-vertex one — and this development had never written it down.
+
+### §0 — the two roles of a vertex, and the three double counts
+
+`leafTris c v` (the triangles in which `v` is a leaf) and `atVertex c v` (the triangles through
+`v`) are new; `atVertex_eq_union` + `disjoint_apexTris_leafTris` say the two roles **partition** the
+triangles through `v`, using **`apex_eq_of_triVerts` — A TRIANGLE HAS A UNIQUE APEX** (never stated
+before).  The three double counts follow: `sum_card_atVertex` (`Σ_v |atVertex c v| = 3|triSets c|`),
+`sum_card_apexTris` (`Σ_v |apexTris c v| = |triSets c|`, the finiteness form of the uniqueness),
+`sum_card_leafTris` (`Σ_v |leafTris c v| = 2|triSets c|`).
+
+### §1 — the per-vertex *edge* budget
+
+Every triangle through `v` uses exactly **two** of the `n-1` edges at `v` (two cherry edges at the
+apex; the cherry edge and the opposite edge at a leaf), and distinct triangles share no edge
+(`Slot.lin3_triSets`, from admissibility alone).  Hence for **every** admissible colouring and
+**every** vertex:
+
+| theorem | statement |
+|---|---|
+| **`two_mul_card_atVertex_le`** | `2·|atVertex c v| ≤ n - 1` |
+| `degAt c v` | the degree of `v` in the leftover graph `L` of arXiv:2208.12563 §4 |
+| **`sum_degAt_eq_two_mul_leftover`** | **`Σ_v degAt c v = 2·|leftover c|`** — the per-vertex form of `Card.edgeCover_count`, i.e. the exact workload of the second stage |
+
+### §2 — the per-vertex *slot* budget
+
+With `vSlots c v = {p ∈ Slots c | p.1 = v}`: one slot at an apex and two at each leaf, and the
+slots of distinct triangles disjoint (`Cover.triVerts_eq_of_mem_triPairs`, i.e. admissibility):
+
+| theorem | statement |
+|---|---|
+| **`card_vSlots_eq`** | `|vSlots c v| = |apexTris c v| + 2·|leafTris c v|` — the "five pairs per triangle" identity, vertex by vertex |
+| `card_vSlots_le`, **`slotBudget`** | **`|apexTris c v| + 2·|leafTris c v| ≤ k`** — the local form of `Slot.slots_five` |
+| `two_mul_card_leafTris_le` | `2·|leafTris c v| ≤ k` |
+| `sum_card_vSlots`, `sum_slot_eq_five_mul_card` | the global statement is recovered: `Σ_v (|apexTris c v| + 2·|leafTris c v|) = 5·|triSets c|` |
+
+### §3 — THE REFINED PACKING BOUND `Isolated c + 5·|triSets c| ≤ n·k`
+
+An isolated `(vertex, colour)` cell is **never a slot**: `not_mem_Slots_of_zeroA` (if
+`(v,i) ∈ anchorPairs c T` then `Slot.mem_anchorPairs` exhibits an `i`-edge at `v`).  With
+`isoPairs c` and `card_isoPairs`, `isoPairs_subset_unused`, `card_unused_slots`:
+
+> **`VertexBudget.Isolated_add_five_mul_card_le — `Isolated c + 5·|triSets c| ≤ n·k`.**
+
+A strict sharpening of `Slot.slots_five` for every colouring with an isolated cell, and the first
+statement of this development that puts the defect accounting of `Surplus.lean` and the slot
+counting of `Cover.lean` in **one** inequality.
+
+### §4 — THE PRICE OF A COMPLETE COVERING: `5(n-1) + 6 ≤ 6k`
+
+Assume `Covers c` (every edge lies in a labelled triangle) and `2 ≤ n`.  Then every edge at `v` is
+used, so §1 is an equality and §2 becomes sharp:
+
+| theorem | statement |
+|---|---|
+| `covers_two_mul_card_atVertex`, `covers_card_atVertex` | every vertex lies in exactly `(n-1)/2` triangles |
+| `covers_six_mul_card` | a complete covering has exactly `n(n-1)/6` triangles |
+| `covers_apex_ge`, `covers_leaf_le` | a vertex is the apex of **at least `n-1-k`** and a leaf of **at most `k-(n-1)/2`** triangles |
+| `covers_apex_ge_one`, `covers_isolated_ge` | if `k ≤ n-2` then every vertex is an apex, hence `n ≤ Isolated c` |
+| **`covers_price`** | **`Covers c ∧ 2 ≤ n ∧ k ≤ n-2 → 5(n-1) + 6 ≤ 6k`, i.e. `k ≥ 5(n-1)/6 + 1`** |
+| `covers_price_real` | the same in `ℝ` |
+| `covers_apex_or_palette` | either every vertex is an apex, or the palette is at least `n-1` |
+| `covers_not_extremal`, `covers_residual_ge` | a complete covering never attains `6k = 5(n-1)`; with `k ≤ n-2`, `6k = 5(n-1)+r` forces `6 ≤ r` |
+| **`covers_two_stage_price`** | **the published budget `6(k+K) ≤ 5(m-1) + δm` forces `δm ≥ 6`** for a complete first stage |
+
+**This is strictly stronger than round 89's `ApexPrice.covered_price` (`5n-3 ≤ 6k`, i.e.
+`5(n-1)/6 + 1/3`)**: a complete labelled-triangle covering cannot come within a third of a colour
+of the catalogue rate — it must pay a **whole** extra colour.  Consequently at the exact rate the
+*second stage* of arXiv:2208.12563 §4 is not an optimisation but a necessity (a partial first
+stage, i.e. a non-empty leftover, or an accuracy of at least `6/m`).
+
+### §5 — the price list a construction must satisfy
+
+`Main.AdmissibleUpper ε` (`0 < ε < 1/6`) — the existence of admissible `k`-colourings with
+`k ≤ 5n/6 + εn` — is **unchanged** and is still the sole missing content of `jsp_000140_main`.
+
+**Blocker unchanged**: `Main.AdmissibleUpper ε` for `0 < ε < 1/6`; `jsp_000140_main` again NOT
+declared.
+
 ## Status (round 91)
 
 `lake build`: **OK** (3175 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
