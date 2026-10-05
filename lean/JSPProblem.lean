@@ -70,3 +70,4 @@ import JSPProblem.PadSet
 import JSPProblem.Fusion
 import JSPProblem.LocalFuse
 import JSPProblem.Nibble
+import JSPProblem.ApexPrice

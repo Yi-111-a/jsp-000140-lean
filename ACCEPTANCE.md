@@ -1,3 +1,61 @@
+## Status (round 89)
+
+`lake build`: **OK** (3173 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 89 GIVES THE APEX SLOT A PRICE: THE APEX-ISOLATION LEMMA OF ROUND 81 IS USED
+QUANTITATIVELY FOR THE FIRST TIME.**  Round 81 (`Strict.apex_zeroA`) proved that the apex `u` of a
+labelled triangle `(u; p, q)` has **no edge of the colour `μ = c s(p,q)`** of the opposite edge,
+and concluded only `Isolated c ≥ 1`, whence `6k > 5(n-1)`.  This round counts with it.
+
+New file `lean/JSPProblem/ApexPrice.lean` (583 lines, 23 declarations, zero placeholders, on the
+default build path; `JSPProblem.lean` imports it):
+
+* `nbrs_lam_eq` — **THE TRIANGLE IS DETERMINED BY ITS APEX AND ITS APEX COLOUR**: by
+  `Counting.nb_card_le_two` the two `λ`-neighbours of an apex are exactly its two leaves, so
+  `apexTrisCol_card_le_one`: for fixed `(u, λ)` there is at most one labelled triangle;
+* `two_mul_card_apexTris_le` — **at most `(n-1)/2` labelled triangles share an apex**
+  (`Star.sum_nb_star`: the apex colours at `u` cost two of the `n-1` edges at `u`);
+* `apexTris c u`, `apexTrisCol c u λ`, `apexVerts c` — the finite objects;
+* **`ApexPrice.two_mul_triSets_le` — THE APEX-ISOLATION COUNT:
+  `2·|triSets c| ≤ (n-1)·Isolated c`**, for *every* admissible colouring (no `PairFree`).
+
+### What the count is worth
+
+| theorem | statement |
+|---|---|
+| **`surplus_tri_price`** | `6(n-1)(n·k) ≥ 5n(n-1)² + 12·|triSets c| + 2(n-1)·Defect c`, i.e. `6k ≥ 5(n-1) + 2|triSets|/(n(n-1)) + Defect/3`: **one labelled triangle of the first stage costs `2/(n(n-1))` units of the `6k` budget, one unpaid edge `1/3`** |
+| **`surplus_leftover_price`** | the same with `4·|leftover c|` in place of `12·|triSets c|` (`3·|triSets c| + |leftover c| = C(n,2)` for `PairFree c`): **the price of the leftover graph of arXiv:2207.02920 §4 in the palette budget** |
+| **`tri_budget`** | **at surplus `r` (`6k = 5(n-1)+r`): `12·|triSets c| ≤ n(n-1)·r`**, so a complete covering (`|triSets c| = n(n-1)/6`) forces **`r ≥ 2`** |
+| **`covered_price`** | a `PairFree` colouring with **empty leftover graph** (`Covers c`, the exact Steiner triple system of §4/§12) satisfies **`5n-3 ≤ 6k`** — one unit better than `Strict.eg_strict` (`5n-4 ≤ 6k`), because `Isolated c ≥ n/3` replaces `Isolated c ≥ 1` |
+| **`covered_ne_tight`** | a complete first stage **cannot** attain `6k ≤ 5(n-1)+1`: the catalogue rate is unreachable by an exact triangle covering |
+| **`isolated_zero_no_tri`** | `Isolated c = 0 → triSets c = ∅` |
+| **`matchings_need_n_sub_one`** | **if every colour class is a matching then `k ≥ n-1`**: the 1-factorisation (and the round-robin colouring) is **optimal among all matchings-only colourings**, and every saving below `n-1` must buy two-edge paths — which `surplus_tri_price` then charges |
+| **`no_waste_no_saving`** | `Isolated c = 0 → k ≥ n-1` |
+
+### Abandoned this round (recorded so it is not retried blindly)
+
+* the two-triangle counterexample of `Nibble.lean` §3 was **not** returned to the build path (its
+  `decide`/`native_decide` proof costs ≈ 6 GB and OOM-kills `lake build`; it stays documented in the
+  module docstring and checked by `discovery/JSP-000140/r88_twotri_check.py`);
+* `triSets_le_paths` (`|triSets c| ≤ Paths c`) and the `EG`-level corollary `5n-3 ≤ 6·f(n,4,5)`
+  were drafted and **dropped**: the first needs a double `Finset` sum swap that did not compile
+  inside the budget, and the second is **false without a covered hypothesis** — without one the apex
+  count only reproduces `Strict.eg_strict`.  The honest form is `covered_price`.
+
+### Prize blocker (unchanged)
+
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence of the labelled-triangle
+systems of arXiv:2207.02920 §4/§12 — is still the sole remaining content of `jsp_000140_main`, and
+`jsp_000140_main` was again **not** declared.  What is new is the *price*: a colouring at the
+catalogue rate must spend at least **two** units of surplus on the triangle covering, i.e.
+`6k ≥ 5n-3`, and the leftover graph it is allowed to leave is priced at `4/(n(n-1))` per edge.  The
+nibble variance bound (`Nibble.Variance`) is still the single named missing statement of the first
+stage.
+
+---
 ## Status (round 88)
 
 `lake build`: **OK** (3172 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
