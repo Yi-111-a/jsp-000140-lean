@@ -1,3 +1,101 @@
+## Status (round 90)
+
+`lake build`: **OK** (3174 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 90 CHANGES THE ATTACK FAMILY TWICE: IT (i) REWRITES THE FIRST STAGE AS A DECOMPOSITION OF
+`K_n` INTO PATH FACTORS — an instance of the *Oberwolfach problem* — AND (ii) ADDS THE ONE
+HYPOTHESIS THE EXTREMAL THEORY NEVER USED, *BALANCE*, WHICH TURNS THE PER-COLOUR EQUATIONS OF
+ROUNDS 71–72 INTO ABSOLUTE NUMBERS AND PRODUCES THE FIRST `mod 5` OBSTRUCTION OF THE
+DEVELOPMENT.**  New file `lean/JSPProblem/PathFac.lean` (436 lines, 35 declarations, zero
+placeholders, on the default build path; `JSPProblem.lean` imports it).
+
+Every statement of rounds 53–56, 71–72 and 88–89 about the extremal case (`6k = 5(n-1)`) is
+*asymmetric*: `tight_pathFinset_is_STS`, `tight_mod6`, `Grid.cellCount`, `Cell.cells_tight`,
+`Extremal.tight_ge_thirteen` constrain the aggregate `Σᵢ` or read one colour `i` at a time
+(`3 aᵢ + 2 bᵢ = n`) **without ever forcing the numbers `aᵢ` themselves**.
+
+### 1. `PathFac.Factor`: the path-factor picture
+
+`Factor c i` says the colour class `Eᵢ` *spans* `V`: every vertex carries one or two colour-`i`
+edges, which — admissibility, `Cell.class_eq_twoA_add_leaf` — says exactly that `Eᵢ` is a
+vertex-disjoint union of `aᵢ = |twoA c i|` cherries and `bᵢ = Cell.leaf c i` single edges.
+The second half is automatic, so `Factor` **is** the spanning condition (`Factor.of_cover`).
+
+| theorem | statement |
+|---|---|
+| **`PathFac.Factor.cells`** | the cell equation of a *factor*: `3aᵢ + 2bᵢ = n` |
+| **`PathFac.Factor.two_mul_card`** | its edge count: `2|Eᵢ| = n + aᵢ` |
+| **`PathFac.Factor.parity_one`** | a spanning factor of an odd `K_n` has an **odd** number of cherries |
+| `PathFac.Factor.miss_eq_zero` | a spanning colour class misses no vertex (`Miss.miss c i = 0`) |
+
+`PathFac.extremal_Factor` + `extremal_cells` + `extremal_two_mul_card` + `extremal_odd` +
+`extremal_parity_one`: **at `6k = 5(n-1)` all `k` colour classes are spanning path factors** —
+the colour-by-colour form of `Grid.decomposes_of_tight` and of `Miss.tight_all_active`.
+
+### 2. BALANCE — and the Oberwolfach form of the catalogue rate
+
+`Balanced c` = all colour classes have the same number of edges (the shape of every symmetric
+construction, and of a random matching).  `decidableBalanced` makes it a decidable predicate.
+
+| theorem | statement |
+|---|---|
+| **`PathFac.Balanced.card_mul_k`** | the common size: `k · |Eᵢ| = |E(K_n)|` |
+| **`PathFac.Balanced.tight_five_mul`** | **at the catalogue rate `5 · |Eᵢ| = 3n` for every colour** |
+| **`PathFac.Balanced.tight_twoA`, `…tight_leaf`** | **`5aᵢ = 5bᵢ = n`: every colour class is the spanning factor `3^{n/5} 2^{n/5}`** — `n/5` cherries *and* `n/5` single edges |
+| **`PathFac.Balanced.tight_cherries`, `…tight_total_cherries`, `…tight_cherries_eq_paths`** | the first stage colour by colour: `k · (n/5)` labelled triangles `= Paths c`, i.e. `tight_pathFinset_is_STS` obtained one colour at a time |
+| **`PathFac.Balanced.first_instances`** | the target table `(n,k) = (25,20), (55,45), (85,70)`, machine-checked |
+
+So: **the extremal balanced colouring of `K_n` decomposes `E(K_n)` into `5(n-1)/6` spanning path
+factors of the type `3^{n/5} 2^{n/5}`** — a finite, purely combinatorial design question in the
+classical style of the Oberwolfach problem, not a probabilistic one.
+
+### 3. THE OBSTRUCTION MODULO `5` — and the first order that is even possible
+
+| theorem | statement |
+|---|---|
+| **`PathFac.Balanced.five_dvd_n`** | **a balanced extremal colouring needs `5 ∣ n`** — the first congruence obstruction of this development that is *not* modulo `6` |
+| **`PathFac.Balanced.mod30`** | **with `tight_mod6` (`n ≡ 1 mod 6`): `n ≡ 25 (mod 30)`** |
+| **`PathFac.Balanced.ge_twentyfive`** | **`25 ≤ n`** |
+| `PathFac.Balanced.ne_thirteen`, `…ne_nineteen` | **`n = 13` and `n = 19` — the two orders `Extremal.tight_ge_thirteen` still admits — carry NO balanced colouring** (`6·10 = 5·12` and `6·15 = 5·18` hold, but `5 ∤ 13`, `5 ∤ 19`) |
+| `PathFac.Balanced.ne_seven` | strengthens `Extremal.no_five_colouring_of_K7`: `K₇`'s cell equation (`3a + 2b = 7 ⟹ a = 1`) already refuses to be balanced |
+| **`PathFac.twentyfive_ge`, `PathFac.TwentyFive`, `…TwentyFive.sound`, `…TwentyFive.nineteen_impossible`** | `f(25,4,5) ≥ 20`; `TwentyFive` = "∃ admissible balanced 20-colouring of `K₂₅`"; such a witness **proves the exact value `f(25,4,5) = 20`**, and no 19-colouring of `K₂₅` is admissible |
+
+### 4. `PathFac.gcd_dvd_five`
+
+At `6k = 5(n-1)` one has **`gcd n k ∣ 5`** (since `6k = 5n − 5`).  A purely arithmetic reason, in
+addition to rounds 81/85, why no extremal colouring can be invariant under a cyclic group whose
+order shares a divisor `> 5` with the palette.
+
+### Abandoned this round (recorded so it is not retried blindly)
+
+* **the small-order census `EG 7 = 6`, `EG 8 = 6`**: a search for admissible 6-colourings of
+  `K₇`/`K₈` (exhaustive backtracking with the class-size bound `3|Eᵢ| ≤ 2n` and four-set
+  completability pruning, plus a `native_decide`-shaped plan) ran to a 600 s budget
+  (`discovery/JSP-000140/r90_k78.out`, 47.8 M nodes) **without deciding either order**, and the
+  extension of the certified 5-colouring `Tables.sixCol` of `K₆` by one vertex was proved to fail
+  for all `6⁶` assignments of the six new edges.  **No new exact value is claimed this round**;
+  a *certificate* would still be needed (and the lower bound `6 ≤ EG 7` is already round 71's
+  `Grid.eg_seven_ge_six`);
+* the balanced **slack** case (`6k = 5(n-1) + r`, `r > 0`, where the second stage contributes fresh
+  colours and the colour classes are no longer spanning): not attempted — the first stage of
+  arXiv:2207.02920 §4 is *partial* there, so the objects of §1 do not apply unchanged.
+
+### Prize blocker (unchanged)
+
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence of the labelled-triangle
+systems of arXiv:2207.02920 §4/§12 (random triangle removal, analysed with the differential
+equation method) — is still the sole remaining content of `jsp_000140_main`, and
+`jsp_000140_main` was again **not** declared.  What is new is the *target*: a balanced extremal
+colouring at the catalogue rate is, exactly, a decomposition of `K_n` into `5(n-1)/6` path
+factors `3^{n/5} 2^{n/5}`, possible only for `n ≡ 25 (mod 30)`, with `n = 25`, `k = 20` the first
+instance and `f(25,4,5) = 20` the value one certified witness would settle.  The nibble variance
+bound (`Nibble.Variance`) is still the single named missing statement of the published first stage.
+
+---
+
 ## Status (round 89)
 
 `lake build`: **OK** (3173 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
