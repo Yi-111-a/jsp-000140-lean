@@ -1,4 +1,62 @@
-## Status (round 92)
+## Status (round 93)
+
+`lake build`: **OK** (3177 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 93 REFUTES THE ROUND-68 HYPOTHESIS ITSELF: THE UNIVERSAL GROWTH LEMMA `Grow6` IS FALSE, AND NO
+GROWTH HYPOTHESIS OF RATE `5/6` EXISTS AT ANY STEP LENGTH.**  New file
+`lean/JSPProblem/Sharp6.lean` (316 lines, 25 declarations, 0 placeholders, on the default build path;
+`JSPProblem.lean` imports it).
+
+Rounds 68, 75 and 83 built the entire *sufficiency* route of this development on one local hypothesis —
+`Grow6`, "every admissible colouring of `K_m` extends to an admissible colouring of `K_{m+6}` with five
+more colours" — with `Grow6.main` reading off `jsp_000140_target` from it.  **That hypothesis is false.**
+
+### §1 — `Grow6` is false
+
+| theorem | statement |
+|---|---|
+| **`Sharp6.not_Grow6`** | **`¬ Grow6`**: applied at `(m,j) = (6,5)` to the verified admissible five-colouring `Tables.sixCol` of `K₆`, `Grow6` would produce an admissible **ten**-colouring of `K₁₂`, and `Grow6.not_from_six` (= `Vacant.no_ten_of_twelve`) forbids it |
+| **`Sharp6.not_GrowRate_six_five`** | `¬ GrowRate 6 5` — the same refutation in the rate language of `Rate.lean`, so its candidate-step list is empty in the universal form |
+| **`Sharp6.no_growth_five_sixth`** | **`¬ GrowRate (6s) (5s)` for every `s ≥ 1`: NO growth hypothesis of rate `5/6` exists, at ANY step length.**  Iterating `s` times from the `K₆` witness reaches `(6+6s², 5+5s²)`, while `Vacant.five_n_add_one_le_six_k_of_seven` (`5n+1 ≤ 6k`) demands `31 + 30s² ≤ 30 + 30s²`.  **Pure counting.** |
+| **`Sharp6.main_is_vacuous`** | `Grow6.main` and `Grow6.jsp_000140_main` survive only because their hypothesis is refuted — the round-68 headline "one finite witness plus one local extension lemma is the whole prize" is vacuously true |
+
+### §2 — the correctly scoped hypothesis, and the prize from it
+
+`Sharp6.Grow6At` demands the six-step only from **boundary anchors** `6j = 5m+6`, the shape on which
+the step is numerically consistent (`Grow6.anchor_counting`) and the shape of the verified witness
+`EG 12 = 11`.  The `K₆` counterexample is *not* a boundary anchor (`Sharp6.sixCol_not_anchor`), so this
+form is not refuted.
+
+| theorem | statement |
+|---|---|
+| **`Sharp6.Grow6At.shape`** | `6j = 5m+6 → 6(j+5) = 5(m+6)+6` — the shape is preserved exactly |
+| `Sharp6.anchor_col` | `∃ c : Col 12 11, Admissible c` — the verified `Window.r66Col` witness as data |
+| **`Sharp6.Grow6At.family`** | `Grow6At → ∀ t, ∃ d : Col (12+6t) (11+5t), Admissible d` |
+| **`Sharp6.Grow6At.solo`** | `Grow6At → Solo6 12 11` — the family *is* round 83's non-uniform hypothesis |
+| **`Sharp6.Grow6At.count_bound`** | `Grow6At → 12 ≤ n → 6·f(n) ≤ 5n + 31` — the `O(1)` error with **no** extension statement beyond the family |
+| **`Sharp6.Grow6At.target`** | **`Grow6At → jsp_000140_target`** — the honest, non-vacuous form of `Grow6.main` |
+
+### §3 — the sharp palette at `n ≡ 0 (mod 6)`
+
+| theorem | statement |
+|---|---|
+| **`Sharp6.ge`** | `2 ≤ t → 5t+1 ≤ EG (6t)`: **the sharp lower bound** along the whole residue class `0 (mod 6)` |
+| **`Sharp6.not_five_t`** | `2 ≤ t → ¬ ∃ c : Col (6t) (5t), Admissible c`: **the counting bound `5n/6` is NEVER attained at any order `n ≡ 0 (mod 6)`, `n ≥ 12`** — so round 83's `f(18+6t) = 16+5t` is at the optimum and cannot be lowered by one colour |
+| `Sharp6.boundary` | `6(5t+1) = 5(6t)+6` — the optimal palette sits exactly on the growth boundary |
+| `Sharp6.anchor_two` | `EG 12 = 11` — the optimal palette *is* attained at `t = 2` |
+| **`Sharp6.eighteen` / `Sharp6.eighteen_cases`** | `16 ≤ EG 18 ≤ 17`, hence `EG 18 = 16 ∨ EG 18 = 17` |
+| **`Sharp6.eighteen_eq_sixteen`** | **`EG 18 = 16 ↔ ∃ c : Col 18 16, Admissible c` — the first missing link of the growth route, as one finite question.**  Unlike the abandoned `K₁₃/k = 10` search of this round, `k = 16` at `n = 18` is arithmetically *open* here: `6k = 96 = 5n+6`, the boundary shape, not the refuted equality `6k = 5(n-1) = 85` |
+| `Sharp6.Grow6At.eighteen` | `Grow6At → EG 18 = 16` — the first step of the boundary lemma settles `K₁₈` |
+
+**Abandoned this round.**  A uniform simulated-annealing search for an admissible ten-colouring of `K₁₃`
+(`discovery/JSP-000140/r93_k13.c`) stalled at 113 bad four-sets out of `C(13,4) = 715`; that palette is
+anyway excluded arithmetically, `6k = 60 = 5(n-1)` being the equality shape refuted long ago by
+`Strict.not_sharp`.  The search artefact is kept so the run is not repeated blindly.
+
+
 
 `lake build`: **OK** (3176 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
 (invoked on `problems/JSP-000140/lean`):
