@@ -1,3 +1,93 @@
+## Status (round 87)
+
+`lake build`: **OK** (3171 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`partial_ok = true`, `prize_ready = false`, `missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 87 CLOSES THE FUSION PROGRAMME IN ALL FOUR FORMS: PAIRS, CHAINS, SETS, LOCALISATIONS.**
+New file `lean/JSPProblem/LocalFuse.lean` (908 lines, 59 declarations, zero placeholders, on the
+default build path; `JSPProblem.lean` imports it).  (The file is named `LocalFuse.lean` and not
+`Local.lean`, because `Local.lean` is round 25's file and is imported by `Main.lean`.)
+
+Rounds 84–86 proved that the basic move of every search program of rounds 65–77 — *fusing two
+colour classes* — cannot improve `f(n,4,5)` at an `EG`-optimal colouring, in three forms: one pair
+(round 84), a chain of pairs (round 85), one set of colours of any size (round 86).  All of those
+moves are **global**.  Round 87 analyses the remaining move, the one a local search actually tries:
+recolour only the `j`-coloured edges **inside a vertex set** `A ⊆ V`.
+
+* `Local.localFuseCol c i j A` — `j ↦ i` on the edges of `K_A` only; `A = V` recovers
+  `Fusion.fuseCol` (`Local.colorsOn_localFuseCol_univ`, `Local.localFuseCol_admissible_iff_univ`);
+* `Local.Confined c j A` — every `j`-coloured edge of `K_n` lies inside `A`;
+* **`Local.colorsOn_localFuseCol_eq_colorsOn_fuseCol_of_confinement` — THE LOCALISATION
+  THEOREM.**  Under confinement the localised fusion has *exactly* the effect of the global fusion
+  on every vertex set, hence `Local.localFuseCol_admissible_iff_of_confinement`;
+* `Local.exists_escaped_of_not_Confined` — a failing confinement is a single witness;
+* `Local.mem_colorsOn_localFuseCol_univ_j` — **`j` survives the move iff the region does not
+  contain all of its class**, i.e. iff the move is not confined;
+* `Local.colorsOn_localFuseCol_univ_eq_of_confinement` — under confinement the palette of the move
+  is *literally* the palette of `c` with `j` deleted; `Local.card_colorsOn_localFuseCol_univ_eq`
+  — so it saves exactly one colour (when `j` is used), and `Local.EG_le_of_localFuseCol` —
+  `f(n,4,5) ≤ (#colours used) - 1`;
+* `Local.card_colorsOn_localFuseCol_univ_ge` / `..._eq_of_escaped` — **the dichotomy**: unconfined,
+  the palette never shrinks (`card c ≤ card c'`), and with a used target colour it is *identical*;
+* **`Local.optimal_localFuse_blocked`** — round 84's `optimal_fusion_blocked`, unchanged, for every
+  region `A`;
+* **`Local.localFuse_is_not_a_move_at_optimal` / `Local.no_localFusion_of_optimal` — THE SHARP
+  FORM.**  At an `EG`-optimal colouring every admissible localised fusion whose target colour is
+  still used keeps the palette **exactly** (`card = k`): the move is legal only outside the
+  confined regions, and there it keeps `j`.  **`Local.not_Confined_of_localFuse_admissible`** is the
+  local-search reading: a legal fusion must leave a `j`-coloured edge outside `A`;
+* `Local.localFuseSetCol`, `Local.ConfinedSet`, `Local.colorsOn_localFuseSetCol_eq_colorsOn_fuseSetCol_of_confinement`,
+  `Local.card_colorsOn_localFuseSetCol_univ_le` (**the price with confinement in place of round 86's
+  "used colours" hypothesis**), `Local.EG_le_of_localFuseSetCol`,
+  `Local.optimal_localSetFusion_blocked` — the same three statements for a whole set of colours;
+* §5: `Local.JInside` (+ a computable `Decidable` instance), `Local.mem_colorsOn_inter_of_JInside`,
+  `Local.colorsOn_localFuseCol_of_absent` / `_of_inside` / `_of_escaped` / `_of_escaped_fresh`,
+  **`Local.card_colorsOn_localFuseCol'` — THE EXACT CARDINALITY PRICE OF THE MOVE ON ONE VERTEX
+  SET**, `Local.not_five_le_of_localFuseCol`, `Local.TightAt` + `Local.localFuseCol_admissible_iff`
+  (**the localised fusion criterion, a decidable statement with no search**),
+  `Local.TightAt_subset_Tight`, `Local.TightAt_mono` (**the broken family is monotone in the
+  region**), `Local.localFuseCol_admissible_of_disjoint` and `Local.mem_TightAt_univ` (**round 84's
+  criterion recovered at `A = V`**);
+* §6: `Local.no_localFusion_sixCol`, `..._nineCol`, `..._tenCol`, `..._elevenCol`, `..._r66Col` —
+  no localised fusion of any pair, in any region, improves any verified colouring of the
+  development; these are *theorems* (from `EG 6 = 5`, `EG 9 = 8`, `EG 10 = 9`, `EG 11 = 10`,
+  `EG 12 = 11`), not finite checks.
+
+Consequence recorded honestly: **localisation buys nothing**, so the rate-`5/6` construction cannot
+be obtained from *any* recolouring of an existing admissible colouring that identifies colours.  It
+must be a genuinely different object — as in both published papers, a probabilistic one.
+
+MECHANICS (Lean 4.34.0) — recorded so they are not repeated:
+
+* **`if c then a else b` in a THEOREM STATEMENT needs a `Decidable c` instance at statement
+  elaboration time**, where the `classical` tactic of the proof is not yet in scope.  `Fusion`'s
+  price formulas avoid this because every condition is a `Finset` membership; a condition such as
+  `JInside c j A S` (a `∀` over `Sym2`) therefore needs an explicit `instance ... : Decidable
+  (JInside c j A S) := by unfold JInside; infer_instance` (it *is* computable, being a finite check
+  over `edgeFinset S`);
+* `if_neg (fun h => And.intro …)` is wrong: `if_neg` wants a **negation**, so write
+  `if_neg (fun h => absurd h.2 hn)` or `if_neg (fun h => h ⟨h.1, h.2⟩)`;
+* a *membership* proof has no `.trans`: `Finset.mem_image.mp hx` gives a pair, so reconstruct with
+  `⟨hx.1, hx.2⟩`; and `heq ▸ hi` needs the expected type to be known, otherwise give it
+  (`exact fun (hix : i = x) => …`);
+* `Finset.eq_empty_iff_forall_notMem : s = ∅ ↔ ∀ ⦃a⦄, a ∈ s → False` has an **implicit** binder, so
+  after `intro S hS` the goal is `False`, not `S ∉ s` (`Finset.eq_empty.mpr` does not exist);
+* `Finset.mem_erase : a ∈ s.erase b ↔ a ≠ b ∧ a ∈ s` — the `≠` comes **first**;
+* a chained `rw [localFuseCol_apply, if_neg …, hce]` may fail on the *third* lemma (rewrites do not
+  revisit); end with `exact hce` instead, or `show` the goal first;
+* `Nat` omega steps of the form `x - 1 + 1 = x` need the guard `0 < x` in context
+  (`Finset.card_pos.mpr ⟨j, hj⟩`), otherwise omega reports a counterexample with `x = 0`;
+* `Verts n` is `Fin n`, so `x ∈ S ∩ (Finset.univ : Finset (Verts n))` must be *displayed* with the
+  ascription before `rw [Finset.mem_inter]` fires;
+* **CHECK FOR NAME COLLISIONS BEFORE CREATING A NEW FILE IN `JSPProblem/`**: this round's first
+  `Write` was to `JSPProblem/Local.lean`, which already existed (round 25, imported by
+  `Main.lean`), and overwrote it; the file was restored from the mirror
+  `/workspace/jsp-repos/jsp-000140-lean/lean/JSPProblem/Local.lean` (which is otherwise byte-identical
+  to the working tree), and the new file was written as `LocalFuse.lean`.
+
+---
+
 ## Status (round 86)
 
 `lake build`: **OK** (3170 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
