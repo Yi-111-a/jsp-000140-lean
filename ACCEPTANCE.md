@@ -1,3 +1,55 @@
+## Status (round 88)
+
+`lake build`: **OK** (3172 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 88 ATTACKS THE ONE TOOL THE FIRST STAGE WAS MISSING: THE RÖDL NIBBLE.**  New file
+`lean/JSPProblem/Nibble.lean` (597 lines, 33 declarations, zero placeholders, on the default build
+path; `JSPProblem.lean` imports it).  It is written as **finite counting** — no probability, no
+measure — because the hypergraph is a `Finset` and every ingredient the nibble needs is a counting
+inequality over it.
+
+**THE OBJECT HAD NEVER BEEN WRITTEN.**  The reduction chain of rounds 40–60 needs a *matching* in the
+slot hypergraph `H = auxF n k` of size `|E(H)|/5` (`Hyper.card_auxF = n(n-1)(n-2)k(k-1)`, so
+`|E(H)|/5 ≈ n³k²/5`, while the budget of `Hyper.first_stage_size` consumes `42|F| ≥ n((7-δ)n-1)`
+members and `Pack.PackFamily`/`Partial.FamGreedyFamily` force `|F| ≈ n²/6` of them to be
+pairwise slot-disjoint).  `Nibble.lean` writes that hypergraph algebra:
+
+* `Meet`, `MeetNeigh`, `PDisj`, `PPack` (i-element partial packings), `Av` (the hyperedges still
+  available after a partial packing), `Av.card_le`, `Av.extend`, `chain_len` (the greedy chain as a
+  theorem);
+* **`card_Av_ge` — THE FIRST MOMENT**: `|H| ≤ |Av sl H M| + |M| * C`;
+* `nAv`, `Good`, `Bad`, `good_union_bad`, `card_good_add_card_bad`, `var` (the ℕ double sum of
+  squared pairwise differences of `nAv`), `var_eq_zero_of_const`, **`chebyshev` — `|Bad| * |Good| ≤ V`**,
+  `Variance` / `Pigeonhole` / `pigeonhole_extend` / `pigeonhole_of_firstMoment`;
+* `codeg`, `mem_codeg`, **`codeg.card_le_auxDeg`** (`Δ₂ ≤ Δ`), `codeg.card_le_deg`.
+
+**THE EXACT PRICE OF THE FIRST MOMENT FOR `H = auxF n k`.**  `meetNeigh_sub` and **`meet_card_le`**
+give `C = 25(n-1)(n-2)(k-1)` for the first-moment slack, so **`greedy_card_ne_zero`** proves that the
+first moment does produce a matching of `n*k/25` members of `H` (for `n ≥ 3`, `k ≥ 2`), and
+**`firstMoment_short`** proves `n*k/25 < n*n/6` for `n ≥ 3`, `k ≤ n`: **a factor of five short of the
+prize budget.**  This is exactly the obstruction round 40 found for greedy, now derived cleanly as a
+first-moment statement and localized to a single named lemma.
+
+**THE SECOND MOMENT IS THEOREM, NOT ARTEFACT.**  The counterexample of §3 — **two vertex-disjoint
+triangles**, the six edges `01 12 02 34 45 35` of `{0,1,2}` and `{3,4,5}` — satisfies every
+first-moment inequality at every level (`|Av M| + 3|M| ≥ 6` for all 16 of its matchings) and has a
+matching of size `2` but **none of size `3 = |H|/ℓ`**.  Both statements are machine-checked by
+`discovery/JSP-000140/r88_twotri_check.py`; their Lean versions (`twoTri_firstMoment`,
+`twoTri_no_matching_three`, proved by `decide` over all 64 sub-families with `maxRecDepth 200000`)
+compile standalone but cost `~6 GB` and were OOM-killed (`exit 137`) by `lake build` on this 15 GB
+machine, so they are off the build path this round and are the first target of round 89.
+
+**WHAT IS STILL MISSING (unchanged and now precisely named).**  `Main.AdmissibleUpper eps` for
+`0 < eps < 1/6`: the probabilistic existence of the labelled-triangle systems of arXiv:2207.02920
+§4/§12.  `jsp_000140_main` was again **not** declared — declaring it with the existence statement as
+an assumption would falsify the prize.  After this round the first stage reduces to the single
+statement `Nibble.Variance sl (auxF n k) i < |PPack sl (auxF n k) i| - 1` together with
+`Nibble.Pigeonhole` and `pigeonhole_extend`: the Rödl–Pippenger–Spencer second moment for this
+hypergraph.  `SUCCESS` was **not** written.
+
 ## Status (round 87)
 
 `lake build`: **OK** (3171 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`

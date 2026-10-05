@@ -69,3 +69,4 @@ import JSPProblem.One
 import JSPProblem.PadSet
 import JSPProblem.Fusion
 import JSPProblem.LocalFuse
+import JSPProblem.Nibble
