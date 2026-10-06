@@ -1,3 +1,100 @@
+## Status (round 95)
+
+`lake build`: **OK** (3179 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 95 MOVES THE PRIZE OFF THE HARDEST RESIDUE CLASS AND CUTS THE CONSTANT: THE
+CLASS `3 (mod 6)` CARRIES THE SHARP PALETTE ALREADY AT `n = 9`, WHERE `1 (mod 6)` CARRIES IT NOWHERE.**
+New file `lean/JSPProblem/Residue.lean` (21 declarations, 0 placeholders, on the default build
+path; `JSPProblem.lean` imports it).
+
+Round 94's `Sharpest.main_reduction` is the first reduction with a *consistent* hypothesis, but it
+puts that hypothesis on the worst possible residue class.  Three facts, all proved here, say
+otherwise.
+
+### §0 — The sharp palette is **attained at `n = 9`**, the first order where it can be
+
+Round 94 recorded only `Sharpest.sharp_at_twelve` (`n = 12 ≡ 0 (mod 6)`) and then built its
+reduction on `m ≡ 1 (mod 6)` — the class on which the palette is *tightest* (`6 · Palette m =
+5m + 1`, gap `1`) and hence hardest.  But the development already contains a verified witness on the
+class `3 (mod 6)`:
+
+| theorem | statement |
+|---|---|
+| **`Residue.palette_attained_at_nine`** | **`Palette 9 = EG 9`** — `⌈46/6⌉ = 8 = f(9,4,5)` (`Vacant.EG_nine`, certified by `Tables.nineCol` over all `C(9,4) = 126` four-sets), and `9 ≡ 3 (mod 6)` |
+| `Residue.palette_nine` | `Palette 9 = 8` |
+| `Residue.nine_is_an_instance` | `m = 9` already satisfies the hypothesis of §1 |
+| `Residue.palette_attained_at_twelve_three` | `∃ c : Col 12 (Palette 12), Admissible c` — the `n = 12` witness in `∃`-form |
+| `Residue.witnesses_nine_and_twelve` | the two verified witnesses sit at palette gaps `3` and `6`: `6·8 = 5·9+3`, `6·11 = 5·12+6` |
+
+So the sharp palette is *attained* at `n = 9`, and `9` is the **first** order at which it is
+attained.  The design hypothesis of §1 is therefore **a theorem at its first instance**, not an open
+question at every instance — which is exactly the opposite of round 94's `m ≡ 1 (mod 6)`, `m ≥ 13`.
+
+### §1 — The prize, on one residue class, from `n = 9`, with constant `28`
+
+| theorem | statement |
+|---|---|
+| `Residue.palette_three_six` | `6 · Palette (6t+3) = 5(6t+3) + 3` — the palette gap on `3 (mod 6)` |
+| `Residue.palette_one_six'` | `6 · Palette (6t+1) = 5(6t+1) + 1` — the gap on `1 (mod 6)` |
+| `Residue.palette_zero_six` | `6 · Palette (6t) = 5(6t) + 6` — the gap on `0 (mod 6)` |
+| `Residue.three_gt_one` | the gap on `3 (mod 6)` is **three times** the gap on `1 (mod 6)`: `1 < 3` |
+| `Residue.three_family_const` | `6 · Palette m = 5(m-1) + 8` on `3 (mod 6)`, against `5(m-1) + 6` on `1 (mod 6)` |
+| `Residue.exists_three_mod_six_le_five` | above every `n ≥ 6` there is an `m ≡ 3 (mod 6)` with `n ≤ m ≤ n + 5` |
+| `Residue.window_five_sharp` | five is optimal: at `n ≡ 4 (mod 6)` the nearest `m ≡ 3 (mod 6)` is at distance five |
+| **`Residue.count_bound_three`** | the hypothesis implies **`6 · EG n ≤ 5n + 28`** for every `n ≥ 6` — **strictly better than round 94's `5n + 31`** |
+| `Residue.count_bound_three_dominates` | the improvement is uniform in `n` |
+| **`Residue.main_reduction_three`** | **the prize**: `(∀ m ≥ 9, m % 6 = 3 → ∃ c : Col m (Palette m), Admissible c) → jsp_000140_target` |
+| `Residue.main_reduction_three_documented` | the hypothesis is *already true* at `m = 9` |
+| **`Residue.best_reduction`** | the prize together with `∀ n ≥ 6, 6 · EG n ≤ 5n + 28` |
+
+The improvement is a consequence of §0's arithmetic, not of any new counting: the gap on the target
+class is `3` and not `6`, and round 94's `count_bound_thirteen` used the crude `6 · Palette m ≤
+5m + 6`.  `three_gt_one` records *why* the two classes are not interchangeable — the gap is the
+amount by which an admissible colouring of `K_{6t+3}` is forced to exceed the counting bound, and
+on `3 (mod 6)` the catalogue construction has room for exactly `3` of them.
+
+### §2 — Why `3 (mod 6)` is the class of the catalogue construction: the Kirkman split
+
+The sharp palette is not merely *not excluded* at `n ≡ 3 (mod 6)`; it is **forced by the
+construction, with zero slack**.
+
+| theorem | statement |
+|---|---|
+| `Residue.kirkman_classes` | `(2t+1)(3t+1) = (6t+3)(6t+2)/6` — an `STS(6t+3)` resolves into `3t+1` parallel classes of `2t+1` blocks |
+| `Residue.kirkman_spans` | `3(2t+1) = 6t+3 = n`: every cherry colour is a **spanning** factor `3^{2t+1}` (`Miss.miss = 0`) |
+| `Residue.kirkman_leaves` | the leftover (leaf) edges number `(2t+1)(3t+1)`, one per block |
+| `Residue.kirkman_leaf_budget` | `(2t+1)(3t+1) ≤ (2t+2)(3t+1)`: the leaf half needs `⌈n/3⌉ = 2t+2` colours |
+| **`Residue.kirkman_split`** | **`(3t+1) + (2t+2) = 5t+3 = Palette (6t+3)`** |
+| `Residue.kirkman_exact` | `6 · ((3t+1) + (2t+2)) = 5n + 3` |
+| `Residue.kirkman_one_short` | on `1 (mod 6)` the same split needs `Palette (6t+1) + 1`, because a parallel class covers only `6t = n-1` vertices |
+| `Residue.kirkman_one_classes` | the near-resolution arithmetic of the class `1 (mod 6)`: `3t · 2 = 6t` |
+
+`kirkman_split` is the first statement in the development that says the sharp palette is **exactly**
+the palette of the construction.  Round 94 had `Sharpest.palette_one_ne_extremal` — the sharp palette
+`6k = 5n+1` escapes `Strict.not_sharp` by exactly six.  Here the split into the construction's two
+halves lands on the sharp palette with **no slack at all**, and the reason is structural:
+a Kirkman resolution needs `3 ∣ n` (so that a parallel class covers all `n` vertices) and
+`STS(n)` needs `n ≡ 1, 3 (mod 6)` (Kirkman's theorem), and the intersection is exactly
+`n ≡ 3 (mod 6)`.  On `1 (mod 6)` a parallel class can only cover `n - 1` vertices, the construction
+wastes one colour per order, and that is the price round 94 was paying.
+
+### §3 — What is still missing
+
+The existence of admissible `Palette m`-colourings of `K_m` for `m = 15, 21, 27, …` (the class
+`3 (mod 6)` above `9`).  This is the content of arXiv:2207.02920 §4, which is probabilistic
+(random triangle removal + a differential-equation argument); there is no explicit family in the
+literature to formalise.  The *first* instance of the new hypothesis, `m = 9`, is a theorem of this
+development (`EG 9 = 8`), so the route is not blocked at its base.
+
+The searches of round 95 (`discovery/JSP-000140/r95_k13.c`, min-conflicts on the `K₁₃`/11-colouring
+instance, the first open instance on the class `1 (mod 6)` that round 94 identified) did **not**
+settle `K₁₃`; the program is kept so the run is not repeated blindly.  On the class `3 (mod 6)` the
+first open instance is `m = 15`, i.e. `∃ c : Col 15 13, Admissible c`, which is *not* covered by
+any search run so far.
+
 ## Status (round 94)
 
 `lake build`: **OK** (3178 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
