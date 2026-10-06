@@ -77,3 +77,4 @@ import JSPProblem.VertexBudget
 import JSPProblem.Sharp6
 import JSPProblem.Sharpest
 import JSPProblem.Residue
+import JSPProblem.Three

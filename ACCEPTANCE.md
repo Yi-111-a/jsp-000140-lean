@@ -1,3 +1,79 @@
+## Status (round 97)
+
+`lake build`: **OK** (3180 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`, score file `harness/runs/score-20261006-101124-586660.json`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 97 FILLS IN THE MISSING SHAPE OF ROUND 95'S OWN HYPOTHESIS AND PRODUCES ITS SEARCH
+CERTIFICATE.**  New file `lean/JSPProblem/Three.lean` (28 declarations, 0 placeholders, on the
+default build path; `JSPProblem.lean` imports it).
+
+### §0 — The shape `6k = 5n + 3` is the shape of round 95's hypothesis, and `Miss.lean` never named it
+
+Round 95 moved the prize onto the residue class `3 (mod 6)`, where the sharp palette satisfies
+`6 · Palette m = 5m + 3` (`Residue.palette_three_six`).  So the hypothesis of
+`Residue.main_reduction_three` is *"for every `m ≥ 9`, `m ≡ 3 (mod 6)`, there is an admissible
+`Palette m`-colouring of `K_m`"*, i.e. an admissible colouring **in the shape `6k = 5n + 3`**.
+Round 74's `Miss.lean` converts a shape `6k = 5n + D` into a bound on the empty cells of the
+`(vertex, colour)` grid and named the shapes `D = 5` (`budget_tight`), `D = 1` (`budget_refined`)
+and `D = 6` (`budget_anchor`, the shape of the verified witness `EG 12 = 11`).  **`D = 3` was the
+one shape of the three live residue classes that it did not name.**  This file adds it, plus the
+general shape lemma it comes from, plus the complete shape table.
+
+| theorem | statement |
+|---|---|
+| **`Three.budget_shape`** | **the shape lemma: `6k = 5n + D ⟹ 6 · ∑ᵢ miss c i ≤ n (D+5)`** — `Miss.budget` with the shape named as a hypothesis |
+| **`Three.budget_three`** | **the missing shape: `6k = 5n + 3 ⟹ 6 · ∑ᵢ miss c i ≤ 8n`, i.e. at most `4n/3` empty cells** |
+| `Three.budget_three'`, `Three.budget_three_twenty` | `3 ∑ miss ≤ 4n`; at `n = 6t+3`, `k = 5t+3`: `∑ miss ≤ 8t+4` |
+| `Three.budget_zero`, `budget_two`, `budget_four`, `budget_five` | the remaining unnamed shapes `D = 0, 2, 4, 5` |
+| **`Three.shape_table`** | **`D` per residue class: `1` on `1 (mod 6)`, `3` on `3 (mod 6)`, `6` on `0 (mod 6)`** — the two budgets `Miss.lean` had, plus this round's |
+| `Three.palette_shape_three`, `Three.palette_gap_three` | for `m ≡ 3 (mod 6)`: `6 · Palette m = 5m + 3` and `6 · Palette m - 5(m-1) = 8`, i.e. round 95's hypothesis **is** the `D = 3` order and is thin to within `8/6 = 1⅓` colours |
+
+### §1 — The search certificate any witness of round 95's hypothesis must satisfy
+
+Substituting `6k = 5n + 3` into the three counting lemmas of the development (`Paths.mul_n_sub_one_le`,
+`Cherry.six_mul_paths_le`, `Singles.card_singleFinset`) pins every global defect parameter of a
+palette design, and `Three.miss_pigeonhole` turns the empty-cell budget into a *counting* statement
+about how many colours are spanning.
+
+| theorem | statement |
+|---|---|
+| **`Three.three_paths_window`** | **at `D = 3`: `n² ≤ 6 · Paths c + 9n` and `6 · Paths c ≤ n(n-1)` — the two-edge-path count is pinned to a window of width `4n/3`** |
+| `Three.three_paths_lower_fifteen` | at `m = 15`: `15 ≤ Paths c` |
+| **`Three.three_single_window`** | **at `D = 3`: `n(n-1) ≤ 6 · #single edges ≤ n(n+15)` — the two halves of the catalogue construction are of the same order, `Θ(n²/6)`** |
+| **`Three.miss_pigeonhole`** | **the generalised pigeonhole: `k - ∑ᵢ (miss c i / (r+1)) ≤ |{i : miss c i ≤ r}|` for `r ≥ 1`** |
+| **`Three.three_spanning_thirds`** | **at `D = 3`: at least `(n+3)/6` of the colours span all but one vertex — at least a fifth of the palette** |
+| `Three.three_spanning_three` | at `n = 6t+3`, `k = 5t+3`: at least `t+1` of the `5t+3` colours are near-spanning |
+| `Three.three_some_spanning` | at `D = 3`: some colour has `miss ≤ 1` |
+| `Three.three_spanning_edges` | a colour with `miss ≤ 1` carries at least `(n-1)/2` edges |
+| **`Three.instance_fifteen`, `instance_twentyone`, `instance_twentyseven`** | **the certificate windows in numerals for the three open instances: `15 ≤ Paths ≤ 35`, `∑miss ≤ 20`, `≥ 3` near-spanning colours at `m = 15`; `42 ≤ Paths ≤ 70`, `∑miss ≤ 28`, `≥ 4` at `m = 21`; `81 ≤ Paths ≤ 117`, `∑miss ≤ 36`, `≥ 5` at `m = 27`** |
+| `Three.instance_nine_checked` | the same window at the one *verified* instance, `m = 9`, `k = 8` |
+| `Three.open_hypothesis_stated`, `Three.three_not_excluded` | the hypothesis of round 95 is still open at `m = 15, 21, 27, …`; and unlike the shape `6k = 5(n-1)` (refuted by `Strict.not_sharp`) the `D = 3` shape is **arithmetically feasible at every order** |
+
+### §2 — Search progress on the open instances (`discovery/JSP-000140/r97_search.c`)
+
+A min-conflicts / tabu search over edge-colourings of `K_n` with `k` colours, minimising the number
+of four-sets spanning at most four colours (an explicit bad-quad list, all `C(n,4)` four-sets
+checked on every move):
+
+| instance | bad four-sets reached | prior best in this development |
+|---|---|---|
+| `K_10`, `k = 8` (`f_ten_eight_is_open`) | **19 / 210** in 900 s (147 M iterations) | open; `EG 10 ≤ 9` proved |
+| `K_15`, `k = 13 = Palette 15` | **18 / 1365** in 900 s | never searched |
+| `K_15`, `k = 12` (the counting bound `⌈5·14/6⌉`) | 39 / 1365 in 900 s | never searched |
+
+The `K_15`, `k = 13` figure is the first encouraging search result in this development on a palette
+instance: rounds 93 and 95 stalled at 113/715 and 32/715 on `K_13`.  Nothing is settled; the
+program and the seeds are kept for the next round.
+
+### What is NOT claimed
+
+Round 97 proves necessary conditions only.  The sole remaining content of `jsp_000140_main` is
+still the probabilistic existence theorem of arXiv:2207.02920 §4 in the form
+`Residue.main_reduction_three` isolates it: for every `m ≥ 9` with `m ≡ 3 (mod 6)` there is an
+admissible `⌈(5m+1)/6⌉`-colouring of `K_m`.  The first open instance is `m = 15`.
+
 ## Status (round 95)
 
 `lake build`: **OK** (3179 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
