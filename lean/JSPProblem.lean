@@ -75,3 +75,4 @@ import JSPProblem.PathFac
 import JSPProblem.Barrier
 import JSPProblem.VertexBudget
 import JSPProblem.Sharp6
+import JSPProblem.Sharpest

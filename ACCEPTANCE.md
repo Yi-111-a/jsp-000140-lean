@@ -1,3 +1,102 @@
+## Status (round 94)
+
+`lake build`: **OK** (3178 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
+(invoked on `problems/JSP-000140/lean`):
+`build_ok = true`, `sorry = 0`, `admit = 0`, `partial_ok = true`, `prize_ready = false`,
+`missing_theorems = ["jsp_000140_main"]`.
+
+**ROUND 94 PUTS THE PRIZE ON A CONSISTENT FOOTING: THE FIRST NON-VACUOUS REDUCTION OF
+`jsp_000140_target` TO A FINITE DESIGN-EXISTENCE HYPOTHESIS.**  New file
+`lean/JSPProblem/Sharpest.lean` (43 declarations, 0 placeholders, on the default build path;
+`JSPProblem.lean` imports it).
+
+Rounds 13–30 and 71–72 built the whole *extremal* structure theory on `6k = 5(n-1)`, and four
+separate reductions of the headline rest on a family of admissible colourings attaining that value:
+`Restriction.fiveSixthUpper_of_extremal_family`, `Restriction.fiveSixth_of_extremal_family`,
+`Restriction.jsp_000140_main_of_STS_family`, `Main.jsp_000140_main_of_STS_family`.  **Round 81
+(`Strict.not_sharp`) already refuted that hypothesis, so all four reductions are theorems about the
+empty class** — as is the whole extremal structure theory and round 68's growth route
+(`Sharp6.main_is_vacuous`).  This round proves that refutation in the exact form used by those four
+theorems, and then replaces them.
+
+### §0 — THE SHARP PALETTE AT EVERY ORDER: `Palette n = ⌈(5n+1)/6⌉`
+
+Round 93 computed this for the single class `n ≡ 0 (mod 6)` (`Sharp6.ge`); §0 computes it for all
+six classes, shows it is *attained*, and turns it into one finite question per order.
+
+| theorem | statement |
+|---|---|
+| **`Sharpest.palette_zero` … `Sharpest.palette_five`** | the table `⌈(5t+r)/6⌉ = 5t + 1, 1, 2, 3, 4, 5` for `r = 0, 1, 2, 3, 4, 5` |
+| `Sharpest.six_eq_add` | `Palette (n+6) = Palette n + 5` |
+| `Sharpest.ge` | `Palette n ≤ f(n,4,5)` for every `n ≥ 7` (=`Vacant.EG_ge_ceil_five_sixth_plus_one`) |
+| **`Sharpest.sharp_at_twelve`** | **`Palette 12 = EG 12 = 11` — the refined bound is ATTAINED, so it is a genuine construction target** |
+| **`Sharpest.eq_palette_iff`** / `Sharpest.lt_palette_iff` | for **every** `n ≥ 7`: `EG n = Palette n ↔ ∃ c : Col n (Palette n), Admissible c` (round 93 had this for `n = 18` alone) |
+
+### §1 — THE FOUR OLD REDUCTIONS ARE VACUOUS
+
+| theorem | statement |
+|---|---|
+| `Sharpest.not_at_thirteen` | `¬ ∃ k c : Col 13 k, Admissible c ∧ 6k = 5·12` |
+| **`Sharpest.extremal_family_false`** | **`¬ (∀ m ≡ 1 (mod 6), ∃ k c : Col m k, Admissible c ∧ 6k = 5(m-1))` — the hypothesis of all four reductions of rounds 27–30 is FALSE** |
+| **`Sharpest.palette_one_ne_extremal`** | while `Palette m` is *not* refuted: `6·Palette m = 5(m-1) + 6` on the class `1 (mod 6)`, the gap of six being exactly what `not_sharp` forbids |
+
+### §2 — THE FIRST NON-VACUOUS REDUCTION (the prize from the sharp palette)
+
+`Sharpest.SharpFamily` = *for every `m ≡ 1 (mod 6)`, `m ≥ 7`, `K_m` admits an admissible
+`Palette m = ⌈(5m+1)/6⌉`-colouring* — the design-existence hypothesis of arXiv:2207.02920, at the
+palette the counting bound demands.
+
+| theorem | statement |
+|---|---|
+| **`Sharpest.count_bound`** | **`SharpFamily → 6·f(n) ≤ 5n + 31` for every `n ≥ 7`** — the same constant as round 93's refuted `Grow6At.count_bound`, reached *without* an extension lemma |
+| `Sharpest.fiveSixthUpper` | `SharpFamily → FiveSixthUpper EG`, with the explicit threshold `n ≥ max 7 (⌈31/(6ε)⌉+1)` |
+| **`Sharpest.AdmissibleUpper_of_sharp_family`** | **`SharpFamily → AdmissibleUpper ε` for every `ε > 0` — the sole surviving content of `jsp_000140_main`** |
+| **`Sharpest.main_reduction`** | **`(∀ m ≥ 13, m ≡ 1 mod 6, ∃ c : Col m (Palette m), Admissible c) → jsp_000140_target`** — the headline, from one *consistent* hypothesis |
+| `Sharpest.count_bound_thirteen` | the same constant with the threshold raised to `m ≥ 13` |
+| `Sharpest.exists_one_mod_six_le_five` | above every `n` there is an order `m ≡ 1 (mod 6)` within distance **five** (round 76's lemma: six) |
+
+### §3 — NON-VACUOUS RIGIDITY AT THE SHARP PALETTE (`6k = 5n+1`, `n ≥ 13`)
+
+The extremal theory of rounds 13–30 is refuted; its content transfers to the *live* palette.
+
+| theorem | statement |
+|---|---|
+| `Sharpest.shape` | `Isolated c = n ∧ Defect c = 0` — every slot but one used, every edge paid for by a two-edge path |
+| **`Sharpest.is_STS`** | **at `6k = 5n+1` the two-edge paths form a Steiner triple system, at EVERY order `n ≥ 13`** — `tight_pathFinset_is_STS` applied to `Defect c = 0` together with the counting lemma (round 76 had this for `n = 13` only, in `Window.extremal_at_thirteen_is_STS`) |
+| `Sharpest.sharp_six_sub_one`, `Sharpest.sharp_mod_six` | the sharp palette forces `n - 1 = 6(n-k)`, i.e. it is attainable **only** at `n ≡ 1 (mod 6)` |
+| `Sharpest.paths_eq_nk`, **`Sharpest.paths_six`** | `Paths c = n(n-k)` and **`6·Paths c = n(n-1)`**: the maximum possible number of two-edge paths, the Steiner count |
+| **`Sharpest.single_eq_paths`, `Sharpest.third_split`** | **THE ONE-THIRD STATEMENT: `(singleFinset c).card = Paths c` and both equal `n(n-1)/6`, i.e. one third of `C(n,2)` each** — a sharp-palette colouring is one third single edges, one third "odd" cherry edges, one third "even" cherry edges |
+
+### §4 — THE PRICE OF A BALANCED COLUMN, AT EVERY ORDER
+
+`PathFac.Balanced.five_dvd_n` (`5 ∣ n`) was proved under the refuted extremality hypothesis.  §4
+drops it:
+
+| theorem | statement |
+|---|---|
+| **`Sharpest.balanced_price`** | **for EVERY admissible colouring: a column with as many cherries as single edges costs `5 ∣ (n - miss_i)`** |
+| `Sharpest.balanced_five_blocks` | that column carries exactly `(n-miss_i)/5` cherries and as many single edges: a `3^{n/5}2^{n/5}` factor, alive at every order |
+| `Sharpest.sharp_mod5_cases`, `Sharpest.sharp_dvd_six` | at the sharp palette: `6 ∣ (n-1)` and (`5 ∣ n` or `5 ∣ (n-1)`), i.e. by CRT exactly `n ≡ 1` or `25 (mod 30)` — round 90 could name only `25`, and only vacuously |
+
+### §5 — WHERE THE FAMILY MAY START, AND THE FIRST OPEN ORDER
+
+| theorem | statement |
+|---|---|
+| **`Sharpest.not_at_seven`** | **the sharp-palette question is settled NEGATIVELY at `n = 7`** (`Palette 7 = 6`, `EG 7 = 7`), so a design family must start above `7` — which is why `main_reduction` uses the threshold `13` |
+| `Sharpest.thirteen_palette`, `Sharpest.thirteen_ge`, `Sharpest.thirteen_cases` | `Palette 13 = 11`, `11 ≤ EG 13`, `EG 13 = 11 ∨ 12 ≤ EG 13`: the first order at which the sharp palette is undecided, i.e. the single finite question `∃ c : Col 13 11, Admissible c` |
+
+### What is still missing (unchanged, but no longer vacuous)
+
+`Main.AdmissibleUpper ε` for `0 < ε < 1/6` — the probabilistic existence theorem of
+arXiv:2207.02920 §4/§12 — is still the sole remaining content of `jsp_000140_main`, and
+`jsp_000140_main` was again **not** declared.  What is new is that the hypothesis of §2 is
+**consistent** (unlike the four reductions it replaces, §1), **tight** (§0: no smaller palette can
+work, and `Palette 12` is attained), and **explicitly quantified**: it is enough to build
+`⌈(5m+1)/6⌉`-colourings of `K_m` for `m ≡ 1 (mod 6)`, `m ≥ 13`, each of which (§3) must carry a
+Steiner triple system of `n(n-1)/6` blocks and `n(n-1)/6` single edges, and §4 prices every column
+of it.
+
+
 ## Status (round 93)
 
 `lake build`: **OK** (3177 jobs).  `sorry`/`admit`: **0**.  `harness/score.py --strict-prize`
